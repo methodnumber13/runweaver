@@ -1,0 +1,5 @@
+.DS_Store
+.runweaver/tmp/
+.opencode/tmp/
+coverage.out
+*.test
