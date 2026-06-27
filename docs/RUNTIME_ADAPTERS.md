@@ -87,9 +87,9 @@ Default runtime is `opencode` to preserve existing behavior. Codex and Claude Co
 
 Current adapter behavior:
 
-- writes `opencode.json`;
-- writes `.opencode/agents/*.md`;
-- writes `.opencode/skills/*/SKILL.md`;
+- creates or merges the project OpenCode config (`opencode.json`, `opencode.jsonc`, `.opencode/opencode.json`, or `.opencode/opencode.jsonc`);
+- writes `.opencode/agents/*.md` only when the target is absent or already marked as RunWeaver-generated;
+- writes `.opencode/skills/*/SKILL.md` only when the target is absent or already marked as RunWeaver-generated;
 - writes `.runweaver/workflows/*.json`;
 - writes `.opencode/swarm/profile.json`;
 - executes `opencode run --agent swarm --dir <repo> --format json`;
@@ -97,6 +97,8 @@ Current adapter behavior:
 - relies on OpenCode primary agents, subagents, task delegation, permissions, and `todowrite`.
 
 Static provider metadata is implemented by `runtimecatalog/opencode`. Runtime behavior is implemented by `runtime_opencode.go`; behavior is covered by runtime-aware command specs and tests.
+
+All adapters follow the same safe-write rule: `--force` refreshes RunWeaver-generated files and removes stale generated metadata, but it preserves manual agents and skills that do not contain the RunWeaver generated marker. Existing instruction files keep user content through managed RunWeaver blocks and one-time `.runweaver.bak` backups.
 
 ## Codex Adapter
 

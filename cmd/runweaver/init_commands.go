@@ -8,7 +8,7 @@ import (
 func (c cli) initCmd(args []string) error {
 	fs := newFlagSet("init")
 	repo := fs.String("repo", ".", "repository path")
-	force := fs.Bool("force", false, "overwrite existing generated runtime files")
+	force := fs.Bool("force", false, "refresh RunWeaver-generated runtime files; merge project config files with backups")
 	runtimeProvider := fs.String("runtime", aitools.RuntimeOpenCode, "runtime provider: opencode, codex, claude, all, or comma-separated list")
 	requireModel := fs.Bool("require-model", false, "fail if OpenCode model/provider preflight is not ready")
 	provider := fs.String("provider", "", "OpenCode provider id for model preflight; defaults to the provider prefix in the configured model")

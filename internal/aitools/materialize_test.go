@@ -2,6 +2,7 @@ package aitools
 
 import (
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -126,6 +127,82 @@ func TestMaterializeProfileForceRemovesOnlyStaleGeneratedMetadata(t *testing.T) 
 	} {
 		if !Exists(filepath.Join(root, path)) {
 			t.Fatalf("expected metadata to exist: %s", path)
+		}
+	}
+}
+
+func TestMaterializeProfileForceDoesNotOverwriteManualNameConflicts(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".opencode/agents/new-agent.md", "manual agent\n")
+	writeTestFile(t, root, ".opencode/skills/new-skill/SKILL.md", "manual skill\n")
+
+	profile := Profile{Repos: []RepoProfile{{
+		Kind: "node-api",
+		Agents: []AgentProfile{{
+			Name:        "new-agent",
+			Description: "Generated agent with same name",
+		}},
+		CustomSkills: []SkillProfile{{
+			Name:        "new-skill",
+			Description: "Generated skill with same name",
+		}},
+	}}}
+
+	if err := MaterializeProfile(root, profile, true); err != nil {
+		t.Fatal(err)
+	}
+	agent, err := os.ReadFile(filepath.Join(root, ".opencode/agents/new-agent.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(agent) != "manual agent\n" {
+		t.Fatalf("manual agent was overwritten:\n%s", string(agent))
+	}
+	skill, err := os.ReadFile(filepath.Join(root, ".opencode/skills/new-skill/SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(skill) != "manual skill\n" {
+		t.Fatalf("manual skill was overwritten:\n%s", string(skill))
+	}
+}
+
+func TestMaterializeProfileForRuntimesForceDoesNotOverwriteManualRuntimeNameConflicts(t *testing.T) {
+	root := t.TempDir()
+	manualFiles := map[string]string{
+		".opencode/agents/new-agent.md":       "manual opencode agent\n",
+		".opencode/skills/new-skill/SKILL.md": "manual opencode skill\n",
+		".codex/agents/new-agent.toml":        "manual codex agent\n",
+		".agents/skills/new-skill/SKILL.md":   "manual codex skill\n",
+		".claude/agents/new-agent.md":         "manual claude agent\n",
+		".claude/skills/new-skill/SKILL.md":   "manual claude skill\n",
+	}
+	for path, content := range manualFiles {
+		writeTestFile(t, root, path, content)
+	}
+
+	profile := Profile{Repos: []RepoProfile{{
+		Kind: "node-api",
+		Agents: []AgentProfile{{
+			Name:        "new-agent",
+			Description: "Generated agent with same name",
+		}},
+		CustomSkills: []SkillProfile{{
+			Name:        "new-skill",
+			Description: "Generated skill with same name",
+		}},
+	}}}
+
+	if err := MaterializeProfileForRuntimes(root, profile, true, []string{RuntimeOpenCode, RuntimeCodex, RuntimeClaude}); err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range manualFiles {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != want {
+			t.Fatalf("manual runtime metadata %s was overwritten:\n%s", path, string(data))
 		}
 	}
 }

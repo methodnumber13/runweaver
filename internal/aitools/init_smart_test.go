@@ -144,3 +144,160 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 		}
 	}
 }
+
+func TestInitSmartMergesExistingOpenCodeConfigAndKeepsBackup(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"go test ./..."},"devDependencies":{"typescript":"latest"}}`)
+	writeTestFile(t, root, "src/app.ts", "export const app = true\n")
+	writeTestFile(t, root, "opencode.json", `{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "custom-agent",
+  "instructions": "CUSTOM.md",
+  "plugin": ["custom-plugin"],
+  "provider": {
+    "company-llm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://llm-provider.example.com/v1",
+        "apiKey": "{env:RUNWEAVER_MODEL_API_KEY}"
+      }
+    }
+  },
+  "mcp": {
+    "custom": {
+      "type": "local",
+      "command": ["custom-mcp"]
+    }
+  },
+  "permission": {
+    "bash": {
+      "custom-tool *": "allow"
+    }
+  },
+  "watcher": {
+    "ignore": ["custom/**"]
+  }
+}`)
+
+	_, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeOpenCode,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(root, "opencode.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	value := string(data)
+	for _, want := range []string{
+		`"default_agent": "swarm"`,
+		`"CUSTOM.md"`,
+		`"AGENTS.md"`,
+		`"custom-plugin"`,
+		`"company-llm"`,
+		`"mcp"`,
+		`"custom-tool *": "allow"`,
+		`"runweaver *": "allow"`,
+		`"custom/**"`,
+		`".runweaver/tmp/**"`,
+	} {
+		if !strings.Contains(value, want) {
+			t.Fatalf("merged opencode.json missing %q:\n%s", want, value)
+		}
+	}
+	backup, err := os.ReadFile(filepath.Join(root, "opencode.json.runweaver.bak"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(backup), `"default_agent": "custom-agent"`) {
+		t.Fatalf("backup does not contain original config:\n%s", string(backup))
+	}
+}
+
+func TestInitSmartMergesExistingOpenCodeJSONCInsteadOfCreatingCompetingConfig(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"go test ./..."},"devDependencies":{"typescript":"latest"}}`)
+	writeTestFile(t, root, "src/app.ts", "export const app = true\n")
+	writeTestFile(t, root, "opencode.jsonc", `{
+  // project model must survive RunWeaver init
+  "model": "custom-provider/custom-model",
+  "provider": {
+    "custom-provider": {
+      "name": "Custom Provider"
+    }
+  }
+}`)
+
+	_, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeOpenCode,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if Exists(filepath.Join(root, "opencode.json")) {
+		t.Fatal("init created opencode.json even though project opencode.jsonc already existed")
+	}
+	data, err := os.ReadFile(filepath.Join(root, "opencode.jsonc"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	value := string(data)
+	for _, want := range []string{
+		`"default_agent": "swarm"`,
+		`"model": "custom-provider/custom-model"`,
+		`"custom-provider"`,
+		`"runweaver *": "allow"`,
+	} {
+		if !strings.Contains(value, want) {
+			t.Fatalf("merged opencode.jsonc missing %q:\n%s", want, value)
+		}
+	}
+	if !Exists(filepath.Join(root, "opencode.jsonc.runweaver.bak")) {
+		t.Fatal("expected opencode.jsonc backup")
+	}
+}
+
+func TestInitSmartPreservesExistingInstructionFilesWithManagedBlock(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"go test ./..."}}`)
+	writeTestFile(t, root, "src/app.ts", "export const app = true\n")
+	writeTestFile(t, root, "AGENTS.md", "# Existing Agents\n\nKeep this rule.\n")
+	writeTestFile(t, root, "CLAUDE.md", "# Existing Claude\n\nKeep this claude rule.\n")
+
+	_, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeAll,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	agentsData, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	agentsText := string(agentsData)
+	for _, want := range []string{"# Existing Agents", "Keep this rule.", "<!-- BEGIN RUNWEAVER -->", "RunWeaver metadata is generated"} {
+		if !strings.Contains(agentsText, want) {
+			t.Fatalf("AGENTS.md missing %q:\n%s", want, agentsText)
+		}
+	}
+
+	claudeData, err := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	claudeText := string(claudeData)
+	for _, want := range []string{"# Existing Claude", "Keep this claude rule.", "<!-- BEGIN RUNWEAVER -->", "RunWeaver metadata is generated"} {
+		if !strings.Contains(claudeText, want) {
+			t.Fatalf("CLAUDE.md missing %q:\n%s", want, claudeText)
+		}
+	}
+}

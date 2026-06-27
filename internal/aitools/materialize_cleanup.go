@@ -35,7 +35,7 @@ func cleanupGeneratedFilesWithSuffixes(dir string, keep map[string]bool, suffixe
 		if err != nil {
 			return err
 		}
-		if strings.Contains(string(data), generatedMarker) {
+		if hasGeneratedMarker(data) {
 			return os.Remove(path)
 		}
 		return nil
@@ -66,7 +66,7 @@ func cleanupGeneratedSkillFiles(dir string, keep map[string]bool) error {
 		if err != nil {
 			return err
 		}
-		if !strings.Contains(string(data), generatedMarker) {
+		if !hasGeneratedMarker(data) {
 			return nil
 		}
 		if err := os.Remove(path); err != nil {

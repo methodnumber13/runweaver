@@ -194,7 +194,7 @@ func TestRefreshApplyMaterializesNestJSBFFSemanticAgentsAndSkills(t *testing.T) 
 	}
 }
 
-func TestInitDoesNotOverwriteWithoutForceAndDoesNotAddMCPConfig(t *testing.T) {
+func TestInitMergesExistingInstructionsAndDoesNotAddMCPConfig(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "AGENTS.md", "custom rules\n")
 
@@ -205,8 +205,18 @@ func TestInitDoesNotOverwriteWithoutForceAndDoesNotAddMCPConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(data) != "custom rules\n" {
-		t.Fatalf("AGENTS.md was overwritten without force: %q", string(data))
+	text := string(data)
+	for _, want := range []string{"custom rules", "<!-- BEGIN RUNWEAVER -->", "RunWeaver metadata is generated"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("AGENTS.md missing %q after init merge:\n%s", want, text)
+		}
+	}
+	backup, err := os.ReadFile(filepath.Join(root, "AGENTS.md.runweaver.bak"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(backup) != "custom rules\n" {
+		t.Fatalf("AGENTS.md backup = %q, want original custom rules", string(backup))
 	}
 
 	opencodeData, err := os.ReadFile(filepath.Join(root, "opencode.json"))
@@ -224,7 +234,11 @@ func TestInitDoesNotOverwriteWithoutForceAndDoesNotAddMCPConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(data) == "custom rules\n" {
-		t.Fatal("AGENTS.md was not overwritten with force")
+	text = string(data)
+	if !strings.Contains(text, "custom rules") {
+		t.Fatalf("AGENTS.md force refresh removed custom rules:\n%s", text)
+	}
+	if strings.Count(text, "<!-- BEGIN RUNWEAVER -->") != 1 {
+		t.Fatalf("AGENTS.md has duplicate RunWeaver managed blocks:\n%s", text)
 	}
 }

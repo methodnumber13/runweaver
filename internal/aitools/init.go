@@ -111,7 +111,7 @@ func InitSmartWithOptions(repoPath string, opts InitOptions) (InitResult, error)
 	files := runtimeBaselineFiles(runtimeIDs)
 	reportInitProgress(opts, 4, "write-baseline", "Writing RunWeaver core workflows and selected runtime provider metadata")
 	for name, content := range files {
-		if err := writeIfAllowed(filepath.Join(root, name), content, opts.Force); err != nil {
+		if err := writeBaselineFile(root, name, content, opts); err != nil {
 			return InitResult{}, err
 		}
 	}

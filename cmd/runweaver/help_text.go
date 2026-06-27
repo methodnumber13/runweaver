@@ -123,7 +123,7 @@ Flags:
 Flags:
   --repo path                   repository path (default ".")
   --runtime ids                 runtime provider: opencode, codex, claude, all, or comma-separated list (default opencode)
-  --force                       overwrite existing generated runtime files
+  --force                       refresh RunWeaver-generated files; merge project configs with backups
   --require-model               fail if provider/model/key preflight is not ready
   --provider id                 OpenCode provider id for model preflight; inferred from configured model when omitted
   --model id                    expected model id without provider prefix
