@@ -224,6 +224,7 @@ func TestCommandUsageCoversEveryPublicCommand(t *testing.T) {
 		"index",
 		"index clean",
 		"refresh",
+		"status",
 		"classify",
 		"init",
 		"doctor",

@@ -7,6 +7,23 @@ import (
 	"testing"
 )
 
+func TestCLIStatusWorksBeforeWorkflowExists(t *testing.T) {
+	root := t.TempDir()
+	writeCLIFile(t, root, "go.mod", "module example.com/tool\n")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := runCLI([]string{"status", "--repo", root}, &stdout, &stderr, false)
+	if code != 0 {
+		t.Fatalf("status exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"ready": false`) ||
+		!strings.Contains(stdout.String(), `"latestWorkflow": false`) ||
+		!strings.Contains(stdout.String(), `runweaver workflow run`) {
+		t.Fatalf("status stdout = %q, want actionable no-workflow state", stdout.String())
+	}
+}
+
 func TestCLIScanAndWorkflowCommands(t *testing.T) {
 	root := t.TempDir()
 	writeCLIFile(t, root, "go.mod", "module example.com/tool\n")
@@ -46,6 +63,21 @@ func TestCLIScanAndWorkflowCommands(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), `"workflow": "test-swarm"`) {
 		t.Fatalf("workflow stdout = %q, want test-swarm", stdout.String())
+	}
+	if !fileExists(filepath.Join(root, ".runweaver/tmp/swarm-runs/latest.json")) {
+		t.Fatal("workflow run did not write latest pointer")
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	code = runCLI([]string{"status", "--repo", root}, &stdout, &stderr, false)
+	if code != 0 {
+		t.Fatalf("status exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"workflow": "test-swarm"`) ||
+		!strings.Contains(stdout.String(), `"currentPath"`) ||
+		!strings.Contains(stdout.String(), `"ready": true`) {
+		t.Fatalf("status stdout = %q, want active workflow summary", stdout.String())
 	}
 
 	stdout.Reset()
@@ -88,6 +120,10 @@ func TestCLIScanAndWorkflowCommands(t *testing.T) {
 		!strings.Contains(stdout.String(), `"verificationResults"`) ||
 		!strings.Contains(stdout.String(), `"read auth guard"`) {
 		t.Fatalf("workflow update stdout = %q, want persisted checkpoint details", stdout.String())
+	}
+	currentPath := filepath.Join(root, ".runweaver/tmp/swarm-runs/latest.json")
+	if !fileExists(currentPath) {
+		t.Fatalf("latest pointer missing after update: %s", currentPath)
 	}
 
 	stdout.Reset()

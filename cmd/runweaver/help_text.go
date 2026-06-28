@@ -71,6 +71,13 @@ Flags:
   --classifier-model model      optional runtime model override
   --classifier-timeout duration AI classifier timeout (default 180s)
 `
+	case "status":
+		return `Usage:
+  runweaver status --repo <path>
+
+Flags:
+  --repo path    repository path (default ".")
+`
 	case "doctor":
 		return `Usage:
   runweaver doctor --repo <path>

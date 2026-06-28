@@ -86,6 +86,8 @@ func (c cli) run(args []string) error {
 		return wrapCommandError("classify", c.classifyCmd(args[1:]))
 	case "refresh":
 		return wrapCommandError("refresh", c.refreshCmd(args[1:]))
+	case "status":
+		return wrapCommandError("status", c.statusCmd(args[1:]))
 	case "doctor":
 		return wrapCommandError("doctor", c.doctorCmd(args[1:]))
 	case "init":
