@@ -97,6 +97,7 @@ Flags:
   runweaver doctor model --repo <path>
   runweaver doctor opencode --repo <path> [--skip-model-check]
   runweaver doctor runtime --repo <path> [--runtime all]
+  runweaver doctor adoption --repo <path> [--runtime all]
   runweaver doctor processes [--summary]
 `
 	case "doctor model":
@@ -124,6 +125,14 @@ Flags:
 	case "doctor runtime":
 		return `Usage:
   runweaver doctor runtime --repo <path> [--runtime opencode|codex|claude|all]
+
+Flags:
+  --repo path       repository path (default ".")
+  --runtime ids     runtime provider: opencode, codex, claude, all, or comma-separated list (default all)
+`
+	case "doctor adoption":
+		return `Usage:
+  runweaver doctor adoption --repo <path> [--runtime opencode|codex|claude|all]
 
 Flags:
   --repo path       repository path (default ".")

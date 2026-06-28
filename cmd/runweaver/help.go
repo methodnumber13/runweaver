@@ -21,6 +21,8 @@ func (c cli) usage() {
                                         check Desktop/CLI swarm readiness
   doctor runtime --repo <path> [--runtime all]
                                         discover OpenCode/Codex/Claude configs and metadata
+  doctor adoption --repo <path> [--runtime all]
+                                        verify RunWeaver auto-start contract for runtimes
   doctor processes [--summary]          show Codex/OpenCode runtime, VS Code debugger, and duplicate MCP processes
   init --repo <path> [--runtime opencode] [--force]
                                         smart index, plan intelligence workflow, bootstrap metadata
