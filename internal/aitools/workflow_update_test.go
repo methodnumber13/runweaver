@@ -89,6 +89,15 @@ func TestUpdateWorkflowPersistsParticipantsFindingsAndEvents(t *testing.T) {
 			t.Fatalf("events = %s, want update event detail %q", string(events), want)
 		}
 	}
+	current, err := os.ReadFile(filepath.Join(root, latest.RunDir, "current.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Current phase: reproduce", "identity-access-agent", "add public route test", "not run yet; reproduce phase only"} {
+		if !strings.Contains(string(current), want) {
+			t.Fatalf("current.md missing %q:\n%s", want, string(current))
+		}
+	}
 }
 
 func TestUpdateWorkflowCompletePhaseSynchronizesTodo(t *testing.T) {

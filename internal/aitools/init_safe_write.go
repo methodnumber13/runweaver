@@ -24,6 +24,8 @@ func writeBaselineFile(root, name, content string, opts InitOptions) error {
 		return writeMergedOpenCodeConfig(projectOpenCodeConfigPath(root), content)
 	case "AGENTS.md", "CLAUDE.md":
 		return writeManagedMarkdownBlock(path, content)
+	case ".runweaver/START_HERE.md":
+		return writeGenerated(path, contentWithGeneratedMarker(path, content), opts.Force)
 	case ".runweaver/.gitignore", ".opencode/.gitignore":
 		return writeMergedLineFile(path, content)
 	}

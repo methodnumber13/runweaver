@@ -2,7 +2,7 @@
 
 Portable coding-agent orchestration utility for repositories.
 
-This tool intentionally does not configure MCP. It bootstraps repository-local workflow templates, package/file/symbol indexes, drift reports, generated profiles, and runtime-specific agents/skills for supported coding-agent runtimes.
+This tool bootstraps repository-local workflow templates, package/file/symbol indexes, drift reports, generated profiles, runtime-specific agents/skills, and an optional read-only MCP stdio server for supported coding-agent runtimes. It does not auto-edit global MCP/runtime configs.
 
 See [docs/COMPETITIVE_ANALYSIS.md](docs/COMPETITIVE_ANALYSIS.md) for the current comparison with adjacent AI coding agents, multi-agent frameworks, and context-engineering skill libraries.
 See [docs/RUNTIME_ADAPTERS.md](docs/RUNTIME_ADAPTERS.md) for the adapter plan and current runtime support.
@@ -78,7 +78,7 @@ Current runtime status:
 | Runtime | Discovery | Init/render | Execute |
 | --- | --- | --- | --- |
 | OpenCode | project/global/managed config and auth | `.opencode/agents`, `.opencode/skills`, `opencode.json` | `workflow run --execute` via `opencode run` |
-| Codex | project/global/managed config and auth | `AGENTS.md`, `.agents/skills`, `.codex/agents`, `.codex/runweaver/profile.json` | `workflow run --runtime codex --execute` via `codex exec --json` |
+| Codex | project/global/managed config, including `.codex/config.toml`, and auth | `AGENTS.md`, `.agents/skills`, `.codex/agents`, `.codex/runweaver/profile.json`; `.codex/config.toml` is discovered but not written by default | `workflow run --runtime codex --execute` via `codex exec --json` |
 | Claude Code | project/global/managed settings and auth | `CLAUDE.md`, `.claude/agents`, `.claude/skills`, `.claude/runweaver/profile.json` | `workflow run --runtime claude --execute` via `claude --print --output-format stream-json` |
 
 For explicit CLI execution instead of relying on Desktop/CLI default-agent behavior:
@@ -108,6 +108,8 @@ runweaver refresh --repo .
 runweaver refresh --repo . --apply
 runweaver doctor --repo .
 runweaver init --repo . --require-model
+runweaver status --repo .
+runweaver mcp serve --repo .
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task"
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task" --execute
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task" --runtime codex --execute
@@ -239,6 +241,72 @@ Minimal provider shape:
 ```
 
 For Desktop, prefer OpenCode auth storage or a provider `apiKey` source that the GUI process can read. A key that exists only in the current terminal environment may work in CLI and fail in Desktop.
+
+## Optional MCP Server
+
+RunWeaver includes a small MCP stdio server. It is read-only by default:
+
+```sh
+runweaver mcp serve --repo .
+```
+
+The MCP server is intentionally in this repository instead of a separate package because it is a thin adapter over the same tested CLI/core functions. Split it out only if it needs an independent release cadence, hosted transport, or compatibility guarantees separate from the CLI.
+
+The first MCP surface is read/status-oriented:
+
+- `runweaver_status`: repository initialization, index, and latest workflow state.
+- `runweaver_get_current`: `.runweaver/tmp/current.md` markdown resume surface.
+- `runweaver_list_workflows`: generated workflow templates under `.runweaver/workflows`.
+- `runweaver_verify_workflow`: deterministic verification for `latest` or an explicit run.
+
+To let MCP-native clients create and update RunWeaver workflow state, start the server with explicit workflow-write authority:
+
+```sh
+runweaver mcp serve --repo . --allow-workflow-writes
+```
+
+This exposes only `.runweaver/tmp` workflow-state tools:
+
+- `runweaver_plan_workflow`: creates `plan.json`, `checkpoint.json`, `todo.md`, `events.ndjson`, and `latest.json`.
+- `runweaver_update_workflow`: updates checkpoint/todo/current workflow state.
+
+These tools do not edit source files or runtime config files.
+
+RunWeaver does not add MCP entries to user or project runtime configs during `init`. Connect it explicitly when you want the selected LLM client to see RunWeaver as tools instead of only files and commands.
+
+Codex project or user config:
+
+```toml
+[mcp_servers.runweaver]
+command = "runweaver"
+args = ["mcp", "serve", "--repo", "."]
+```
+
+Claude Code project MCP config:
+
+```json
+{
+  "mcpServers": {
+    "runweaver": {
+      "command": "runweaver",
+      "args": ["mcp", "serve", "--repo", "."]
+    }
+  }
+}
+```
+
+OpenCode local MCP config shape:
+
+```json
+{
+  "mcp": {
+    "runweaver": {
+      "type": "local",
+      "command": ["runweaver", "mcp", "serve", "--repo", "."]
+    }
+  }
+}
+```
 
 ## Process Diagnostics
 

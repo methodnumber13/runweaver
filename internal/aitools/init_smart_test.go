@@ -301,3 +301,94 @@ func TestInitSmartPreservesExistingInstructionFilesWithManagedBlock(t *testing.T
 		}
 	}
 }
+
+func TestInitSmartWritesRunWeaverStartupProtocolForAllRuntimes(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"go test ./..."},"devDependencies":{"typescript":"latest"}}`)
+	writeTestFile(t, root, "src/app.ts", "export const app = true\n")
+
+	_, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeAll,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, path := range []string{
+		"AGENTS.md",
+		"CLAUDE.md",
+		".opencode/agents/swarm.md",
+		".codex/agents/swarm.toml",
+		".claude/agents/swarm.md",
+	} {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(data)
+		for _, want := range []string{
+			"RunWeaver Startup Protocol",
+			"runweaver status --repo .",
+			"resume automatically",
+			"Do not ask the user to run resume",
+			"runweaver workflow verify --repo . --resume latest",
+		} {
+			if !strings.Contains(text, want) {
+				t.Fatalf("%s missing startup protocol fragment %q:\n%s", path, want, text)
+			}
+		}
+	}
+}
+
+func TestInitSmartWritesStartHereAndPreservesManualStartHere(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"go test ./..."},"devDependencies":{"typescript":"latest"}}`)
+	writeTestFile(t, root, "src/app.ts", "export const app = true\n")
+
+	_, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeAll,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, ".runweaver/START_HERE.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"# RunWeaver Start Here",
+		"runweaver status --repo .",
+		".runweaver/tmp/current.md",
+		".runweaver/workflows",
+		"AGENTS.md",
+		"CLAUDE.md",
+	} {
+		if !strings.Contains(string(data), want) {
+			t.Fatalf("START_HERE missing %q:\n%s", want, string(data))
+		}
+	}
+
+	manualRoot := t.TempDir()
+	writeTestFile(t, manualRoot, "package.json", `{"scripts":{"test":"go test ./..."},"devDependencies":{"typescript":"latest"}}`)
+	writeTestFile(t, manualRoot, "src/app.ts", "export const app = true\n")
+	writeTestFile(t, manualRoot, ".runweaver/START_HERE.md", "manual runweaver notes\n")
+	_, err = InitSmartWithOptions(manualRoot, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeAll,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	manual, err := os.ReadFile(filepath.Join(manualRoot, ".runweaver/START_HERE.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(manual) != "manual runweaver notes\n" {
+		t.Fatalf("manual START_HERE was overwritten:\n%s", string(manual))
+	}
+}

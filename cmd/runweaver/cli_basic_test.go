@@ -90,6 +90,54 @@ func TestCLIHelpPrintsCommands(t *testing.T) {
 	}
 }
 
+func TestCLIMCPServeUsesStdio(t *testing.T) {
+	root := t.TempDir()
+	writeCLIFile(t, root, "go.mod", "module example.com/tool\n")
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}` + "\n")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := cli{
+		stdin:  input,
+		stdout: &stdout,
+		stderr: &stderr,
+		color:  false,
+	}.run([]string{"mcp", "serve", "--repo", root})
+
+	if err != nil {
+		t.Fatalf("mcp serve error = %v stderr=%q", err, stderr.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty for MCP stdio", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "runweaver_status") || !strings.Contains(stdout.String(), `"id":1`) {
+		t.Fatalf("stdout = %q, want MCP tools/list response", stdout.String())
+	}
+}
+
+func TestCLIMCPServeCanExposeWorkflowWriteTools(t *testing.T) {
+	root := t.TempDir()
+	writeCLIFile(t, root, "go.mod", "module example.com/tool\n")
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}` + "\n")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := cli{
+		stdin:  input,
+		stdout: &stdout,
+		stderr: &stderr,
+		color:  false,
+	}.run([]string{"mcp", "serve", "--repo", root, "--allow-workflow-writes"})
+
+	if err != nil {
+		t.Fatalf("mcp serve error = %v stderr=%q", err, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "runweaver_plan_workflow") ||
+		!strings.Contains(stdout.String(), "runweaver_update_workflow") {
+		t.Fatalf("stdout = %q, want gated workflow write tools", stdout.String())
+	}
+}
+
 func TestCLIPublicHelpDoesNotExposePrivateVendorNames(t *testing.T) {
 	for _, args := range [][]string{
 		{"help"},
@@ -198,7 +246,7 @@ func TestCLISubcommandHelpPrintsUsageWithoutError(t *testing.T) {
 }
 
 func TestCommandHintsAndColorEnabledFallbacks(t *testing.T) {
-	for _, command := range []string{"scan", "index", "index clean", "refresh", "doctor", "doctor model", "doctor opencode", "doctor runtime", "doctor processes", "init", "workflow run", "missing"} {
+	for _, command := range []string{"scan", "index", "index clean", "refresh", "doctor", "doctor model", "doctor opencode", "doctor runtime", "doctor processes", "init", "mcp serve", "workflow run", "missing"} {
 		if hint := commandHint(command); hint == "" {
 			t.Fatalf("commandHint(%q) returned empty", command)
 		}
@@ -224,8 +272,11 @@ func TestCommandUsageCoversEveryPublicCommand(t *testing.T) {
 		"index",
 		"index clean",
 		"refresh",
+		"status",
 		"classify",
 		"init",
+		"bootstrap",
+		"mcp serve",
 		"doctor",
 		"doctor model",
 		"doctor opencode",

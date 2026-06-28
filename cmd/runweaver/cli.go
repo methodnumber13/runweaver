@@ -18,6 +18,7 @@ const (
 )
 
 type cli struct {
+	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer
 	color  bool
@@ -54,7 +55,7 @@ func main() {
 }
 
 func runCLI(args []string, stdout, stderr io.Writer, color bool) (code int) {
-	app := cli{stdout: stdout, stderr: stderr, color: color}
+	app := cli{stdin: os.Stdin, stdout: stdout, stderr: stderr, color: color}
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			app.printError(fmt.Errorf("internal error: %v", recovered))
@@ -86,10 +87,16 @@ func (c cli) run(args []string) error {
 		return wrapCommandError("classify", c.classifyCmd(args[1:]))
 	case "refresh":
 		return wrapCommandError("refresh", c.refreshCmd(args[1:]))
+	case "status":
+		return wrapCommandError("status", c.statusCmd(args[1:]))
 	case "doctor":
 		return wrapCommandError("doctor", c.doctorCmd(args[1:]))
 	case "init":
 		return wrapCommandError("init", c.initCmd(args[1:]))
+	case "bootstrap":
+		return wrapCommandError("bootstrap", c.initCmd(args[1:]))
+	case "mcp":
+		return wrapCommandError("mcp serve", c.mcpCmd(args[1:]))
 	case "workflow":
 		return wrapCommandError("workflow run", c.workflowCmd(args[1:]))
 	case "help", "-h", "--help":

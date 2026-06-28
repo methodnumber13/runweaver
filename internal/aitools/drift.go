@@ -22,6 +22,11 @@ func Drift(repoPath string, index SurfaceIndex) (DriftReport, error) {
 		GeneratedAt:   Now(),
 		RepoRoot:      root,
 	}
+	runtimeIssues, err := ValidateRuntimeMetadata(root, detectedRuntimeMetadataIDs(root))
+	if err != nil {
+		return DriftReport{}, err
+	}
+	report.RuntimeIssues = runtimeIssues
 
 	aiFiles := runtimeMetadataFiles(root)
 
@@ -125,7 +130,7 @@ func shouldIgnoreAnchor(anchor string) bool {
 		return true
 	}
 	switch filepath.Base(anchor) {
-	case "plan.json", "checkpoint.json", "todo.md", "events.ndjson", "latest.json", "surface-index.json", "drift-report.json", "profile.generated.json", "repo-index.json", "repo-index.compact.json", "repo-context.md", "manifest.json":
+	case "plan.json", "checkpoint.json", "todo.md", "current.md", "events.ndjson", "latest.json", "surface-index.json", "drift-report.json", "profile.generated.json", "repo-index.json", "repo-index.compact.json", "repo-context.md", "manifest.json":
 		return true
 	}
 	if strings.Contains(anchor, "*") || strings.Contains(anchor, "{{") || strings.Contains(anchor, "<run-id>") {
@@ -190,8 +195,25 @@ func recommendations(report DriftReport) []string {
 	if len(report.MissingSurfaces) > 0 {
 		out = append(out, "Add or update repo-specific agents/skills for missing important surfaces.")
 	}
+	if len(report.RuntimeIssues) > 0 {
+		out = append(out, "Fix runtime-specific metadata drift before relying on generated agents/skills.")
+	}
 	if len(out) == 0 {
 		out = append(out, "No obvious metadata drift detected.")
 	}
 	return out
+}
+
+func detectedRuntimeMetadataIDs(root string) []string {
+	var out []string
+	if Exists(filepath.Join(root, "opencode.json")) || Exists(filepath.Join(root, "opencode.jsonc")) || Exists(filepath.Join(root, ".opencode")) {
+		out = append(out, RuntimeOpenCode)
+	}
+	if Exists(filepath.Join(root, ".codex")) || Exists(filepath.Join(root, ".agents", "skills")) {
+		out = append(out, RuntimeCodex)
+	}
+	if Exists(filepath.Join(root, "CLAUDE.md")) || Exists(filepath.Join(root, ".claude")) {
+		out = append(out, RuntimeClaude)
+	}
+	return Unique(out)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/methodnumber13/runweaver/internal/aitools"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -76,6 +77,33 @@ func TestCLIInitCodexRuntimeSkipsOpenCodeModelPreflight(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "OpenCode model preflight was skipped") || strings.Contains(stderr.String(), "warning: initialized repository") {
 		t.Fatalf("stderr = %q, want skipped preflight success without warning", stderr.String())
+	}
+}
+
+func TestCLIBootstrapAliasesInit(t *testing.T) {
+	root := t.TempDir()
+	isolateOpenCodeEnv(t)
+	writeCLIFile(t, root, "package.json", `{"scripts":{"test":"jest"},"dependencies":{"@nestjs/core":"10.0.0"},"devDependencies":{"jest":"29.0.0","typescript":"5.0.0"}}`)
+	writeCLIFile(t, root, "src/app.controller.ts", "export class AppController {}\n")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := runCLI([]string{"bootstrap", "--repo", root, "--runtime", "codex", "--classification", "deterministic", "--force"}, &stdout, &stderr, false)
+	if code != 0 {
+		t.Fatalf("bootstrap exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	for _, path := range []string{
+		"AGENTS.md",
+		".codex/agents/swarm.toml",
+		".codex/runweaver/profile.json",
+		".runweaver/START_HERE.md",
+	} {
+		if !fileExists(filepath.Join(root, path)) {
+			t.Fatalf("expected bootstrap artifact %s", path)
+		}
+	}
+	if !strings.Contains(stdout.String(), `"runtime": "codex"`) {
+		t.Fatalf("bootstrap stdout = %q, want codex runtime", stdout.String())
 	}
 }
 
