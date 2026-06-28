@@ -145,6 +145,16 @@ Flags:
 Flags:
   --summary    print counts and duplicate process groups without full process details
 `
+	case "eval adoption":
+		return `Usage:
+  runweaver eval adoption --repo <path> [--runtime opencode|codex|claude|all]
+
+Flags:
+  --repo path       repository path (default ".")
+  --runtime id      runtime provider: opencode, codex, claude, or all
+  --task text       smoke task for runweaver start
+  --skip-index      skip automatic index refresh during start smoke
+`
 	case "init":
 		return `Usage:
   runweaver init --repo <path> [--runtime opencode|codex|claude|all] [--force] [--require-model] [--classification auto|ai|deterministic]
