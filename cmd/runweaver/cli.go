@@ -97,6 +97,8 @@ func (c cli) run(args []string) error {
 		return wrapCommandError("bootstrap", c.initCmd(args[1:]))
 	case "mcp":
 		return wrapCommandError("mcp serve", c.mcpCmd(args[1:]))
+	case "participants":
+		return wrapCommandError("participants select", c.participantsCmd(args[1:]))
 	case "workflow":
 		return wrapCommandError("workflow run", c.workflowCmd(args[1:]))
 	case "version":

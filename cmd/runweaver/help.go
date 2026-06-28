@@ -26,6 +26,7 @@ func (c cli) usage() {
   bootstrap --repo <path> [--runtime opencode]
                                         alias for init with friendlier naming
   mcp serve --repo <path>               expose read-only RunWeaver status/tools over MCP stdio
+  participants select --task <text>     choose workflow participants from generated profile
   workflow run --workflow <file> --task <text> [--runtime opencode] [--execute]
                                         create or execute workflow plan/checkpoint under .runweaver/tmp
   workflow select --task <text>         select the closest workflow for a task

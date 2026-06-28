@@ -154,6 +154,17 @@ Flags:
   --repo path                 repository path exposed through MCP tools (default ".")
   --allow-workflow-writes     expose tools that create/update .runweaver workflow state
 `
+	case "participants select":
+		return `Usage:
+  runweaver participants select --repo <path> --task <text> [--workflow file]
+
+Flags:
+  --repo path       repository path (default ".")
+  --task text       task description to route
+  --workflow file   workflow JSON path; selected automatically when omitted
+  --runtime id      runtime profile to inspect: opencode, codex, or claude
+  --profile file    explicit RunWeaver profile JSON path
+`
 	case "workflow run":
 		return `Usage:
   runweaver workflow run --workflow <file> --task <text> [--repo <path>] [--execute]
