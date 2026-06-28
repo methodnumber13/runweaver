@@ -78,6 +78,19 @@ Flags:
 Flags:
   --repo path    repository path (default ".")
 `
+	case "start":
+		return `Usage:
+  runweaver start --repo <path> --task <text> [--runtime opencode|codex|claude]
+
+Flags:
+  --repo path       repository path (default ".")
+  --task text       user task to start or resume
+  --runtime id      runtime profile to inspect: opencode, codex, or claude
+  --workflow file   explicit workflow JSON path
+  --profile file    explicit RunWeaver profile JSON path
+  --skip-index      skip automatic index refresh
+  --force-new       create a new workflow even when latest matches
+`
 	case "doctor":
 		return `Usage:
   runweaver doctor --repo <path>

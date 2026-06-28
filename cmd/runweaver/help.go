@@ -14,6 +14,7 @@ func (c cli) usage() {
                                         classify repo into swarm agents/skills
   refresh --repo <path> [--apply]       write surface/drift/profile artifacts
   status --repo <path>                  show active workflow and current RunWeaver state
+  start --repo <path> --task <text>     create or resume the right workflow for a user task
   doctor --repo <path>                  refresh and summarize drift status
   doctor model --repo <path>            check OpenCode provider/model/key setup
   doctor opencode --repo <path> [--timeout 60s]
