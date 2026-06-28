@@ -244,7 +244,7 @@ For Desktop, prefer OpenCode auth storage or a provider `apiKey` source that the
 
 ## Optional MCP Server
 
-RunWeaver includes a small read-only MCP stdio server:
+RunWeaver includes a small MCP stdio server. It is read-only by default:
 
 ```sh
 runweaver mcp serve --repo .
@@ -258,6 +258,19 @@ The first MCP surface is read/status-oriented:
 - `runweaver_get_current`: `.runweaver/tmp/current.md` markdown resume surface.
 - `runweaver_list_workflows`: generated workflow templates under `.runweaver/workflows`.
 - `runweaver_verify_workflow`: deterministic verification for `latest` or an explicit run.
+
+To let MCP-native clients create and update RunWeaver workflow state, start the server with explicit workflow-write authority:
+
+```sh
+runweaver mcp serve --repo . --allow-workflow-writes
+```
+
+This exposes only `.runweaver/tmp` workflow-state tools:
+
+- `runweaver_plan_workflow`: creates `plan.json`, `checkpoint.json`, `todo.md`, `events.ndjson`, and `latest.json`.
+- `runweaver_update_workflow`: updates checkpoint/todo/current workflow state.
+
+These tools do not edit source files or runtime config files.
 
 RunWeaver does not add MCP entries to user or project runtime configs during `init`. Connect it explicitly when you want the selected LLM client to see RunWeaver as tools instead of only files and commands.
 

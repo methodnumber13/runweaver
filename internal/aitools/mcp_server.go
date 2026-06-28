@@ -111,7 +111,7 @@ func handleMCPMethod(method string, params json.RawMessage, opts MCPServerOption
 	case "ping":
 		return map[string]any{}, 0, ""
 	case "tools/list":
-		return map[string]any{"tools": runWeaverMCPTools()}, 0, ""
+		return map[string]any{"tools": runWeaverMCPTools(opts.AllowWorkflowWrites)}, 0, ""
 	case "tools/call":
 		result, err := callRunWeaverMCPTool(params, opts)
 		if err != nil {
@@ -147,8 +147,8 @@ func mcpInitializeResult(params json.RawMessage, opts MCPServerOptions) map[stri
 	}
 }
 
-func runWeaverMCPTools() []mcpTool {
-	return []mcpTool{
+func runWeaverMCPTools(allowWorkflowWrites bool) []mcpTool {
+	tools := []mcpTool{
 		readOnlyMCPTool(
 			"runweaver_status",
 			"RunWeaver Status",
@@ -183,6 +183,47 @@ func runWeaverMCPTools() []mcpTool {
 			},
 		),
 	}
+	if !allowWorkflowWrites {
+		return tools
+	}
+	tools = append(tools,
+		workflowWriteMCPTool(
+			"runweaver_plan_workflow",
+			"Plan RunWeaver Workflow",
+			"Create a durable RunWeaver workflow plan/checkpoint under .runweaver/tmp/swarm-runs.",
+			map[string]any{
+				"repo":     map[string]any{"type": "string", "description": "Repository path. Defaults to the server --repo value."},
+				"workflow": map[string]any{"type": "string", "description": "Workflow JSON path. Defaults to feature-delivery-swarm when omitted."},
+				"task":     map[string]any{"type": "string", "description": "Task text to store in plan.json and checkpoint.json."},
+			},
+			[]string{"task"},
+		),
+		workflowWriteMCPTool(
+			"runweaver_update_workflow",
+			"Update RunWeaver Workflow",
+			"Update checkpoint/todo/current workflow state under .runweaver/tmp/swarm-runs.",
+			map[string]any{
+				"repo":                 map[string]any{"type": "string", "description": "Repository path. Defaults to the server --repo value."},
+				"resume":               map[string]any{"type": "string", "description": "Workflow run id, repo-relative run directory, or latest.", "default": "latest"},
+				"phase":                map[string]any{"type": "string", "description": "Current workflow phase id."},
+				"status":               map[string]any{"type": "string", "description": "Checkpoint status, for example in_progress or complete."},
+				"participants":         stringArraySchema("Participant names to record."),
+				"participantRationale": stringArraySchema("Reasons for participant selection."),
+				"findings":             stringArraySchema("Findings to append."),
+				"decisions":            stringArraySchema("Decisions to append."),
+				"filesRead":            stringArraySchema("Repository files read."),
+				"filesChanged":         stringArraySchema("Repository files changed."),
+				"artifacts":            stringArraySchema("Workflow artifacts created or updated."),
+				"nextAction":           map[string]any{"type": "string", "description": "Next action to persist."},
+				"verification":         stringArraySchema("Verification commands or checks."),
+				"verificationResults":  stringArraySchema("Verification results."),
+				"blockers":             stringArraySchema("Concrete blockers."),
+				"completePhase":        map[string]any{"type": "boolean", "description": "Mark current phase complete and advance nextPhase."},
+			},
+			nil,
+		),
+	)
+	return tools
 }
 
 func readOnlyMCPTool(name, title, description string, properties map[string]any) mcpTool {
@@ -200,6 +241,39 @@ func readOnlyMCPTool(name, title, description string, properties map[string]any)
 			"destructiveHint": false,
 			"idempotentHint":  true,
 			"openWorldHint":   false,
+		},
+	}
+}
+
+func workflowWriteMCPTool(name, title, description string, properties map[string]any, required []string) mcpTool {
+	schema := map[string]any{
+		"type":                 "object",
+		"properties":           properties,
+		"additionalProperties": false,
+	}
+	if len(required) > 0 {
+		schema["required"] = required
+	}
+	return mcpTool{
+		Name:        name,
+		Title:       title,
+		Description: description,
+		InputSchema: schema,
+		Annotations: map[string]any{
+			"readOnlyHint":    false,
+			"destructiveHint": false,
+			"idempotentHint":  false,
+			"openWorldHint":   false,
+		},
+	}
+}
+
+func stringArraySchema(description string) map[string]any {
+	return map[string]any{
+		"type":        "array",
+		"description": description,
+		"items": map[string]any{
+			"type": "string",
 		},
 	}
 }
@@ -226,8 +300,40 @@ func callRunWeaverMCPTool(params json.RawMessage, opts MCPServerOptions) (mcpToo
 	case "runweaver_verify_workflow":
 		resume := argumentString(call.Arguments, "resume", "latest")
 		return mcpStructuredToolResult(VerifyWorkflowRun(repo, resume))
+	case "runweaver_plan_workflow":
+		if !opts.AllowWorkflowWrites {
+			return mcpToolResult{}, fmt.Errorf("workflow write tools are disabled; restart runweaver mcp serve with --allow-workflow-writes")
+		}
+		workflow := argumentString(call.Arguments, "workflow", "")
+		task := argumentString(call.Arguments, "task", "")
+		return mcpStructuredToolResult(PlanWorkflow(repo, workflow, task))
+	case "runweaver_update_workflow":
+		if !opts.AllowWorkflowWrites {
+			return mcpToolResult{}, fmt.Errorf("workflow write tools are disabled; restart runweaver mcp serve with --allow-workflow-writes")
+		}
+		return mcpStructuredToolResult(UpdateWorkflow(repo, mcpWorkflowUpdateOptions(call.Arguments)))
 	default:
 		return mcpToolResult{}, fmt.Errorf("unknown RunWeaver MCP tool %q", call.Name)
+	}
+}
+
+func mcpWorkflowUpdateOptions(arguments map[string]any) WorkflowUpdateOptions {
+	return WorkflowUpdateOptions{
+		Resume:               argumentString(arguments, "resume", "latest"),
+		Phase:                argumentString(arguments, "phase", ""),
+		Status:               argumentString(arguments, "status", ""),
+		Participants:         argumentStringSlice(arguments, "participants"),
+		ParticipantRationale: argumentStringSlice(arguments, "participantRationale"),
+		Findings:             argumentStringSlice(arguments, "findings"),
+		Decisions:            argumentStringSlice(arguments, "decisions"),
+		FilesRead:            argumentStringSlice(arguments, "filesRead"),
+		FilesChanged:         argumentStringSlice(arguments, "filesChanged"),
+		Artifacts:            argumentStringSlice(arguments, "artifacts"),
+		NextAction:           argumentString(arguments, "nextAction", ""),
+		Verification:         argumentStringSlice(arguments, "verification"),
+		VerificationResults:  argumentStringSlice(arguments, "verificationResults"),
+		Blockers:             argumentStringSlice(arguments, "blockers"),
+		CompletePhase:        argumentBool(arguments, "completePhase"),
 	}
 }
 
@@ -265,6 +371,49 @@ func argumentString(arguments map[string]any, key, fallback string) string {
 		return fallback
 	}
 	return text
+}
+
+func argumentStringSlice(arguments map[string]any, key string) []string {
+	if arguments == nil {
+		return nil
+	}
+	value, ok := arguments[key]
+	if !ok || value == nil {
+		return nil
+	}
+	switch typed := value.(type) {
+	case []any:
+		out := make([]string, 0, len(typed))
+		for _, item := range typed {
+			text, ok := item.(string)
+			if !ok {
+				continue
+			}
+			text = strings.TrimSpace(text)
+			if text != "" {
+				out = append(out, text)
+			}
+		}
+		return out
+	case []string:
+		return compactStrings(typed)
+	case string:
+		return compactStrings(strings.Split(typed, ","))
+	default:
+		return nil
+	}
+}
+
+func argumentBool(arguments map[string]any, key string) bool {
+	if arguments == nil {
+		return false
+	}
+	value, ok := arguments[key]
+	if !ok || value == nil {
+		return false
+	}
+	typed, ok := value.(bool)
+	return ok && typed
 }
 
 func mcpErrorResponse(id json.RawMessage, code int, message string) mcpResponse {

@@ -86,7 +86,7 @@ Default runtime is `opencode` to preserve existing behavior. Codex and Claude Co
 
 ## MCP Boundary
 
-RunWeaver MCP is not a separate runtime adapter. It is a read-only stdio tool surface over the shared core state and workflow functions:
+RunWeaver MCP is not a separate runtime adapter. It is a stdio tool surface over the shared core state and workflow functions. The default mode is read-only:
 
 ```sh
 runweaver mcp serve --repo .
@@ -100,6 +100,19 @@ Current tools:
 - `runweaver_get_current`
 - `runweaver_list_workflows`
 - `runweaver_verify_workflow`
+
+Workflow-state write tools are available only when the server is started explicitly with:
+
+```sh
+runweaver mcp serve --repo . --allow-workflow-writes
+```
+
+That opt-in mode adds:
+
+- `runweaver_plan_workflow`
+- `runweaver_update_workflow`
+
+These tools are limited to RunWeaver workflow state under `.runweaver/tmp/swarm-runs`; they do not edit source code or runtime config files.
 
 RunWeaver does not auto-edit runtime MCP configs during `init`. Users can opt in by adding a stdio server entry to the selected client:
 

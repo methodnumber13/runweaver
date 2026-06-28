@@ -21,6 +21,7 @@ func (c cli) mcpCmd(args []string) error {
 func (c cli) mcpServeCmd(args []string) error {
 	fs := newFlagSet("mcp serve")
 	repo := fs.String("repo", ".", "repository path")
+	allowWorkflowWrites := fs.Bool("allow-workflow-writes", false, "expose MCP tools that create/update .runweaver workflow state")
 	if err := fs.Parse(args); err != nil {
 		return usageError{command: "mcp serve", err: err}
 	}
@@ -32,7 +33,8 @@ func (c cli) mcpServeCmd(args []string) error {
 		stdin = os.Stdin
 	}
 	return aitools.ServeMCPStdio(stdin, c.stdout, aitools.MCPServerOptions{
-		RepoPath: *repo,
-		Version:  "dev",
+		RepoPath:            *repo,
+		Version:             "dev",
+		AllowWorkflowWrites: *allowWorkflowWrites,
 	})
 }

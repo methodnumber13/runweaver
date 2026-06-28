@@ -2,8 +2,9 @@ package aitools
 
 // MCPServerOptions configures the local RunWeaver MCP stdio server.
 type MCPServerOptions struct {
-	RepoPath string
-	Version  string
+	RepoPath            string
+	Version             string
+	AllowWorkflowWrites bool
 }
 
 // RunWeaverCurrentResult returns the markdown resume surface exposed to LLM clients.

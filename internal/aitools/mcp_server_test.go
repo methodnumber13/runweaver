@@ -72,6 +72,63 @@ func TestServeMCPStdioWorkflowToolsExposeCurrentAndVerification(t *testing.T) {
 	}
 }
 
+func TestServeMCPStdioHidesWorkflowWriteToolsByDefault(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "go.mod", "module example.com/tool\n")
+	var out bytes.Buffer
+	input := strings.Join([]string{
+		`{"jsonrpc":"2.0","id":"list","method":"tools/list"}`,
+		`{"jsonrpc":"2.0","id":"write","method":"tools/call","params":{"name":"runweaver_plan_workflow","arguments":{"repo":"` + root + `","task":"ship feature"}}}`,
+	}, "\n") + "\n"
+
+	if err := ServeMCPStdio(strings.NewReader(input), &out, MCPServerOptions{RepoPath: root}); err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	if strings.Contains(output, "Plan RunWeaver Workflow") {
+		t.Fatalf("default tools/list exposed workflow write tool:\n%s", output)
+	}
+	if !strings.Contains(output, "workflow write tools are disabled") {
+		t.Fatalf("disabled write call output = %s, want explicit disabled error", output)
+	}
+}
+
+func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
+  "id": "test-swarm",
+  "name": "Test Swarm",
+  "phases": [
+    {"id": "plan", "name": "Plan", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-surface-indexer"], "prompt": "plan"}
+  ]
+}`)
+	input := strings.Join([]string{
+		`{"jsonrpc":"2.0","id":"list","method":"tools/list"}`,
+		`{"jsonrpc":"2.0","id":"plan","method":"tools/call","params":{"name":"runweaver_plan_workflow","arguments":{"repo":"` + root + `","workflow":".runweaver/workflows/test-swarm.json","task":"ship feature"}}}`,
+		`{"jsonrpc":"2.0","id":"update","method":"tools/call","params":{"name":"runweaver_update_workflow","arguments":{"repo":"` + root + `","resume":"latest","phase":"plan","status":"in_progress","participants":["repo-surface-indexer"],"findings":["mapped repo"],"nextAction":"verify","verification":["go test ./..."]}}}`,
+	}, "\n") + "\n"
+	var out bytes.Buffer
+
+	if err := ServeMCPStdio(strings.NewReader(input), &out, MCPServerOptions{RepoPath: root, AllowWorkflowWrites: true}); err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	for _, want := range []string{"Plan RunWeaver Workflow", "runweaver_update_workflow", `"workflow":"test-swarm"`, `"currentPhase":"plan"`, "repo-surface-indexer", "mapped repo"} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("MCP gated write output missing %q:\n%s", want, output)
+		}
+	}
+	status, err := WorkflowStatus(root, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status["currentPhase"] != "plan" || status["nextAction"] != "verify" {
+		t.Fatalf("workflow status = %#v, want update persisted through MCP", status)
+	}
+}
+
 func TestServeMCPStdioReturnsProtocolErrors(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.Join([]string{

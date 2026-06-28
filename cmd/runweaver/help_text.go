@@ -148,10 +148,11 @@ Alias for runweaver init with friendlier onboarding naming. Flags are identical 
 `
 	case "mcp serve":
 		return `Usage:
-  runweaver mcp serve --repo <path>
+  runweaver mcp serve --repo <path> [--allow-workflow-writes]
 
 Flags:
-  --repo path    repository path exposed through read-only MCP tools (default ".")
+  --repo path                 repository path exposed through MCP tools (default ".")
+  --allow-workflow-writes     expose tools that create/update .runweaver workflow state
 `
 	case "workflow run":
 		return `Usage:

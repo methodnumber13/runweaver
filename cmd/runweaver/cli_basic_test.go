@@ -115,6 +115,29 @@ func TestCLIMCPServeUsesStdio(t *testing.T) {
 	}
 }
 
+func TestCLIMCPServeCanExposeWorkflowWriteTools(t *testing.T) {
+	root := t.TempDir()
+	writeCLIFile(t, root, "go.mod", "module example.com/tool\n")
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}` + "\n")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := cli{
+		stdin:  input,
+		stdout: &stdout,
+		stderr: &stderr,
+		color:  false,
+	}.run([]string{"mcp", "serve", "--repo", root, "--allow-workflow-writes"})
+
+	if err != nil {
+		t.Fatalf("mcp serve error = %v stderr=%q", err, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "runweaver_plan_workflow") ||
+		!strings.Contains(stdout.String(), "runweaver_update_workflow") {
+		t.Fatalf("stdout = %q, want gated workflow write tools", stdout.String())
+	}
+}
+
 func TestCLIPublicHelpDoesNotExposePrivateVendorNames(t *testing.T) {
 	for _, args := range [][]string{
 		{"help"},
