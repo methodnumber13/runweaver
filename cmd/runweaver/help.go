@@ -28,6 +28,7 @@ func (c cli) usage() {
   mcp serve --repo <path>               expose read-only RunWeaver status/tools over MCP stdio
   workflow run --workflow <file> --task <text> [--runtime opencode] [--execute]
                                         create or execute workflow plan/checkpoint under .runweaver/tmp
+  workflow select --task <text>         select the closest workflow for a task
   workflow update --resume latest --phase <id>
                                         persist workflow checkpoint participants/findings
   workflow verify --resume latest       verify run artifacts, checkpoint, todo, events, and terminal evidence

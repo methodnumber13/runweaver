@@ -184,6 +184,15 @@ Flags:
   --skip-git-repo-check    allow Codex outside a Git repository
   --skip-runtime-check     skip runtime binary/config discovery before execution
 `
+	case "workflow select":
+		return `Usage:
+  runweaver workflow select --repo <path> --task <text> [--workflow file]
+
+Flags:
+  --repo path        repository path (default ".")
+  --task text        task description to route
+  --workflow file    explicit workflow JSON path; bypasses scoring when provided
+`
 	case "workflow update":
 		return `Usage:
   runweaver workflow update --repo <path> --resume latest --phase <id> [--status in_progress]

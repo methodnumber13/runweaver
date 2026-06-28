@@ -173,3 +173,32 @@ func TestCLIScanAndWorkflowCommands(t *testing.T) {
 		t.Fatalf("workflow verify stdout = %q, want warning phase-state JSON", stdout.String())
 	}
 }
+
+func TestCLIWorkflowSelectChoosesSpecificWorkflow(t *testing.T) {
+	root := t.TempDir()
+	writeCLIFile(t, root, "go.mod", "module example.com/tool\n")
+	writeCLIFile(t, root, ".runweaver/workflows/feature-delivery-swarm.json", `{
+  "id": "feature-delivery-swarm",
+  "name": "Feature Delivery Swarm",
+  "description": "Implement new repository features.",
+  "phases": []
+}`)
+	writeCLIFile(t, root, ".runweaver/workflows/bugfix-swarm.json", `{
+  "id": "bugfix-swarm",
+  "name": "Bugfix Swarm",
+  "description": "Reproduce and fix bugs, defects, failures, and regressions.",
+  "phases": []
+}`)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := runCLI([]string{"workflow", "select", "--repo", root, "--task", "Fix failing auth regression"}, &stdout, &stderr, false)
+	if code != 0 {
+		t.Fatalf("workflow select exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"id": "bugfix-swarm"`) ||
+		!strings.Contains(stdout.String(), `"workflowPath"`) ||
+		!strings.Contains(stdout.String(), `"candidates"`) {
+		t.Fatalf("workflow select stdout = %q, want selected bugfix workflow with candidates", stdout.String())
+	}
+}

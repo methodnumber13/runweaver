@@ -33,6 +33,33 @@ type WorkflowRunSummary struct {
 	Status         string   `json:"status"`
 }
 
+// WorkflowSelectOptions configures deterministic workflow routing for a task.
+type WorkflowSelectOptions struct {
+	Task     string
+	Workflow string
+}
+
+// WorkflowSelectResult reports the selected workflow plus ranked alternatives.
+type WorkflowSelectResult struct {
+	Status       string                       `json:"status"`
+	RepoRoot     string                       `json:"repoRoot"`
+	Task         string                       `json:"task"`
+	WorkflowPath string                       `json:"workflowPath"`
+	Selected     WorkflowSelectionCandidate   `json:"selected"`
+	Candidates   []WorkflowSelectionCandidate `json:"candidates"`
+}
+
+// WorkflowSelectionCandidate is one workflow considered for a task.
+type WorkflowSelectionCandidate struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Path        string   `json:"path"`
+	Score       int      `json:"score"`
+	Explicit    bool     `json:"explicit,omitempty"`
+	Rationale   []string `json:"rationale,omitempty"`
+}
+
 // WorkflowPlanFile is the durable plan written into a run directory.
 type WorkflowPlanFile struct {
 	SchemaVersion int          `json:"schemaVersion"`
