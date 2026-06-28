@@ -2,7 +2,7 @@
 
 Portable coding-agent orchestration utility for repositories.
 
-This tool intentionally does not configure MCP. It bootstraps repository-local workflow templates, package/file/symbol indexes, drift reports, generated profiles, and runtime-specific agents/skills for supported coding-agent runtimes.
+This tool bootstraps repository-local workflow templates, package/file/symbol indexes, drift reports, generated profiles, runtime-specific agents/skills, and an optional read-only MCP stdio server for supported coding-agent runtimes. It does not auto-edit global MCP/runtime configs.
 
 See [docs/COMPETITIVE_ANALYSIS.md](docs/COMPETITIVE_ANALYSIS.md) for the current comparison with adjacent AI coding agents, multi-agent frameworks, and context-engineering skill libraries.
 See [docs/RUNTIME_ADAPTERS.md](docs/RUNTIME_ADAPTERS.md) for the adapter plan and current runtime support.
@@ -108,6 +108,8 @@ runweaver refresh --repo .
 runweaver refresh --repo . --apply
 runweaver doctor --repo .
 runweaver init --repo . --require-model
+runweaver status --repo .
+runweaver mcp serve --repo .
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task"
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task" --execute
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task" --runtime codex --execute
@@ -239,6 +241,59 @@ Minimal provider shape:
 ```
 
 For Desktop, prefer OpenCode auth storage or a provider `apiKey` source that the GUI process can read. A key that exists only in the current terminal environment may work in CLI and fail in Desktop.
+
+## Optional MCP Server
+
+RunWeaver includes a small read-only MCP stdio server:
+
+```sh
+runweaver mcp serve --repo .
+```
+
+The MCP server is intentionally in this repository instead of a separate package because it is a thin adapter over the same tested CLI/core functions. Split it out only if it needs an independent release cadence, hosted transport, or compatibility guarantees separate from the CLI.
+
+The first MCP surface is read/status-oriented:
+
+- `runweaver_status`: repository initialization, index, and latest workflow state.
+- `runweaver_get_current`: `.runweaver/tmp/current.md` markdown resume surface.
+- `runweaver_list_workflows`: generated workflow templates under `.runweaver/workflows`.
+- `runweaver_verify_workflow`: deterministic verification for `latest` or an explicit run.
+
+RunWeaver does not add MCP entries to user or project runtime configs during `init`. Connect it explicitly when you want the selected LLM client to see RunWeaver as tools instead of only files and commands.
+
+Codex project or user config:
+
+```toml
+[mcp_servers.runweaver]
+command = "runweaver"
+args = ["mcp", "serve", "--repo", "."]
+```
+
+Claude Code project MCP config:
+
+```json
+{
+  "mcpServers": {
+    "runweaver": {
+      "command": "runweaver",
+      "args": ["mcp", "serve", "--repo", "."]
+    }
+  }
+}
+```
+
+OpenCode local MCP config shape:
+
+```json
+{
+  "mcp": {
+    "runweaver": {
+      "type": "local",
+      "command": ["runweaver", "mcp", "serve", "--repo", "."]
+    }
+  }
+}
+```
 
 ## Process Diagnostics
 

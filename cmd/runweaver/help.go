@@ -25,6 +25,7 @@ func (c cli) usage() {
                                         smart index, plan intelligence workflow, bootstrap metadata
   bootstrap --repo <path> [--runtime opencode]
                                         alias for init with friendlier naming
+  mcp serve --repo <path>               expose read-only RunWeaver status/tools over MCP stdio
   workflow run --workflow <file> --task <text> [--runtime opencode] [--execute]
                                         create or execute workflow plan/checkpoint under .runweaver/tmp
   workflow update --resume latest --phase <id>

@@ -146,6 +146,13 @@ Flags:
 
 Alias for runweaver init with friendlier onboarding naming. Flags are identical to init.
 `
+	case "mcp serve":
+		return `Usage:
+  runweaver mcp serve --repo <path>
+
+Flags:
+  --repo path    repository path exposed through read-only MCP tools (default ".")
+`
 	case "workflow run":
 		return `Usage:
   runweaver workflow run --workflow <file> --task <text> [--repo <path>] [--execute]

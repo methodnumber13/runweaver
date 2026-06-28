@@ -130,7 +130,7 @@ func shouldIgnoreAnchor(anchor string) bool {
 		return true
 	}
 	switch filepath.Base(anchor) {
-	case "plan.json", "checkpoint.json", "todo.md", "events.ndjson", "latest.json", "surface-index.json", "drift-report.json", "profile.generated.json", "repo-index.json", "repo-index.compact.json", "repo-context.md", "manifest.json":
+	case "plan.json", "checkpoint.json", "todo.md", "current.md", "events.ndjson", "latest.json", "surface-index.json", "drift-report.json", "profile.generated.json", "repo-index.json", "repo-index.compact.json", "repo-context.md", "manifest.json":
 		return true
 	}
 	if strings.Contains(anchor, "*") || strings.Contains(anchor, "{{") || strings.Contains(anchor, "<run-id>") {
