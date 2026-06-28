@@ -34,7 +34,7 @@ Use this skill for ` + repo.Kind + ` work in this repository.
 
 ## Output Contract
 
-Return ` + "`focus_files`, `workflow_steps`, `verification`, `risks`, and `checkpoint_update`." + `
+Return ` + "`focus_files`, `workflow_steps`, `verification`, `risks`, and `checkpoint_update`" + ` with ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `
 }
 

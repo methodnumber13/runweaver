@@ -21,7 +21,7 @@ Use ` + "`runweaver index --repo . --changed-only --prune`" + ` first, then read
 
 ## Output Contract
 
-Return ` + "`repo_index_path`, `surface_index_path`, `stack`, `packages`, `tools`, `important_surfaces`, `warnings`, and `checkpoint_update`." + `
+Return ` + "`repo_index_path`, `surface_index_path`, `stack`, `packages`, `tools`, `important_surfaces`, `warnings`, and `checkpoint_update`" + ` with ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `
 
 const driftReviewerAgent = `---
@@ -44,7 +44,7 @@ Use ` + "`runweaver refresh --repo .`" + ` to produce drift reports. Do not edit
 
 ## Output Contract
 
-Return ` + "`drift_report_path`, `stale_anchors`, `missing_surfaces`, `recommendations`, and `checkpoint_update`." + `
+Return ` + "`drift_report_path`, `stale_anchors`, `missing_surfaces`, `recommendations`, and `checkpoint_update`" + ` with ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `
 
 const profileRegeneratorAgent = `---
@@ -66,7 +66,7 @@ Prefer profile updates generated from ` + "`runweaver refresh --repo .`" + `. Ap
 
 ## Output Contract
 
-Return ` + "`profile_path`, `agents_changed`, `skills_changed`, `commands_run`, and `checkpoint_update`." + `
+Return ` + "`profile_path`, `agents_changed`, `skills_changed`, `commands_run`, and `checkpoint_update`" + ` with ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `
 
 const staleAnchorFixerAgent = `---
@@ -88,5 +88,5 @@ Use drift reports to propose replacements for stale anchors. Prefer regenerating
 
 ## Output Contract
 
-Return ` + "`fixed_anchors`, `remaining_anchors`, `profile_changes`, and `checkpoint_update`." + `
+Return ` + "`fixed_anchors`, `remaining_anchors`, `profile_changes`, and `checkpoint_update`" + ` with ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `

@@ -76,6 +76,7 @@ func PlanWorkflow(repoPath, workflowPath, task string) (WorkflowRunSummary, erro
 		NextPhase:       nextPhase,
 		UpdatedAt:       Now(),
 	}
+	applyWorkflowIndexFreshness(root, &checkpoint)
 	if err := WriteJSON(filepath.Join(runDir, "plan.json"), plan); err != nil {
 		return WorkflowRunSummary{}, err
 	}
@@ -88,7 +89,16 @@ func PlanWorkflow(repoPath, workflowPath, task string) (WorkflowRunSummary, erro
 	if err := writeWorkflowCurrent(root, runDir, checkpoint); err != nil {
 		return WorkflowRunSummary{}, err
 	}
-	event := WorkflowEvent{Type: "planned", RunID: runID, Workflow: workflow.ID, Task: task, At: Now()}
+	event := WorkflowEvent{
+		Type:                 "planned",
+		RunID:                runID,
+		Workflow:             workflow.ID,
+		Task:                 task,
+		IndexFreshnessStatus: checkpoint.IndexFreshnessStatus,
+		StaleIndex:           checkpoint.StaleIndex,
+		StaleIndexFiles:      checkpoint.StaleIndexFiles,
+		At:                   Now(),
+	}
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return WorkflowRunSummary{}, fmt.Errorf("marshal workflow event: %w", err)

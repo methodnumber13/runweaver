@@ -21,7 +21,18 @@ esac
 mkdir -p "$BIN_DIR"
 (
   cd "$ROOT_DIR"
-  go build -o "$BIN_PATH" ./cmd/runweaver
+  VERSION="${RUNWEAVER_VERSION:-dev}"
+  COMMIT="${RUNWEAVER_COMMIT:-unknown}"
+  BUILD_DATE="${RUNWEAVER_BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if [ "$VERSION" = "dev" ]; then
+      VERSION="$(git describe --tags --always --dirty 2>/dev/null || printf 'dev')"
+    fi
+    if [ "$COMMIT" = "unknown" ]; then
+      COMMIT="$(git rev-parse --short HEAD 2>/dev/null || printf 'unknown')"
+    fi
+  fi
+  go build -ldflags "-X main.version=$VERSION -X main.commit=$COMMIT -X main.buildDate=$BUILD_DATE" -o "$BIN_PATH" ./cmd/runweaver
 )
 
 echo "installed $BIN_PATH"

@@ -60,10 +60,16 @@ type WorkflowCheckpoint struct {
 	FilesRead            []string `json:"filesRead,omitempty"`
 	FilesChanged         []string `json:"filesChanged,omitempty"`
 	Artifacts            []string `json:"artifacts,omitempty"`
+	LastResult           string   `json:"lastResult,omitempty"`
+	RejectedPaths        []string `json:"rejectedPaths,omitempty"`
 	NextAction           string   `json:"nextAction,omitempty"`
+	NextVerification     string   `json:"nextVerification,omitempty"`
 	Verification         []string `json:"verification,omitempty"`
 	VerificationResults  []string `json:"verificationResults,omitempty"`
 	Blockers             []string `json:"blockers,omitempty"`
+	IndexFreshnessStatus string   `json:"indexFreshnessStatus,omitempty"`
+	StaleIndex           bool     `json:"staleIndex,omitempty"`
+	StaleIndexFiles      []string `json:"staleIndexFiles,omitempty"`
 	UpdatedAt            string   `json:"updatedAt"`
 }
 
@@ -91,10 +97,16 @@ type WorkflowEvent struct {
 	FilesRead            []string `json:"filesRead,omitempty"`
 	FilesChanged         []string `json:"filesChanged,omitempty"`
 	Artifacts            []string `json:"artifacts,omitempty"`
+	LastResult           string   `json:"lastResult,omitempty"`
+	RejectedPaths        []string `json:"rejectedPaths,omitempty"`
 	NextAction           string   `json:"nextAction,omitempty"`
+	NextVerification     string   `json:"nextVerification,omitempty"`
 	Verification         []string `json:"verification,omitempty"`
 	VerificationResults  []string `json:"verificationResults,omitempty"`
 	Blockers             []string `json:"blockers,omitempty"`
+	IndexFreshnessStatus string   `json:"indexFreshnessStatus,omitempty"`
+	StaleIndex           bool     `json:"staleIndex,omitempty"`
+	StaleIndexFiles      []string `json:"staleIndexFiles,omitempty"`
 	Command              []string `json:"command,omitempty"`
 	ExitCode             *int     `json:"exitCode,omitempty"`
 	Error                string   `json:"error,omitempty"`
@@ -114,7 +126,10 @@ type WorkflowUpdateOptions struct {
 	FilesRead            []string
 	FilesChanged         []string
 	Artifacts            []string
+	LastResult           string
+	RejectedPaths        []string
 	NextAction           string
+	NextVerification     string
 	Verification         []string
 	VerificationResults  []string
 	Blockers             []string

@@ -10,7 +10,7 @@ Install Go with the toolchain declared in `go.mod`, then run:
 go test ./...
 go vet ./...
 go test -race ./...
-go build ./cmd/runweaver
+go build -o /tmp/runweaver ./cmd/runweaver
 ```
 
 For a local binary:
@@ -41,7 +41,7 @@ go test ./...
 go vet ./...
 go test -cover ./...
 go test -race ./...
-go build ./cmd/runweaver
+go build -o /tmp/runweaver ./cmd/runweaver
 go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 ```
 
@@ -50,6 +50,19 @@ Run the installer smoke test from the repository root:
 ```sh
 tmpdir=$(mktemp -d)
 RUNWEAVER_BIN_DIR="$tmpdir" ./scripts/install.sh
+"$tmpdir/runweaver" version
 "$tmpdir/runweaver" help
 rm -rf "$tmpdir"
 ```
+
+For tagged releases:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release workflow uses GoReleaser to publish GitHub Release archives. Run
+`goreleaser check` locally when GoReleaser is installed. See
+[docs/PACKAGING.md](docs/PACKAGING.md) before enabling additional package
+manager channels such as Homebrew or npm.

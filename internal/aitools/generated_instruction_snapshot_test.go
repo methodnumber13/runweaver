@@ -27,6 +27,9 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"If the latest workflow matches the user request and is not complete, resume automatically",
 		"runweaver index --repo . --changed-only --prune",
 		"runweaver workflow update",
+		"lastResult",
+		"rejectedPaths",
+		"nextVerification",
 		"runweaver workflow verify --repo . --resume latest",
 		"Do not ask the user to run resume, status, update, or verify commands manually",
 	})
@@ -47,6 +50,9 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"For normal coding, bugfix, refactor, or test tasks, the plan is only the durable checkpoint",
 		"## Default Task Flow",
 		"runweaver workflow update --repo . --resume latest",
+		"--last-result",
+		"--rejected-path",
+		"--next-verification",
 		"runweaver workflow verify --repo . --resume latest",
 		"resume is automatic via swarm",
 	})
@@ -56,7 +62,9 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"## RunWeaver Startup Protocol",
 		"create or resume a durable workflow",
 		"Use repo-specific agents from .codex/agents",
-		"verification results, blockers, and nextAction",
+		"lastResult",
+		"rejectedPaths",
+		"nextVerification",
 	})
 	assertGeneratedInstructionSnapshot(t, root, "CLAUDE.md", []string{
 		"# RunWeaver Repository AI Rules",
@@ -71,7 +79,9 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"## RunWeaver Startup Protocol",
 		"create or resume a durable workflow",
 		"Use repo-specific agents from .claude/agents",
-		"verification results, blockers, and nextAction",
+		"lastResult",
+		"rejectedPaths",
+		"nextVerification",
 	})
 }
 

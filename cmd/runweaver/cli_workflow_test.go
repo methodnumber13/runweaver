@@ -136,7 +136,10 @@ func TestCLIScanAndWorkflowCommands(t *testing.T) {
 		"--file-read", "src/auth/auth.guard.ts",
 		"--file-changed", "test/unit/auth.guard.spec.ts",
 		"--artifact", ".runweaver/tmp/swarm-runs/latest/phases/scan/handoff.md",
+		"--last-result", "scan found auth guard gap",
+		"--rejected-path", "skip source change until regression is written",
 		"--next-action", "read auth guard",
+		"--next-verification", "run focused auth guard test",
 		"--verification", "npm run test -- auth.guard.spec.ts",
 		"--verification-result", "not run yet",
 		"--blocker", "none",
@@ -148,6 +151,9 @@ func TestCLIScanAndWorkflowCommands(t *testing.T) {
 		!strings.Contains(stdout.String(), `"identity-access-agent"`) ||
 		!strings.Contains(stdout.String(), `"participantRationale"`) ||
 		!strings.Contains(stdout.String(), `"filesRead"`) ||
+		!strings.Contains(stdout.String(), `"lastResult": "scan found auth guard gap"`) ||
+		!strings.Contains(stdout.String(), `"rejectedPaths"`) ||
+		!strings.Contains(stdout.String(), `"nextVerification": "run focused auth guard test"`) ||
 		!strings.Contains(stdout.String(), `"verificationResults"`) ||
 		!strings.Contains(stdout.String(), `"read auth guard"`) {
 		t.Fatalf("workflow update stdout = %q, want persisted checkpoint details", stdout.String())

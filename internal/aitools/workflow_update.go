@@ -55,8 +55,17 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 	if len(opts.Artifacts) > 0 {
 		checkpoint.Artifacts = Unique(append(checkpoint.Artifacts, compactStrings(opts.Artifacts)...))
 	}
+	if strings.TrimSpace(opts.LastResult) != "" {
+		checkpoint.LastResult = strings.TrimSpace(opts.LastResult)
+	}
+	if len(opts.RejectedPaths) > 0 {
+		checkpoint.RejectedPaths = Unique(append(checkpoint.RejectedPaths, compactStrings(opts.RejectedPaths)...))
+	}
 	if strings.TrimSpace(opts.NextAction) != "" {
 		checkpoint.NextAction = strings.TrimSpace(opts.NextAction)
+	}
+	if strings.TrimSpace(opts.NextVerification) != "" {
+		checkpoint.NextVerification = strings.TrimSpace(opts.NextVerification)
 	}
 	if len(opts.Verification) > 0 {
 		checkpoint.Verification = Unique(append(checkpoint.Verification, compactStrings(opts.Verification)...))
@@ -83,6 +92,7 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 			checkpoint.CurrentPhase = checkpoint.NextPhase
 		}
 	}
+	applyWorkflowIndexFreshness(root, &checkpoint)
 	checkpoint.UpdatedAt = Now()
 	if err := WriteJSON(checkpointPath, checkpoint); err != nil {
 		return nil, fmt.Errorf("write workflow checkpoint %s: %w", rel(root, checkpointPath), err)
@@ -111,10 +121,16 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		FilesRead:            compactStrings(opts.FilesRead),
 		FilesChanged:         compactStrings(opts.FilesChanged),
 		Artifacts:            compactStrings(opts.Artifacts),
+		LastResult:           strings.TrimSpace(opts.LastResult),
+		RejectedPaths:        compactStrings(opts.RejectedPaths),
 		NextAction:           strings.TrimSpace(opts.NextAction),
+		NextVerification:     strings.TrimSpace(opts.NextVerification),
 		Verification:         compactStrings(opts.Verification),
 		VerificationResults:  compactStrings(opts.VerificationResults),
 		Blockers:             compactStrings(opts.Blockers),
+		IndexFreshnessStatus: checkpoint.IndexFreshnessStatus,
+		StaleIndex:           checkpoint.StaleIndex,
+		StaleIndexFiles:      checkpoint.StaleIndexFiles,
 		At:                   Now(),
 	}
 	if err := appendWorkflowEvent(root, runDir, event); err != nil {
@@ -125,6 +141,17 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		return nil, err
 	}
 	return checkpointStatusMap(checkpoint, rel(root, runDir))
+}
+
+func applyWorkflowIndexFreshness(root string, checkpoint *WorkflowCheckpoint) {
+	freshness := CheckIndexFreshness(root)
+	checkpoint.IndexFreshnessStatus = freshness.Status
+	checkpoint.StaleIndex = !freshness.Fresh
+	if checkpoint.StaleIndex {
+		checkpoint.StaleIndexFiles = compactStrings(freshness.StaleFiles)
+		return
+	}
+	checkpoint.StaleIndexFiles = nil
 }
 
 func syncWorkflowTodo(root, runDir string, checkpoint WorkflowCheckpoint) error {

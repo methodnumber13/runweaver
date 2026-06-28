@@ -35,7 +35,10 @@ func TestUpdateWorkflowPersistsParticipantsFindingsAndEvents(t *testing.T) {
 		FilesRead:           []string{"src/auth/auth.guard.ts", "test/unit/auth.guard.spec.ts"},
 		FilesChanged:        []string{"test/unit/auth.guard.spec.ts"},
 		Artifacts:           []string{".runweaver/tmp/swarm-runs/latest/phases/reproduce/handoff.md"},
+		LastResult:          "reproduce failed before public-route bypass was covered",
+		RejectedPaths:       []string{"changing guard behavior rejected: source already returns true for public routes"},
 		NextAction:          "add public route test",
+		NextVerification:    "run focused auth guard unit test after adding regression",
 		Verification:        []string{"npm run test -- auth.guard.spec.ts"},
 		VerificationResults: []string{"not run yet; reproduce phase only"},
 		Blockers:            []string{"none"},
@@ -61,12 +64,22 @@ func TestUpdateWorkflowPersistsParticipantsFindingsAndEvents(t *testing.T) {
 	if status["nextAction"] != "add public route test" {
 		t.Fatalf("status = %#v, want next action", status)
 	}
+	if status["lastResult"] != "reproduce failed before public-route bypass was covered" {
+		t.Fatalf("status = %#v, want last result", status)
+	}
+	if status["nextVerification"] != "run focused auth guard unit test after adding regression" {
+		t.Fatalf("status = %#v, want next verification", status)
+	}
+	if status["indexFreshnessStatus"] != "missing" || status["staleIndex"] != true {
+		t.Fatalf("status = %#v, want missing stale index signal", status)
+	}
 	for key, wantLen := range map[string]int{
 		"participantRationale": 2,
 		"decisions":            1,
 		"filesRead":            2,
 		"filesChanged":         1,
 		"artifacts":            1,
+		"rejectedPaths":        1,
 		"verificationResults":  1,
 		"blockers":             1,
 	} {
@@ -84,7 +97,7 @@ func TestUpdateWorkflowPersistsParticipantsFindingsAndEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`"type":"updated"`, "identity-access-agent", "filesChanged", "verificationResults", "participantRationale"} {
+	for _, want := range []string{`"type":"updated"`, "identity-access-agent", "filesChanged", "lastResult", "rejectedPaths", "nextVerification", "indexFreshnessStatus", "verificationResults", "participantRationale"} {
 		if !strings.Contains(string(events), want) {
 			t.Fatalf("events = %s, want update event detail %q", string(events), want)
 		}
@@ -93,7 +106,17 @@ func TestUpdateWorkflowPersistsParticipantsFindingsAndEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Current phase: reproduce", "identity-access-agent", "add public route test", "not run yet; reproduce phase only"} {
+	for _, want := range []string{
+		"Current phase: reproduce",
+		"identity-access-agent",
+		"reproduce failed before public-route bypass was covered",
+		"changing guard behavior rejected",
+		"add public route test",
+		"run focused auth guard unit test",
+		"not run yet; reproduce phase only",
+		"Index Freshness At Last Update",
+		"Stale index: true",
+	} {
 		if !strings.Contains(string(current), want) {
 			t.Fatalf("current.md missing %q:\n%s", want, string(current))
 		}

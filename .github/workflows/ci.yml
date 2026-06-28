@@ -39,7 +39,13 @@ jobs:
         run: go test -race ./...
 
       - name: Build
-        run: go build ./cmd/runweaver
+        run: go build -o /tmp/runweaver ./cmd/runweaver
+
+      - name: Version metadata smoke
+        run: |
+          go build -ldflags "-X main.version=v0.0.0-ci -X main.commit=${GITHUB_SHA::12} -X main.buildDate=2026-01-01T00:00:00Z" -o /tmp/runweaver-version ./cmd/runweaver
+          /tmp/runweaver-version version
+          /tmp/runweaver-version version --json | grep '"version": "v0.0.0-ci"'
 
       - name: Vulnerability check
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...

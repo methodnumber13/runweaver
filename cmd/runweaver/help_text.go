@@ -200,7 +200,10 @@ Flags:
   --file-read path         file read during the phase; may be repeated
   --file-changed path      file changed during the phase; may be repeated
   --artifact path          artifact path to append; may be repeated
+  --last-result text       last result explaining why the workflow is moving or pausing
+  --rejected-path text     path, command, or approach rejected/paused with reason; may be repeated
   --next-action text       next action to persist
+  --next-verification text next verification step before continuing or finishing
   --verification command   verification command to append; may be repeated
   --verification-result    verification result to append; may be repeated
   --blocker text           blocker to append; may be repeated
@@ -213,6 +216,13 @@ Flags:
 Flags:
   --repo path              repository path (default ".")
   --resume latest|path     run directory or latest
+`
+	case "version":
+		return `Usage:
+  runweaver version [--json]
+
+Flags:
+  --json    print version metadata as JSON
 `
 	default:
 		return ""

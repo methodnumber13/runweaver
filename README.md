@@ -7,6 +7,7 @@ This tool bootstraps repository-local workflow templates, package/file/symbol in
 See [docs/COMPETITIVE_ANALYSIS.md](docs/COMPETITIVE_ANALYSIS.md) for the current comparison with adjacent AI coding agents, multi-agent frameworks, and context-engineering skill libraries.
 See [docs/RUNTIME_ADAPTERS.md](docs/RUNTIME_ADAPTERS.md) for the adapter plan and current runtime support.
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the internal package boundaries.
+See [docs/PACKAGING.md](docs/PACKAGING.md) for versioning and package-manager plans.
 
 ## Install
 
@@ -22,6 +23,12 @@ Install from the public Go module:
 ```sh
 go install github.com/methodnumber13/runweaver/cmd/runweaver@latest
 ```
+
+Install from GitHub Releases when tagged binaries are available:
+
+<https://github.com/methodnumber13/runweaver/releases/latest>
+
+Download the archive for your OS/architecture, unpack it, and put `runweaver` on PATH.
 
 Install from a source checkout:
 
@@ -42,6 +49,13 @@ If you keep the default destination, make sure your shell and selected runtime c
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
 which runweaver
+```
+
+Check the installed build:
+
+```sh
+runweaver version
+runweaver version --json
 ```
 
 ## Project Status
@@ -117,6 +131,7 @@ runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.js
 runweaver workflow run --resume latest --execute
 runweaver workflow run --resume latest --status
 runweaver workflow verify --repo . --resume latest
+runweaver version
 ```
 
 CLI output is split by purpose:

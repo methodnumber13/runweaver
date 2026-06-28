@@ -58,7 +58,7 @@ func TestGeneratedAgentAndSkillStartWithFrontmatter(t *testing.T) {
 			t.Fatalf("agent markdown missing permission %q:\n%s", want, agent)
 		}
 	}
-	for _, want := range []string{"context-discipline", "participantRationale", "filesRead", "filesChanged", "verificationResults", "blockers"} {
+	for _, want := range []string{"context-discipline", "participantRationale", "filesRead", "filesChanged", "lastResult", "rejectedPaths", "nextVerification", "verificationResults", "blockers"} {
 		if !strings.Contains(agent, want) {
 			t.Fatalf("agent markdown missing checkpoint contract %q:\n%s", want, agent)
 		}
@@ -82,7 +82,7 @@ func TestGeneratedAgentAndSkillStartWithFrontmatter(t *testing.T) {
 	if !strings.Contains(skill, "\n"+generatedMarker+"\n\n") {
 		t.Fatalf("skill markdown missing generated marker after frontmatter")
 	}
-	for _, want := range []string{"filesRead", "filesChanged", "verificationResults", "blockers"} {
+	for _, want := range []string{"filesRead", "filesChanged", "lastResult", "rejectedPaths", "nextVerification", "verificationResults", "blockers"} {
 		if !strings.Contains(skill, want) {
 			t.Fatalf("skill markdown missing checkpoint contract %q:\n%s", want, skill)
 		}

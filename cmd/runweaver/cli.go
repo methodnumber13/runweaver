@@ -99,6 +99,8 @@ func (c cli) run(args []string) error {
 		return wrapCommandError("mcp serve", c.mcpCmd(args[1:]))
 	case "workflow":
 		return wrapCommandError("workflow run", c.workflowCmd(args[1:]))
+	case "version":
+		return wrapCommandError("version", c.versionCmd(args[1:]))
 	case "help", "-h", "--help":
 		c.usage()
 		return nil

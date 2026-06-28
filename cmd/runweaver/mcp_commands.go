@@ -34,7 +34,7 @@ func (c cli) mcpServeCmd(args []string) error {
 	}
 	return aitools.ServeMCPStdio(stdin, c.stdout, aitools.MCPServerOptions{
 		RepoPath:            *repo,
-		Version:             "dev",
+		Version:             resolveVersionInfo().Version,
 		AllowWorkflowWrites: *allowWorkflowWrites,
 	})
 }

@@ -40,7 +40,10 @@ Record concise entries for:
 - ` + "`findings`" + ` and ` + "`decisions`" + `
 - ` + "`filesRead`" + ` and ` + "`filesChanged`" + `
 - ` + "`artifacts`" + `
+- ` + "`lastResult`" + ` with the latest command, agent, or phase outcome
+- ` + "`rejectedPaths`" + ` for rejected or paused approaches, paths, or commands, including why
 - ` + "`verification`" + ` and ` + "`verificationResults`" + `
+- ` + "`nextVerification`" + ` with the next concrete verification step
 - ` + "`blockers`" + ` when work cannot safely continue
 - ` + "`nextAction`" + ` when the workflow is not complete
 
@@ -56,7 +59,7 @@ Fix warnings when feasible. If a warning cannot be fixed safely, record a blocke
 
 ## Output Contract
 
-Return ` + "`files_read`, `files_changed`, `checkpoint_fields_updated`, `artifacts`, `verification_results`, `blockers`, and `workflow_verify`." + `
+Return ` + "`files_read`, `files_changed`, `checkpoint_fields_updated`, `artifacts`, `last_result`, `rejected_paths`, `verification_results`, `next_verification`, `blockers`, and `workflow_verify`." + `
 `
 
 const metadataRefreshSkill = `---

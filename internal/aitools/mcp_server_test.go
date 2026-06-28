@@ -33,6 +33,10 @@ func TestServeMCPStdioInitializesListsToolsAndReturnsStatus(t *testing.T) {
 	if initResult["protocolVersion"] != "2025-03-26" {
 		t.Fatalf("protocolVersion = %v, want client version", initResult["protocolVersion"])
 	}
+	serverInfo := initResult["serverInfo"].(map[string]any)
+	if serverInfo["version"] != "test" {
+		t.Fatalf("serverInfo.version = %v, want test", serverInfo["version"])
+	}
 	if responses[1]["id"].(float64) != 2 || !strings.Contains(mustJSON(t, responses[1]), "runweaver_get_current") {
 		t.Fatalf("tools/list response = %#v, want RunWeaver tools", responses[1])
 	}
@@ -106,7 +110,7 @@ func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
 	input := strings.Join([]string{
 		`{"jsonrpc":"2.0","id":"list","method":"tools/list"}`,
 		`{"jsonrpc":"2.0","id":"plan","method":"tools/call","params":{"name":"runweaver_plan_workflow","arguments":{"repo":"` + root + `","workflow":".runweaver/workflows/test-swarm.json","task":"ship feature"}}}`,
-		`{"jsonrpc":"2.0","id":"update","method":"tools/call","params":{"name":"runweaver_update_workflow","arguments":{"repo":"` + root + `","resume":"latest","phase":"plan","status":"in_progress","participants":["repo-surface-indexer"],"findings":["mapped repo"],"nextAction":"verify","verification":["go test ./..."]}}}`,
+		`{"jsonrpc":"2.0","id":"update","method":"tools/call","params":{"name":"runweaver_update_workflow","arguments":{"repo":"` + root + `","resume":"latest","phase":"plan","status":"in_progress","participants":["repo-surface-indexer"],"findings":["mapped repo"],"lastResult":"plan created and index is missing","rejectedPaths":["skip implementation until plan participants are recorded"],"nextAction":"verify","nextVerification":"go test ./...","verification":["go test ./..."]}}}`,
 	}, "\n") + "\n"
 	var out bytes.Buffer
 
@@ -115,7 +119,7 @@ func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
 	}
 
 	output := out.String()
-	for _, want := range []string{"Plan RunWeaver Workflow", "runweaver_update_workflow", `"workflow":"test-swarm"`, `"currentPhase":"plan"`, "repo-surface-indexer", "mapped repo"} {
+	for _, want := range []string{"Plan RunWeaver Workflow", "runweaver_update_workflow", `"workflow":"test-swarm"`, `"currentPhase":"plan"`, "repo-surface-indexer", "mapped repo", "lastResult", "rejectedPaths", "nextVerification"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("MCP gated write output missing %q:\n%s", want, output)
 		}
@@ -124,7 +128,7 @@ func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status["currentPhase"] != "plan" || status["nextAction"] != "verify" {
+	if status["currentPhase"] != "plan" || status["nextAction"] != "verify" || status["lastResult"] != "plan created and index is missing" {
 		t.Fatalf("workflow status = %#v, want update persisted through MCP", status)
 	}
 }

@@ -27,7 +27,7 @@ Runtime: ` + repo.Runtime + `
 Domain: ` + repo.Domain + `
 
 Start from ` + "`CLAUDE.md`" + `, ` + "`.claude/runweaver/profile.json`" + `, ` + "`.runweaver/tmp/index/repo-context.md`" + `, and ` + "`.runweaver/tmp/index/repo-index.compact.json`" + ` when they exist.
-Use ` + "`runweaver index --repo . --changed-only --prune`" + ` before relying on stale file anchors. Apply ` + "`context-discipline`" + ` and persist workflow state with ` + "`runweaver workflow update`" + `.
+Use ` + "`runweaver index --repo . --changed-only --prune`" + ` before relying on stale file anchors. Apply ` + "`context-discipline`" + ` and persist workflow state with ` + "`runweaver workflow update`" + `, including ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, ` + "`nextAction`" + `, and ` + "`nextVerification`" + ` when they explain the next move.
 
 ## Key Files And Directories
 
@@ -47,7 +47,7 @@ Use ` + "`runweaver index --repo . --changed-only --prune`" + ` before relying o
 
 ## Output Contract
 
-Return ` + "`files_read`, `files_changed`, `contracts_checked`, `verification`, `risks`, and `checkpoint_update`" + ` with concrete checkpoint fields.
+Return ` + "`files_read`, `files_changed`, `contracts_checked`, `verification`, `risks`, and `checkpoint_update`" + ` with concrete checkpoint fields, including ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `
 }
 
