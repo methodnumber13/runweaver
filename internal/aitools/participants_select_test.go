@@ -17,8 +17,8 @@ func TestSelectParticipantsPrefersDomainAgentAndRelevantSkill(t *testing.T) {
 	if result.Cap != 3 {
 		t.Fatalf("cap = %d, want 3", result.Cap)
 	}
-	if !containsString(result.Participants, "auth-keycloak-agent") {
-		t.Fatalf("participants = %#v, want auth-keycloak-agent", result.Participants)
+	if !containsString(result.Participants, "auth-access-agent") {
+		t.Fatalf("participants = %#v, want auth-access-agent", result.Participants)
 	}
 	if !containsString(result.Participants, "security-middleware") {
 		t.Fatalf("participants = %#v, want security-middleware skill", result.Participants)
@@ -82,8 +82,8 @@ func writeParticipantSelectionFixtures(t *testing.T, root string) {
     "domain": "BFF API",
     "agents": [
       {
-        "name": "auth-keycloak-agent",
-        "description": "Owns authentication guards, public routes, token validation, and Keycloak integration.",
+        "name": "auth-access-agent",
+        "description": "Owns authentication guards, public routes, and token validation.",
         "focusFiles": ["src/auth/auth.guard.ts", "src/auth/decorators/public.decorator.ts"],
         "verification": ["npm run test -- auth.guard.spec.ts"]
       },
