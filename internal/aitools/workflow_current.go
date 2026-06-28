@@ -43,9 +43,27 @@ func workflowCurrentMarkdown(checkpoint WorkflowCheckpoint, runDir string) strin
 		b.WriteString("\n## Participants\n\n")
 		writeMarkdownList(&b, checkpoint.Participants)
 	}
+	if checkpoint.LastResult != "" {
+		b.WriteString("\n## Last Result\n\n")
+		b.WriteString(checkpoint.LastResult)
+		b.WriteString("\n")
+	}
+	if len(checkpoint.FilesChanged) > 0 {
+		b.WriteString("\n## Changed Files\n\n")
+		writeMarkdownList(&b, checkpoint.FilesChanged)
+	}
+	if len(checkpoint.RejectedPaths) > 0 {
+		b.WriteString("\n## Rejected Or Paused Paths\n\n")
+		writeMarkdownList(&b, checkpoint.RejectedPaths)
+	}
 	if checkpoint.NextAction != "" {
 		b.WriteString("\n## Next Action\n\n")
 		b.WriteString(checkpoint.NextAction)
+		b.WriteString("\n")
+	}
+	if checkpoint.NextVerification != "" {
+		b.WriteString("\n## Next Verification\n\n")
+		b.WriteString(checkpoint.NextVerification)
 		b.WriteString("\n")
 	}
 	if len(checkpoint.Blockers) > 0 {
@@ -55,6 +73,15 @@ func workflowCurrentMarkdown(checkpoint WorkflowCheckpoint, runDir string) strin
 	if len(checkpoint.VerificationResults) > 0 {
 		b.WriteString("\n## Verification Results\n\n")
 		writeMarkdownList(&b, checkpoint.VerificationResults)
+	}
+	if checkpoint.IndexFreshnessStatus != "" {
+		b.WriteString("\n## Index Freshness At Last Update\n\n")
+		writeMarkdownField(&b, "Status", checkpoint.IndexFreshnessStatus)
+		writeMarkdownField(&b, "Stale index", fmt.Sprintf("%t", checkpoint.StaleIndex))
+		if len(checkpoint.StaleIndexFiles) > 0 {
+			b.WriteString("\nStale files:\n\n")
+			writeMarkdownList(&b, checkpoint.StaleIndexFiles)
+		}
 	}
 
 	b.WriteString("\n## Agent Commands\n\n")

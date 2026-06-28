@@ -10,28 +10,35 @@ import (
 
 // RunWeaverStatusResult summarizes repository-local RunWeaver readiness.
 type RunWeaverStatusResult struct {
-	Status          string               `json:"status"`
-	Ready           bool                 `json:"ready"`
-	RepoRoot        string               `json:"repoRoot"`
-	Initialized     bool                 `json:"initialized"`
-	IndexPath       string               `json:"indexPath,omitempty"`
-	ContextPath     string               `json:"contextPath,omitempty"`
-	IndexFreshness  IndexFreshnessResult `json:"indexFreshness"`
-	LatestWorkflow  bool                 `json:"latestWorkflow"`
-	RunID           string               `json:"runId,omitempty"`
-	Workflow        string               `json:"workflow,omitempty"`
-	Task            string               `json:"task,omitempty"`
-	WorkflowStatus  string               `json:"workflowStatus,omitempty"`
-	CurrentPhase    string               `json:"currentPhase,omitempty"`
-	NextPhase       string               `json:"nextPhase,omitempty"`
-	RunDir          string               `json:"runDir,omitempty"`
-	CheckpointPath  string               `json:"checkpointPath,omitempty"`
-	TodoPath        string               `json:"todoPath,omitempty"`
-	CurrentPath     string               `json:"currentPath,omitempty"`
-	Participants    []string             `json:"participants,omitempty"`
-	NextAction      string               `json:"nextAction,omitempty"`
-	Blockers        []string             `json:"blockers,omitempty"`
-	Recommendations []string             `json:"recommendations,omitempty"`
+	Status                         string               `json:"status"`
+	Ready                          bool                 `json:"ready"`
+	RepoRoot                       string               `json:"repoRoot"`
+	Initialized                    bool                 `json:"initialized"`
+	IndexPath                      string               `json:"indexPath,omitempty"`
+	ContextPath                    string               `json:"contextPath,omitempty"`
+	IndexFreshness                 IndexFreshnessResult `json:"indexFreshness"`
+	LatestWorkflow                 bool                 `json:"latestWorkflow"`
+	RunID                          string               `json:"runId,omitempty"`
+	Workflow                       string               `json:"workflow,omitempty"`
+	Task                           string               `json:"task,omitempty"`
+	WorkflowStatus                 string               `json:"workflowStatus,omitempty"`
+	CurrentPhase                   string               `json:"currentPhase,omitempty"`
+	NextPhase                      string               `json:"nextPhase,omitempty"`
+	RunDir                         string               `json:"runDir,omitempty"`
+	CheckpointPath                 string               `json:"checkpointPath,omitempty"`
+	TodoPath                       string               `json:"todoPath,omitempty"`
+	CurrentPath                    string               `json:"currentPath,omitempty"`
+	Participants                   []string             `json:"participants,omitempty"`
+	FilesChanged                   []string             `json:"filesChanged,omitempty"`
+	LastResult                     string               `json:"lastResult,omitempty"`
+	RejectedPaths                  []string             `json:"rejectedPaths,omitempty"`
+	NextAction                     string               `json:"nextAction,omitempty"`
+	NextVerification               string               `json:"nextVerification,omitempty"`
+	Blockers                       []string             `json:"blockers,omitempty"`
+	CheckpointIndexFreshnessStatus string               `json:"checkpointIndexFreshnessStatus,omitempty"`
+	CheckpointStaleIndex           bool                 `json:"checkpointStaleIndex,omitempty"`
+	CheckpointStaleIndexFiles      []string             `json:"checkpointStaleIndexFiles,omitempty"`
+	Recommendations                []string             `json:"recommendations,omitempty"`
 }
 
 // RunWeaverStatus reads local RunWeaver metadata without mutating the repository.
@@ -87,8 +94,15 @@ func RunWeaverStatus(repoPath string) (RunWeaverStatusResult, error) {
 	result.TodoPath = rel(root, filepath.Join(runDir, "todo.md"))
 	result.CurrentPath = rel(root, statepath.TmpPath(root, workflowCurrentFile))
 	result.Participants = checkpoint.Participants
+	result.FilesChanged = checkpoint.FilesChanged
+	result.LastResult = checkpoint.LastResult
+	result.RejectedPaths = checkpoint.RejectedPaths
 	result.NextAction = checkpoint.NextAction
+	result.NextVerification = checkpoint.NextVerification
 	result.Blockers = checkpoint.Blockers
+	result.CheckpointIndexFreshnessStatus = checkpoint.IndexFreshnessStatus
+	result.CheckpointStaleIndex = checkpoint.StaleIndex
+	result.CheckpointStaleIndexFiles = checkpoint.StaleIndexFiles
 	result.Recommendations = appendIndexFreshnessRecommendations(statusRecommendations(checkpoint), result.IndexFreshness)
 	if !result.IndexFreshness.Fresh {
 		result.Status = "warning"

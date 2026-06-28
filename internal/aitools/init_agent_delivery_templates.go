@@ -23,7 +23,7 @@ Use runtime profile, .runweaver/tmp/index/repo-context.md, and .runweaver/tmp/in
 
 ## Output Contract
 
-Return ` + "`files_read`, `files_changed`, `contracts_checked`, `verification`, `risks`, and `checkpoint_update`." + `
+Return ` + "`files_read`, `files_changed`, `contracts_checked`, `verification`, `risks`, and `checkpoint_update`" + ` with ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `
 
 const repoContractReviewerAgent = `---
@@ -49,7 +49,7 @@ Review request/response contracts, imports, public APIs, configuration, generate
 
 ## Output Contract
 
-Return ` + "`contracts_checked`, `findings`, `metadata_drift`, `verification`, `risks`, and `checkpoint_update`." + `
+Return ` + "`contracts_checked`, `findings`, `metadata_drift`, `verification`, `risks`, and `checkpoint_update`" + ` with ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `
 
 const repoTestQualityReviewerAgent = `---
@@ -73,5 +73,5 @@ Find the smallest reliable verification set for the task, update tests when expl
 
 ## Output Contract
 
-Return ` + "`tests_found`, `tests_changed`, `commands_run`, `coverage_gaps`, `risks`, and `checkpoint_update`." + `
+Return ` + "`tests_found`, `tests_changed`, `commands_run`, `coverage_gaps`, `risks`, and `checkpoint_update`" + ` with ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, and ` + "`nextVerification`" + ` when relevant.
 `

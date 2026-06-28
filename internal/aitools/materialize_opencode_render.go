@@ -44,7 +44,7 @@ Domain: ` + repo.Domain + `
 
 1. Start from ` + "`AGENTS.md`" + `, ` + "`.opencode/swarm/profile.json`" + `, ` + "`.runweaver/tmp/index/repo-context.md`" + `, and ` + "`.runweaver/tmp/index/repo-index.compact.json`" + ` when they exist.
 2. Prefer current source discovery with ` + "`runweaver index --repo . --changed-only --prune`" + ` and ` + "`rg --files`" + ` before relying on stale file anchors. Use ` + "`runweaver scan --repo . --out .runweaver/tmp/surface-index.json`" + ` only when a legacy surface-index artifact is required.
-3. Apply the ` + "`context-discipline`" + ` skill when participating in a workflow run. Record files read, files changed, decisions, artifacts, verification results, blockers, and participant rationale through ` + "`runweaver workflow update`" + `.
+3. Apply the ` + "`context-discipline`" + ` skill when participating in a workflow run. Record files read, files changed, decisions, artifacts, last result, rejected or paused paths, next verification, verification results, blockers, and participant rationale through ` + "`runweaver workflow update`" + `.
 4. Keep edits scoped to the task and to the surfaces listed below unless the code path proves a broader change is required.
 5. If routes, pages, tests, configs, or major directories move, request or run metadata refresh.
 
@@ -68,7 +68,7 @@ Domain: ` + repo.Domain + `
 
 Return ` + "`files_read`, `files_changed`, `contracts_checked`, `verification`, `risks`, and `checkpoint_update`." + `
 
-` + "`checkpoint_update`" + ` must include concrete ` + "`participants`" + `, ` + "`participantRationale`" + `, ` + "`findings`" + `, ` + "`decisions`" + `, ` + "`filesRead`" + `, ` + "`filesChanged`" + `, ` + "`artifacts`" + `, ` + "`verification`" + `, ` + "`verificationResults`" + `, ` + "`blockers`" + `, and ` + "`nextAction`" + ` fields when they apply. Do not return a vague prose-only checkpoint update.
+` + "`checkpoint_update`" + ` must include concrete ` + "`participants`" + `, ` + "`participantRationale`" + `, ` + "`findings`" + `, ` + "`decisions`" + `, ` + "`filesRead`" + `, ` + "`filesChanged`" + `, ` + "`artifacts`" + `, ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, ` + "`verification`" + `, ` + "`verificationResults`" + `, ` + "`nextVerification`" + `, ` + "`blockers`" + `, and ` + "`nextAction`" + ` fields when they apply. Do not return a vague prose-only checkpoint update.
 `
 }
 
@@ -103,6 +103,6 @@ Use this skill for ` + repo.Kind + ` work in this repository.
 
 Return ` + "`focus_files`, `workflow_steps`, `verification`, `risks`, and `checkpoint_update`." + `
 
-` + "`checkpoint_update`" + ` must name concrete ` + "`filesRead`" + `, ` + "`filesChanged`" + `, ` + "`findings`" + `, ` + "`decisions`" + `, ` + "`artifacts`" + `, ` + "`verificationResults`" + `, and ` + "`blockers`" + ` when they apply.
+` + "`checkpoint_update`" + ` must name concrete ` + "`filesRead`" + `, ` + "`filesChanged`" + `, ` + "`findings`" + `, ` + "`decisions`" + `, ` + "`artifacts`" + `, ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, ` + "`verificationResults`" + `, ` + "`nextVerification`" + `, and ` + "`blockers`" + ` when they apply.
 `
 }

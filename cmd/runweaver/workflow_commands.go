@@ -146,7 +146,9 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	phase := fs.String("phase", "", "current workflow phase")
 	status := fs.String("status", "", "checkpoint status, for example in_progress or complete")
 	participants := fs.String("participants", "", "comma-separated participant names")
+	lastResult := fs.String("last-result", "", "last command, agent, or phase result that explains why the workflow is moving or pausing")
 	nextAction := fs.String("next-action", "", "next action to persist in checkpoint")
+	nextVerification := fs.String("next-verification", "", "next verification step that should be run before continuing or finishing")
 	completePhase := fs.Bool("complete-phase", false, "mark the current phase complete and advance nextPhase")
 	var participantRationale repeatedStringFlag
 	var findings repeatedStringFlag
@@ -154,6 +156,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	var filesRead repeatedStringFlag
 	var filesChanged repeatedStringFlag
 	var artifacts repeatedStringFlag
+	var rejectedPaths repeatedStringFlag
 	var verification repeatedStringFlag
 	var verificationResults repeatedStringFlag
 	var blockers repeatedStringFlag
@@ -163,6 +166,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	fs.Var(&filesRead, "file-read", "file read during the phase; may be repeated")
 	fs.Var(&filesChanged, "file-changed", "file changed during the phase; may be repeated")
 	fs.Var(&artifacts, "artifact", "artifact path to append; may be repeated")
+	fs.Var(&rejectedPaths, "rejected-path", "path, command, or approach rejected/paused with reason; may be repeated")
 	fs.Var(&verification, "verification", "verification command to append; may be repeated")
 	fs.Var(&verificationResults, "verification-result", "verification result to append; may be repeated")
 	fs.Var(&blockers, "blocker", "blocker to append; may be repeated")
@@ -183,7 +187,10 @@ func (c cli) workflowUpdateCmd(args []string) error {
 		FilesRead:            filesRead.Values(),
 		FilesChanged:         filesChanged.Values(),
 		Artifacts:            artifacts.Values(),
+		LastResult:           *lastResult,
+		RejectedPaths:        rejectedPaths.Values(),
 		NextAction:           *nextAction,
+		NextVerification:     *nextVerification,
 		Verification:         verification.Values(),
 		VerificationResults:  verificationResults.Values(),
 		Blockers:             blockers.Values(),

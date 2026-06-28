@@ -158,7 +158,7 @@ Read AGENTS.md, .codex/runweaver/profile.json, .runweaver/tmp/index/repo-context
 
 For non-trivial work, create or resume a durable workflow under .runweaver/tmp/swarm-runs. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
 
-Use repo-specific agents from .codex/agents and repo skills from .agents/skills as local role instructions. Record participants, files read, files changed, findings, decisions, verification results, blockers, and nextAction in the checkpoint.
+Use repo-specific agents from .codex/agents and repo skills from .agents/skills as local role instructions. Record participants, files read, files changed, findings, decisions, lastResult, rejectedPaths, verification results, blockers, nextAction, and nextVerification in the checkpoint.
 """
 `
 
@@ -170,9 +170,9 @@ compatibility: codex
 
 Use this skill for every non-trivial coding, bugfix, refactor, test, onboarding, or metadata workflow.
 
-Maintain .runweaver/tmp/swarm-runs/<run-id>/checkpoint.json, todo.md, events.ndjson, phase notes, and verification logs through runweaver workflow update.
+Maintain .runweaver/tmp/swarm-runs/<run-id>/checkpoint.json, todo.md, events.ndjson, phase notes, and verification logs through runweaver workflow update. Include lastResult, rejectedPaths, nextAction, and nextVerification whenever they explain the next move.
 
-Before final response, run runweaver workflow verify --repo . --resume latest when feasible and record exact blockers otherwise.
+Before final response, run runweaver workflow verify --repo . --resume latest when feasible and record exact blockers plus the next verification step otherwise.
 `
 
 const codexMetadataRefreshSkill = `---
@@ -220,7 +220,7 @@ Read CLAUDE.md, .claude/runweaver/profile.json, .runweaver/tmp/index/repo-contex
 
 For non-trivial work, create or resume a durable workflow under .runweaver/tmp/swarm-runs. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
 
-Use repo-specific agents from .claude/agents and repo skills from .claude/skills as local role instructions. Record participants, files read, files changed, findings, decisions, verification results, blockers, and nextAction in the checkpoint.
+Use repo-specific agents from .claude/agents and repo skills from .claude/skills as local role instructions. Record participants, files read, files changed, findings, decisions, lastResult, rejectedPaths, verification results, blockers, nextAction, and nextVerification in the checkpoint.
 `
 
 const claudeContextDisciplineSkill = `---
@@ -231,9 +231,9 @@ compatibility: claude
 
 Use this skill for every non-trivial coding, bugfix, refactor, test, onboarding, or metadata workflow.
 
-Maintain .runweaver/tmp/swarm-runs/<run-id>/checkpoint.json, todo.md, events.ndjson, phase notes, and verification logs through runweaver workflow update.
+Maintain .runweaver/tmp/swarm-runs/<run-id>/checkpoint.json, todo.md, events.ndjson, phase notes, and verification logs through runweaver workflow update. Include lastResult, rejectedPaths, nextAction, and nextVerification whenever they explain the next move.
 
-Before final response, run runweaver workflow verify --repo . --resume latest when feasible and record exact blockers otherwise.
+Before final response, run runweaver workflow verify --repo . --resume latest when feasible and record exact blockers plus the next verification step otherwise.
 `
 
 const claudeMetadataRefreshSkill = `---
