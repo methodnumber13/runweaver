@@ -75,10 +75,11 @@ For a newly cloned repository:
 ```sh
 runweaver doctor runtime --repo . --runtime all
 runweaver init --repo . --force --classification ai --classifier-runtime opencode
-runweaver doctor opencode --repo .
+runweaver doctor adoption --repo . --runtime all
+runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
 ```
 
-Then open the repository in the selected runtime and write the task to the generated `swarm` entrypoint. The swarm should create or resume a workflow run under `.runweaver/tmp/swarm-runs`, select repo-specific participants from the runtime profile, update `checkpoint.json`/`todo.md`, and continue phase by phase.
+Then open the repository in the selected runtime and write the task to the generated `swarm` entrypoint. The generated instructions tell the runtime to call `runweaver start --repo . --task "<user task>"`, which creates or resumes a workflow run under `.runweaver/tmp/swarm-runs`, selects repo-specific participants from the runtime profile, updates `checkpoint.json`/`todo.md`, and returns the next execution contract.
 
 For multi-runtime metadata:
 
@@ -117,12 +118,17 @@ runweaver classify --repo . --classification ai --apply
 runweaver doctor model --repo .
 runweaver doctor opencode --repo .
 runweaver doctor runtime --repo . --runtime all
+runweaver doctor adoption --repo . --runtime all
 runweaver doctor processes --summary
+runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
 runweaver refresh --repo .
 runweaver refresh --repo . --apply
 runweaver doctor --repo .
 runweaver init --repo . --require-model
 runweaver status --repo .
+runweaver start --repo . --runtime opencode --task "implement task"
+runweaver participants select --repo . --runtime opencode --task "implement task"
+runweaver workflow select --repo . --task "implement task"
 runweaver mcp serve --repo .
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task"
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task" --execute
@@ -282,6 +288,7 @@ runweaver mcp serve --repo . --allow-workflow-writes
 
 This exposes only `.runweaver/tmp` workflow-state tools:
 
+- `runweaver_start_or_resume`: single task intake tool; refreshes context when needed, creates or resumes a workflow, selects participants, and returns the execution contract.
 - `runweaver_plan_workflow`: creates `plan.json`, `checkpoint.json`, `todo.md`, `events.ndjson`, and `latest.json`.
 - `runweaver_update_workflow`: updates checkpoint/todo/current workflow state.
 

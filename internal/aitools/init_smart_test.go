@@ -330,9 +330,10 @@ func TestInitSmartWritesRunWeaverStartupProtocolForAllRuntimes(t *testing.T) {
 		text := string(data)
 		for _, want := range []string{
 			"RunWeaver Startup Protocol",
-			"runweaver status --repo .",
+			"runweaver start --repo .",
+			"executionContract",
 			"resume automatically",
-			"Do not ask the user to run resume",
+			"Do not ask the user to run start, resume",
 			"runweaver workflow verify --repo . --resume latest",
 		} {
 			if !strings.Contains(text, want) {
@@ -361,6 +362,7 @@ func TestInitSmartWritesStartHereAndPreservesManualStartHere(t *testing.T) {
 	}
 	for _, want := range []string{
 		"# RunWeaver Start Here",
+		"runweaver start --repo .",
 		"runweaver status --repo .",
 		".runweaver/tmp/current.md",
 		".runweaver/workflows",

@@ -78,11 +78,18 @@ runweaver init --repo . --runtime codex
 runweaver init --repo . --runtime claude
 runweaver init --repo . --runtime all
 
+runweaver start --repo . --runtime opencode --task "implement task"
+runweaver participants select --repo . --runtime codex --task "implement task"
+runweaver workflow select --repo . --task "implement task"
+runweaver doctor adoption --repo . --runtime all
+runweaver eval adoption --repo . --runtime opencode
 runweaver doctor runtime --repo . --runtime codex
 runweaver workflow run --repo . --runtime claude --execute
 ```
 
 Default runtime is `opencode` to preserve existing behavior. Codex and Claude Code also support provider discovery, generated metadata, AI classification, and workflow execution.
+
+`runweaver start` is the portable task-intake boundary generated instructions point at. It refreshes stale local context when needed, creates or resumes the closest workflow, selects participants from the runtime profile, persists checkpoint state, and returns an `executionContract` for the current LLM session. Runtime-specific instructions should call `start` first and use lower-level `workflow run`, `workflow update`, and `workflow verify` commands only for fallback, diagnostics, or explicit automation.
 
 ## MCP Boundary
 
@@ -109,6 +116,7 @@ runweaver mcp serve --repo . --allow-workflow-writes
 
 That opt-in mode adds:
 
+- `runweaver_start_or_resume`
 - `runweaver_plan_workflow`
 - `runweaver_update_workflow`
 
