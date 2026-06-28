@@ -23,6 +23,8 @@ func (c cli) usage() {
   doctor processes [--summary]          show Codex/OpenCode runtime, VS Code debugger, and duplicate MCP processes
   init --repo <path> [--runtime opencode] [--force]
                                         smart index, plan intelligence workflow, bootstrap metadata
+  bootstrap --repo <path> [--runtime opencode]
+                                        alias for init with friendlier naming
   workflow run --workflow <file> --task <text> [--runtime opencode] [--execute]
                                         create or execute workflow plan/checkpoint under .runweaver/tmp
   workflow update --resume latest --phase <id>

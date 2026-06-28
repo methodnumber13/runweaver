@@ -140,6 +140,12 @@ Flags:
   --classifier-model model      optional runtime model override
   --classifier-timeout duration AI classifier timeout (default 180s)
 `
+	case "bootstrap":
+		return `Usage:
+  runweaver bootstrap --repo <path> [--runtime opencode|codex|claude|all] [--force] [--require-model] [--classification auto|ai|deterministic]
+
+Alias for runweaver init with friendlier onboarding naming. Flags are identical to init.
+`
 	case "workflow run":
 		return `Usage:
   runweaver workflow run --workflow <file> --task <text> [--repo <path>] [--execute]

@@ -227,6 +227,7 @@ func TestCommandUsageCoversEveryPublicCommand(t *testing.T) {
 		"status",
 		"classify",
 		"init",
+		"bootstrap",
 		"doctor",
 		"doctor model",
 		"doctor opencode",

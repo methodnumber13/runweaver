@@ -92,6 +92,8 @@ func (c cli) run(args []string) error {
 		return wrapCommandError("doctor", c.doctorCmd(args[1:]))
 	case "init":
 		return wrapCommandError("init", c.initCmd(args[1:]))
+	case "bootstrap":
+		return wrapCommandError("bootstrap", c.initCmd(args[1:]))
 	case "workflow":
 		return wrapCommandError("workflow run", c.workflowCmd(args[1:]))
 	case "help", "-h", "--help":
