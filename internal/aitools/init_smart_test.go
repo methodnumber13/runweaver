@@ -301,3 +301,43 @@ func TestInitSmartPreservesExistingInstructionFilesWithManagedBlock(t *testing.T
 		}
 	}
 }
+
+func TestInitSmartWritesRunWeaverStartupProtocolForAllRuntimes(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"go test ./..."},"devDependencies":{"typescript":"latest"}}`)
+	writeTestFile(t, root, "src/app.ts", "export const app = true\n")
+
+	_, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeAll,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, path := range []string{
+		"AGENTS.md",
+		"CLAUDE.md",
+		".opencode/agents/swarm.md",
+		".codex/agents/swarm.toml",
+		".claude/agents/swarm.md",
+	} {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(data)
+		for _, want := range []string{
+			"RunWeaver Startup Protocol",
+			"runweaver status --repo .",
+			"resume automatically",
+			"Do not ask the user to run resume",
+			"runweaver workflow verify --repo . --resume latest",
+		} {
+			if !strings.Contains(text, want) {
+				t.Fatalf("%s missing startup protocol fragment %q:\n%s", path, want, text)
+			}
+		}
+	}
+}

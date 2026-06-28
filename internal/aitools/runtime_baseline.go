@@ -153,6 +153,8 @@ You are the RunWeaver swarm coordinator for this repository.
 
 Read AGENTS.md, .codex/runweaver/profile.json, .runweaver/tmp/index/repo-context.md, and the latest workflow checkpoint when present.
 
+` + runWeaverStartupProtocol + `
+
 For non-trivial work, create or resume a durable workflow under .runweaver/tmp/swarm-runs. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
 
 Use repo-specific agents from .codex/agents and repo skills from .agents/skills as local role instructions. Record participants, files read, files changed, findings, decisions, verification results, blockers, and nextAction in the checkpoint.
@@ -194,6 +196,8 @@ const claudeMD = `# RunWeaver Repository AI Rules
 
 RunWeaver metadata is generated and should be refreshed after code structure changes.
 
+` + runWeaverStartupProtocol + `
+
 Use runweaver index --repo . --changed-only --prune to refresh the local package/file/symbol index under .runweaver/tmp.
 
 Use runweaver refresh --repo . after route, page, controller, service, test, or build config moves.
@@ -210,6 +214,8 @@ tools: Read, Glob, Grep, Bash, Edit, MultiEdit, Write
 You are the RunWeaver swarm coordinator for this repository.
 
 Read CLAUDE.md, .claude/runweaver/profile.json, .runweaver/tmp/index/repo-context.md, and the latest workflow checkpoint when present.
+
+` + runWeaverStartupProtocol + `
 
 For non-trivial work, create or resume a durable workflow under .runweaver/tmp/swarm-runs. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
 

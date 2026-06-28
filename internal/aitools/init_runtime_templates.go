@@ -4,6 +4,8 @@ const agentsMD = `# Repository AI Rules
 
 RunWeaver metadata is generated and should be refreshed after code structure changes.
 
+` + runWeaverStartupProtocol + `
+
 Use ` + "`runweaver index --repo . --changed-only --prune`" + ` to refresh the local package/file/symbol index under .runweaver/tmp.
 
 Use ` + "`runweaver refresh --repo .`" + ` after route, page, controller, service, test, or build config moves.
