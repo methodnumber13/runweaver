@@ -13,6 +13,35 @@ Use ` + "`runweaver refresh --repo .`" + ` after route, page, controller, servic
 Runtime-specific metadata may be generated for OpenCode, Codex, Claude Code, or all selected providers. The durable workflow state currently lives under .runweaver/tmp/swarm-runs for compatibility.
 `
 
+const startHereMD = `# RunWeaver Start Here
+
+This repository has RunWeaver metadata for coding-agent workflows.
+
+## First Commands
+
+1. Inspect current state:
+
+   ` + "`runweaver status --repo .`" + `
+
+2. Refresh compact repository context when code moved or before non-trivial work:
+
+   ` + "`runweaver index --repo . --changed-only --prune`" + `
+
+3. Create or resume workflow state under ` + "`.runweaver/tmp/swarm-runs`" + `.
+
+## Files To Read
+
+- ` + "`AGENTS.md`" + ` - repo rules and RunWeaver startup protocol for Codex/OpenCode-compatible agents.
+- ` + "`CLAUDE.md`" + ` - Claude Code startup protocol when generated.
+- ` + "`.runweaver/tmp/current.md`" + ` - latest human-readable workflow state when a run exists.
+- ` + "`.runweaver/tmp/index/repo-context.md`" + ` - compact repository context.
+- ` + "`.runweaver/workflows`" + ` - portable workflow templates.
+
+## Agent Rule
+
+Agents should resume matching active workflows automatically and should not ask the user to run status, resume, update, or verify commands manually unless RunWeaver is unavailable or blocked by permissions.
+`
+
 const opencodeJSON = `{
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "swarm",

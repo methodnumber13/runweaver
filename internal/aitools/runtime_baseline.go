@@ -88,6 +88,7 @@ func runtimeBaselineDirs(runtimeIDs []string) []string {
 func runtimeBaselineFiles(runtimeIDs []string) map[string]string {
 	files := map[string]string{
 		".runweaver/.gitignore":                             "tmp/\n",
+		".runweaver/START_HERE.md":                          startHereMD,
 		".runweaver/workflows/repo-intelligence-swarm.json": repoIntelligenceWorkflow,
 		".runweaver/workflows/metadata-refresh-swarm.json":  metadataRefreshWorkflow,
 		".runweaver/workflows/repo-onboarding-swarm.json":   repoOnboardingWorkflow,

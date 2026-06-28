@@ -82,7 +82,7 @@ func RunWeaverStatus(repoPath string) (RunWeaverStatusResult, error) {
 	result.RunDir = rel(root, runDir)
 	result.CheckpointPath = rel(root, checkpointPath)
 	result.TodoPath = rel(root, filepath.Join(runDir, "todo.md"))
-	result.CurrentPath = rel(root, filepath.Join(runDir, workflowCurrentFile))
+	result.CurrentPath = rel(root, statepath.TmpPath(root, workflowCurrentFile))
 	result.Participants = checkpoint.Participants
 	result.NextAction = checkpoint.NextAction
 	result.Blockers = checkpoint.Blockers

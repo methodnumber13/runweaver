@@ -2,6 +2,7 @@ package aitools
 
 import (
 	"fmt"
+	"github.com/methodnumber13/runweaver/internal/aitools/statepath"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,9 +11,14 @@ import (
 const workflowCurrentFile = "current.md"
 
 func writeWorkflowCurrent(root, runDir string, checkpoint WorkflowCheckpoint) error {
+	content := []byte(workflowCurrentMarkdown(checkpoint, rel(root, runDir)))
 	currentPath := filepath.Join(runDir, workflowCurrentFile)
-	if err := os.WriteFile(currentPath, []byte(workflowCurrentMarkdown(checkpoint, rel(root, runDir))), 0o644); err != nil {
+	if err := os.WriteFile(currentPath, content, 0o644); err != nil {
 		return fmt.Errorf("write workflow current %s: %w", rel(root, currentPath), err)
+	}
+	latestPath := statepath.TmpPath(root, workflowCurrentFile)
+	if err := os.WriteFile(latestPath, content, 0o644); err != nil {
+		return fmt.Errorf("write workflow current %s: %w", rel(root, latestPath), err)
 	}
 	return nil
 }

@@ -45,6 +45,7 @@ func TestPlanWorkflowWritesCheckpointTodoAndLatest(t *testing.T) {
 		result.CheckpointPath,
 		result.TodoPath,
 		filepath.Join(result.RunDir, "current.md"),
+		".runweaver/tmp/current.md",
 		filepath.Join(result.RunDir, "plan.json"),
 		filepath.Join(result.RunDir, "events.ndjson"),
 		".runweaver/tmp/swarm-runs/latest.json",
