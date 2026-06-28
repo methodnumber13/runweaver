@@ -100,6 +100,7 @@ func TestServeMCPStdioHidesWorkflowWriteToolsByDefault(t *testing.T) {
 
 func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
 	root := t.TempDir()
+	writeTestFile(t, root, "go.mod", "module example.com/tool\n")
 	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
   "id": "test-swarm",
   "name": "Test Swarm",
@@ -107,8 +108,10 @@ func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
     {"id": "plan", "name": "Plan", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-surface-indexer"], "prompt": "plan"}
   ]
 }`)
+	writeTestFile(t, root, ".opencode/swarm/profile.json", `{"workspace":{"name":"repo"},"repos":[{"dir":".","agents":[{"name":"repo-surface-indexer","description":"Scans repository"}]}]}`)
 	input := strings.Join([]string{
 		`{"jsonrpc":"2.0","id":"list","method":"tools/list"}`,
+		`{"jsonrpc":"2.0","id":"start","method":"tools/call","params":{"name":"runweaver_start_or_resume","arguments":{"repo":"` + root + `","workflow":".runweaver/workflows/test-swarm.json","task":"ship feature","skipIndex":true}}}`,
 		`{"jsonrpc":"2.0","id":"plan","method":"tools/call","params":{"name":"runweaver_plan_workflow","arguments":{"repo":"` + root + `","workflow":".runweaver/workflows/test-swarm.json","task":"ship feature"}}}`,
 		`{"jsonrpc":"2.0","id":"update","method":"tools/call","params":{"name":"runweaver_update_workflow","arguments":{"repo":"` + root + `","resume":"latest","phase":"plan","status":"in_progress","participants":["repo-surface-indexer"],"findings":["mapped repo"],"lastResult":"plan created and index is missing","rejectedPaths":["skip implementation until plan participants are recorded"],"nextAction":"verify","nextVerification":"go test ./...","verification":["go test ./..."]}}}`,
 	}, "\n") + "\n"
@@ -119,7 +122,7 @@ func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
 	}
 
 	output := out.String()
-	for _, want := range []string{"Plan RunWeaver Workflow", "runweaver_update_workflow", `"workflow":"test-swarm"`, `"currentPhase":"plan"`, "repo-surface-indexer", "mapped repo", "lastResult", "rejectedPaths", "nextVerification"} {
+	for _, want := range []string{"Start Or Resume RunWeaver Workflow", "Plan RunWeaver Workflow", "runweaver_update_workflow", `"action":"created"`, `"workflow":"test-swarm"`, `"currentPhase":"plan"`, "repo-surface-indexer", "mapped repo", "lastResult", "rejectedPaths", "nextVerification"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("MCP gated write output missing %q:\n%s", want, output)
 		}

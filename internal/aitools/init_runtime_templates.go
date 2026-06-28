@@ -19,15 +19,19 @@ This repository has RunWeaver metadata for coding-agent workflows.
 
 ## First Commands
 
-1. Inspect current state:
+1. Start or resume a task:
+
+   ` + "`runweaver start --repo . --task \"<user task>\"`" + `
+
+2. Inspect current state when debugging:
 
    ` + "`runweaver status --repo .`" + `
 
-2. Refresh compact repository context when code moved or before non-trivial work:
+3. Refresh compact repository context manually when code moved:
 
    ` + "`runweaver index --repo . --changed-only --prune`" + `
 
-3. Create or resume workflow state under ` + "`.runweaver/tmp/swarm-runs`" + `.
+` + "`runweaver start`" + ` creates or resumes workflow state under ` + "`.runweaver/tmp/swarm-runs`" + ` and returns the selected workflow, participants, next phase, next action, and next verification.
 
 ## Files To Read
 
@@ -39,7 +43,7 @@ This repository has RunWeaver metadata for coding-agent workflows.
 
 ## Agent Rule
 
-Agents should resume matching active workflows automatically and should not ask the user to run status, resume, update, or verify commands manually unless RunWeaver is unavailable or blocked by permissions.
+Agents should call ` + "`runweaver start`" + ` for non-trivial tasks, resume matching active workflows automatically, and should not ask the user to run start, status, resume, update, or verify commands manually unless RunWeaver is unavailable or blocked by permissions.
 `
 
 const opencodeJSON = `{
@@ -50,6 +54,7 @@ const opencodeJSON = `{
     "edit": "allow",
     "bash": {
       "*": "allow",
+      "runweaver start *": "allow",
       "runweaver *": "allow",
       "runweaver workflow run *": "allow",
       "runweaver workflow update *": "allow",

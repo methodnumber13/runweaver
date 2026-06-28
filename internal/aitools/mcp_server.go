@@ -188,6 +188,21 @@ func runWeaverMCPTools(allowWorkflowWrites bool) []mcpTool {
 	}
 	tools = append(tools,
 		workflowWriteMCPTool(
+			"runweaver_start_or_resume",
+			"Start Or Resume RunWeaver Workflow",
+			"Single task intake entrypoint: refresh context when needed, create or resume workflow state, select participants, and return the execution contract.",
+			map[string]any{
+				"repo":      map[string]any{"type": "string", "description": "Repository path. Defaults to the server --repo value."},
+				"task":      map[string]any{"type": "string", "description": "User task text to route into a RunWeaver workflow."},
+				"runtime":   map[string]any{"type": "string", "description": "Runtime profile to inspect: opencode, codex, or claude.", "default": "opencode"},
+				"workflow":  map[string]any{"type": "string", "description": "Optional explicit workflow JSON path."},
+				"profile":   map[string]any{"type": "string", "description": "Optional explicit RunWeaver profile JSON path."},
+				"skipIndex": map[string]any{"type": "boolean", "description": "Skip automatic index refresh."},
+				"forceNew":  map[string]any{"type": "boolean", "description": "Create a new workflow even when the latest run matches."},
+			},
+			[]string{"task"},
+		),
+		workflowWriteMCPTool(
 			"runweaver_plan_workflow",
 			"Plan RunWeaver Workflow",
 			"Create a durable RunWeaver workflow plan/checkpoint under .runweaver/tmp/swarm-runs.",
@@ -303,6 +318,11 @@ func callRunWeaverMCPTool(params json.RawMessage, opts MCPServerOptions) (mcpToo
 	case "runweaver_verify_workflow":
 		resume := argumentString(call.Arguments, "resume", "latest")
 		return mcpStructuredToolResult(VerifyWorkflowRun(repo, resume))
+	case "runweaver_start_or_resume":
+		if !opts.AllowWorkflowWrites {
+			return mcpToolResult{}, fmt.Errorf("workflow write tools are disabled; restart runweaver mcp serve with --allow-workflow-writes")
+		}
+		return mcpStructuredToolResult(StartWorkflow(repo, mcpStartOptions(call.Arguments)))
 	case "runweaver_plan_workflow":
 		if !opts.AllowWorkflowWrites {
 			return mcpToolResult{}, fmt.Errorf("workflow write tools are disabled; restart runweaver mcp serve with --allow-workflow-writes")
@@ -317,6 +337,17 @@ func callRunWeaverMCPTool(params json.RawMessage, opts MCPServerOptions) (mcpToo
 		return mcpStructuredToolResult(UpdateWorkflow(repo, mcpWorkflowUpdateOptions(call.Arguments)))
 	default:
 		return mcpToolResult{}, fmt.Errorf("unknown RunWeaver MCP tool %q", call.Name)
+	}
+}
+
+func mcpStartOptions(arguments map[string]any) StartOptions {
+	return StartOptions{
+		Task:        argumentString(arguments, "task", ""),
+		Runtime:     argumentString(arguments, "runtime", RuntimeOpenCode),
+		Workflow:    argumentString(arguments, "workflow", ""),
+		ProfilePath: argumentString(arguments, "profile", ""),
+		SkipIndex:   argumentBool(arguments, "skipIndex"),
+		ForceNew:    argumentBool(arguments, "forceNew"),
 	}
 }
 

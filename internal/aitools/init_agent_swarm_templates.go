@@ -7,8 +7,9 @@ permission:
   edit: allow
   task: allow
   todowrite: allow
-  bash:
+ bash:
     "*": allow
+    "runweaver start *": allow
     "runweaver *": allow
     "runweaver workflow run *": allow
     "runweaver workflow update *": allow
@@ -50,18 +51,18 @@ For normal coding, bugfix, refactor, or test tasks, the plan is only the durable
 
 ## Default Task Flow
 
-1. Run ` + "`runweaver status --repo .`" + `, then read ` + "`AGENTS.md`" + `, ` + "`runtime profile`" + `, and ` + "`.runweaver/tmp/index/repo-context.md`" + ` when they exist.
-2. If ` + "`.runweaver/tmp/swarm-runs/latest.json`" + ` exists, read it. When its status is not ` + "`complete`" + ` and its task matches the current user request, or the user asks to continue, resume automatically with:
+1. Run ` + "`runweaver start --repo . --runtime opencode --task \"<user task>\"`" + `, then read the returned ` + "`executionContract`" + `, ` + "`AGENTS.md`" + `, ` + "`runtime profile`" + `, and ` + "`.runweaver/tmp/index/repo-context.md`" + ` when they exist. This command refreshes stale deterministic index context, creates or resumes the workflow, and selects participants.
+2. If ` + "`runweaver start`" + ` returns ` + "`action: resumed`" + `, continue from the returned ` + "`currentPhase`" + ` or ` + "`nextPhase`" + `. If additional diagnostics are needed, run:
 
 ` + "`runweaver workflow run --resume latest --status`" + `
 
-Use that status internally and continue from ` + "`currentPhase`" + ` or ` + "`nextPhase`" + `. Do not ask the user to run the resume command manually.
+Use that status internally. Do not ask the user to run the resume command manually.
 
-3. Refresh deterministic repository context before planning:
+3. If ` + "`runweaver start`" + ` reports stale or missing context but could not refresh it, refresh deterministic repository context:
 
 ` + "`runweaver index --repo . --changed-only --prune`" + `
 
-4. For any non-trivial coding, bugfix, refactor, test, onboarding, or metadata task without a matching active run, create a durable run under ` + "`.runweaver/tmp/swarm-runs`" + `:
+4. Only when ` + "`runweaver start`" + ` is unavailable, create a durable run under ` + "`.runweaver/tmp/swarm-runs`" + ` manually:
 
 ` + "`runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task \"<user task>\"`" + `
 
@@ -75,7 +76,7 @@ When a phase is actually finished, advance the checkpoint with:
 
 ` + "`runweaver workflow update --repo . --resume latest --phase <phase> --complete-phase --finding \"<outcome>\" --verification \"<command/result>\"`" + `
 
-6. For each phase, first select domain participants from ` + "`runtime profile`" + ` by matching ` + "`semantic.domains`" + `, ` + "`semantic.agents`" + `, ` + "`repos[0].agents`" + `, ` + "`customSkills`" + `, ` + "`focusFiles`" + `, and workflow text to the user task. Treat matching ` + "`customSkills`" + ` as participants, not optional notes; for guard/decorator/filter/auth middleware files include the matching security skill such as ` + "`security-middleware`" + ` when present. Prefer one domain owner plus up to two reviewers/skills; do not exceed workflow ` + "`maxParticipants`" + ` unless the workflow explicitly requires it. Prefer domain agents over layer reviewers; add layer reviewers only for contract, persistence, config, test, or metadata risk. Delegate through the selected runtime's delegation mechanism to selected agents plus the workflow phase fallback agents, and apply selected skills as local instructions. If delegation is unavailable, explicitly emulate the selected participant role and record every selected agent/skill in ` + "`participants`" + ` via ` + "`runweaver workflow update`" + `.
+6. For each phase, use participants selected by ` + "`runweaver start`" + ` first. If you must reselect, run ` + "`runweaver participants select --repo . --runtime opencode --task \"<user task>\" --workflow <workflowPath>`" + ` and then record every selected agent/skill in ` + "`participants`" + ` via ` + "`runweaver workflow update`" + `. Treat matching ` + "`customSkills`" + ` as participants, not optional notes; for guard/decorator/filter/auth middleware files include the matching security skill such as ` + "`security-middleware`" + ` when present. Prefer one domain owner plus up to two reviewers/skills. Delegate through the selected runtime's delegation mechanism to selected agents plus the workflow phase fallback agents, and apply selected skills as local instructions. If delegation is unavailable, explicitly emulate the selected participant role.
 7. Continue until every workflow phase is complete or a concrete blocker prevents safe progress. After final phase completion, run ` + "`runweaver workflow verify --repo . --resume latest`" + ` yourself, fix verifier warnings when feasible, or record a blocker with ` + "`--blocker`" + ` and ` + "`--next-verification`" + `. On context reset, resume automatically from ` + "`.runweaver/tmp/swarm-runs/latest.json`" + ` and ` + "`checkpoint.json`" + `; the resume command is an internal diagnostic, not a user instruction.
 8. Use the CLI executor only when the user explicitly asks to execute from terminal automation:
 
