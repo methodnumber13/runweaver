@@ -90,6 +90,57 @@ func TestCLIHelpPrintsCommands(t *testing.T) {
 	}
 }
 
+func TestCLIVersionPrintsBuildMetadata(t *testing.T) {
+	withVersionForTest(t, "v1.2.3", "abc123", "2026-06-28T00:00:00Z")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := runCLI([]string{"version"}, &stdout, &stderr, false)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d stderr=%q", code, stderr.String())
+	}
+	for _, want := range []string{"runweaver v1.2.3", "commit: abc123", "date: 2026-06-28T00:00:00Z"} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Fatalf("stdout = %q, want %q", stdout.String(), want)
+		}
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+}
+
+func TestCLIVersionPrintsJSON(t *testing.T) {
+	withVersionForTest(t, "v1.2.3", "abc123", "2026-06-28T00:00:00Z")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := runCLI([]string{"version", "--json"}, &stdout, &stderr, false)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d stderr=%q", code, stderr.String())
+	}
+	for _, want := range []string{`"version": "v1.2.3"`, `"commit": "abc123"`, `"date": "2026-06-28T00:00:00Z"`} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Fatalf("stdout = %q, want %q", stdout.String(), want)
+		}
+	}
+}
+
+func TestCLIVersionRejectsExtraArgs(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := runCLI([]string{"version", "extra"}, &stdout, &stderr, false)
+
+	if code != 1 {
+		t.Fatalf("exit code = %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), "unexpected argument") || !strings.Contains(stderr.String(), "runweaver version") {
+		t.Fatalf("stderr = %q, want version usage hint", stderr.String())
+	}
+}
+
 func TestCLIMCPServeUsesStdio(t *testing.T) {
 	root := t.TempDir()
 	writeCLIFile(t, root, "go.mod", "module example.com/tool\n")
@@ -144,6 +195,7 @@ func TestCLIPublicHelpDoesNotExposePrivateVendorNames(t *testing.T) {
 		{"classify", "--help"},
 		{"doctor", "model", "--help"},
 		{"workflow", "run", "--help"},
+		{"version", "--help"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			var stdout bytes.Buffer
@@ -225,6 +277,7 @@ func TestCLISubcommandHelpPrintsUsageWithoutError(t *testing.T) {
 		{name: "doctor-processes", args: []string{"doctor", "processes", "--help"}, want: "runweaver doctor processes [--summary]"},
 		{name: "workflow-run", args: []string{"workflow", "run", "--help"}, want: "--execute"},
 		{name: "workflow-verify", args: []string{"workflow", "verify", "--help"}, want: "runweaver workflow verify"},
+		{name: "version", args: []string{"version", "--help"}, want: "runweaver version"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var stdout bytes.Buffer
@@ -246,7 +299,7 @@ func TestCLISubcommandHelpPrintsUsageWithoutError(t *testing.T) {
 }
 
 func TestCommandHintsAndColorEnabledFallbacks(t *testing.T) {
-	for _, command := range []string{"scan", "index", "index clean", "refresh", "doctor", "doctor model", "doctor opencode", "doctor runtime", "doctor processes", "init", "mcp serve", "workflow run", "missing"} {
+	for _, command := range []string{"scan", "index", "index clean", "refresh", "doctor", "doctor model", "doctor opencode", "doctor runtime", "doctor processes", "init", "mcp serve", "workflow run", "workflow update", "workflow verify", "version", "missing"} {
 		if hint := commandHint(command); hint == "" {
 			t.Fatalf("commandHint(%q) returned empty", command)
 		}
@@ -285,11 +338,21 @@ func TestCommandUsageCoversEveryPublicCommand(t *testing.T) {
 		"workflow run",
 		"workflow update",
 		"workflow verify",
+		"version",
 	} {
 		if usage := commandUsage(command); !strings.Contains(usage, "runweaver") {
 			t.Fatalf("commandUsage(%q) = %q, want runweaver usage text", command, usage)
 		}
 	}
+}
+
+func withVersionForTest(t *testing.T, testVersion, testCommit, testBuildDate string) {
+	t.Helper()
+	oldVersion, oldCommit, oldBuildDate := version, commit, buildDate
+	version, commit, buildDate = testVersion, testCommit, testBuildDate
+	t.Cleanup(func() {
+		version, commit, buildDate = oldVersion, oldCommit, oldBuildDate
+	})
 }
 
 func TestCommandErrorHelpers(t *testing.T) {

@@ -31,6 +31,7 @@ func (c cli) usage() {
   workflow update --resume latest --phase <id>
                                         persist workflow checkpoint participants/findings
   workflow verify --resume latest       verify run artifacts, checkpoint, todo, events, and terminal evidence
+  version [--json]                      print build version metadata
 `)
 }
 

@@ -217,6 +217,13 @@ Flags:
   --repo path              repository path (default ".")
   --resume latest|path     run directory or latest
 `
+	case "version":
+		return `Usage:
+  runweaver version [--json]
+
+Flags:
+  --json    print version metadata as JSON
+`
 	default:
 		return ""
 	}

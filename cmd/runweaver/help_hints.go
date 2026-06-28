@@ -32,6 +32,8 @@ func commandHint(command string) string {
 		return "runweaver workflow update --repo <path> --resume latest --phase <id> --status in_progress"
 	case "workflow verify":
 		return "runweaver workflow verify --repo <path> --resume latest"
+	case "version":
+		return "runweaver version [--json]"
 	default:
 		return "run runweaver help"
 	}
