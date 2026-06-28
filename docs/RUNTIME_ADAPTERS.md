@@ -28,6 +28,7 @@ Keep these parts runtime-independent:
 - durable run state: `plan.json`, `checkpoint.json`, `todo.md`, `events.ndjson`;
 - drift detection;
 - verification gates;
+- read-only MCP tool surface;
 - process diagnostics where possible.
 
 Move these behind runtime adapters:
@@ -83,6 +84,46 @@ runweaver workflow run --repo . --runtime claude --execute
 
 Default runtime is `opencode` to preserve existing behavior. Codex and Claude Code also support provider discovery, generated metadata, AI classification, and workflow execution.
 
+## MCP Boundary
+
+RunWeaver MCP is not a separate runtime adapter. It is a stdio tool surface over the shared core state and workflow functions. The default mode is read-only:
+
+```sh
+runweaver mcp serve --repo .
+```
+
+It stays in the main repository for now because it directly wraps the same versioned behavior as `runweaver status`, workflow listing, current workflow markdown, and workflow verification. A separate repository would only be justified if the MCP server needs a hosted transport, non-Go runtime, independent releases, or a stronger compatibility contract than the CLI.
+
+Current tools:
+
+- `runweaver_status`
+- `runweaver_get_current`
+- `runweaver_list_workflows`
+- `runweaver_verify_workflow`
+
+Workflow-state write tools are available only when the server is started explicitly with:
+
+```sh
+runweaver mcp serve --repo . --allow-workflow-writes
+```
+
+That opt-in mode adds:
+
+- `runweaver_plan_workflow`
+- `runweaver_update_workflow`
+
+These tools are limited to RunWeaver workflow state under `.runweaver/tmp/swarm-runs`; they do not edit source code or runtime config files.
+
+RunWeaver does not auto-edit runtime MCP configs during `init`. Users can opt in by adding a stdio server entry to the selected client:
+
+```toml
+[mcp_servers.runweaver]
+command = "runweaver"
+args = ["mcp", "serve", "--repo", "."]
+```
+
+This keeps RunWeaver discoverable through MCP where the client supports it, while preserving the existing file/instruction/CLI path for runtimes or desktop surfaces where MCP is unavailable or disabled.
+
 ## OpenCode Adapter
 
 Current adapter behavior:
@@ -108,7 +149,8 @@ Codex support targets these surfaces:
 - `.agents/skills/<name>/SKILL.md` for repo-local skills;
 - optional `.agents/skills/<name>/agents/openai.yaml` for Codex app metadata and invocation policy;
 - `.codex/agents/*.toml` for project-scoped custom subagents;
-- optional `.codex/config.toml` additions only when the user asks for project-local Codex config;
+- `.codex/config.toml` as a discovered project-scoped Codex config surface for sandbox, model, MCP, agent, and related settings;
+- optional `.codex/config.toml` additions only when the user explicitly asks for project-local Codex config;
 - `codex exec --json` for non-interactive execution;
 - `codex -a never exec --json --ephemeral -C <repo> --sandbox workspace-write` when execution needs edits;
 - `codex -a never exec --json --output-last-message <file>` for AI classification through Codex.
@@ -120,6 +162,7 @@ Important Codex constraints:
 - Codex only spawns subagents when explicitly asked, so the root guidance must say when to spawn agents.
 - Codex subagents live in `.codex/agents/*.toml` and require `name`, `description`, and `developer_instructions`.
 - Subagents inherit sandbox policy, so RunWeaver should avoid surprising permission escalation and should document required sandbox mode.
+- `.codex/runweaver/profile.json` is RunWeaver-private metadata, not a native Codex discovery surface. Generated instructions and agents must point Codex to that file when it is needed.
 
 Codex static provider metadata is implemented by `runtimecatalog/codex`. Codex generated layout is implemented for `runweaver init --runtime codex` and `--runtime all`:
 
@@ -206,14 +249,16 @@ Claude execution artifacts:
 10. Done: introduce an internal `RuntimeAdapter` contract with OpenCode, Codex, and Claude implementations.
 11. Done: make drift scanning and generated workflow prompts runtime-aware instead of OpenCode-only.
 12. Done: split runtime provider metadata into `runtimecatalog/{opencode,codex,claude}` subpackages.
-13. Next: move renderer/executor behavior into provider packages only after the shared `Profile` and workflow command-spec types are promoted into a lower-level core package.
-14. Next: add golden generated-file snapshots once renderer formats stabilize.
+13. Done: add read-only MCP stdio surface over RunWeaver status/current/workflow verification.
+14. Next: move renderer/executor behavior into provider packages only after the shared `Profile` and workflow command-spec types are promoted into a lower-level core package.
+15. Next: add golden generated-file snapshots once renderer formats stabilize.
 
 ## Sources
 
 - OpenCode agents documentation: https://opencode.ai/docs/agents/
 - OpenCode config documentation: https://opencode.ai/docs/config/
 - Codex manual: https://developers.openai.com/codex/codex-manual.md
+- Model Context Protocol specification: https://modelcontextprotocol.io/specification/
 - Claude Code subagents documentation: https://code.claude.com/docs/en/sub-agents
 - Claude Code skills documentation: https://code.claude.com/docs/en/skills
 - Claude Code dynamic workflows documentation: https://code.claude.com/docs/en/workflows

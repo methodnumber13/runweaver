@@ -90,6 +90,9 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 	if err := syncWorkflowTodo(root, runDir, checkpoint); err != nil {
 		return nil, err
 	}
+	if err := writeWorkflowCurrent(root, runDir, checkpoint); err != nil {
+		return nil, err
+	}
 	eventPhase := phase
 	if eventPhase == "" {
 		eventPhase = checkpoint.CurrentPhase

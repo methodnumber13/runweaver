@@ -1,7 +1,9 @@
 package aitools
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -42,6 +44,8 @@ func TestPlanWorkflowWritesCheckpointTodoAndLatest(t *testing.T) {
 	for _, name := range []string{
 		result.CheckpointPath,
 		result.TodoPath,
+		filepath.Join(result.RunDir, "current.md"),
+		".runweaver/tmp/current.md",
 		filepath.Join(result.RunDir, "plan.json"),
 		filepath.Join(result.RunDir, "events.ndjson"),
 		".runweaver/tmp/swarm-runs/latest.json",
@@ -57,6 +61,15 @@ func TestPlanWorkflowWritesCheckpointTodoAndLatest(t *testing.T) {
 	}
 	if status["workflow"] != "test-swarm" || status["nextPhase"] != "scan" {
 		t.Fatalf("status = %#v, want workflow test-swarm next scan", status)
+	}
+	current, err := os.ReadFile(filepath.Join(root, result.RunDir, "current.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"# Current RunWeaver Workflow", "test-swarm", "check tests", "Next phase: scan", "runweaver workflow run --resume latest --status"} {
+		if !strings.Contains(string(current), want) {
+			t.Fatalf("current.md missing %q:\n%s", want, string(current))
+		}
 	}
 }
 

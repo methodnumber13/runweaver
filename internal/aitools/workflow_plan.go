@@ -85,6 +85,9 @@ func PlanWorkflow(repoPath, workflowPath, task string) (WorkflowRunSummary, erro
 	if err := os.WriteFile(filepath.Join(runDir, "todo.md"), []byte(todoMarkdown(workflow, task)), 0o644); err != nil {
 		return WorkflowRunSummary{}, fmt.Errorf("write workflow todo: %w", err)
 	}
+	if err := writeWorkflowCurrent(root, runDir, checkpoint); err != nil {
+		return WorkflowRunSummary{}, err
+	}
 	event := WorkflowEvent{Type: "planned", RunID: runID, Workflow: workflow.ID, Task: task, At: Now()}
 	eventBytes, err := json.Marshal(event)
 	if err != nil {

@@ -2,12 +2,13 @@ package aitools
 
 // DriftReport lists stale generated anchors and metadata refresh suggestions.
 type DriftReport struct {
-	SchemaVersion   int      `json:"schemaVersion"`
-	GeneratedAt     string   `json:"generatedAt"`
-	RepoRoot        string   `json:"repoRoot"`
-	StaleAnchors    []Anchor `json:"staleAnchors"`
-	MissingSurfaces []string `json:"missingSurfaces"`
-	Recommendations []string `json:"recommendations"`
+	SchemaVersion   int                    `json:"schemaVersion"`
+	GeneratedAt     string                 `json:"generatedAt"`
+	RepoRoot        string                 `json:"repoRoot"`
+	StaleAnchors    []Anchor               `json:"staleAnchors"`
+	MissingSurfaces []string               `json:"missingSurfaces"`
+	RuntimeIssues   []RuntimeMetadataIssue `json:"runtimeIssues,omitempty"`
+	Recommendations []string               `json:"recommendations"`
 }
 
 // Anchor identifies generated metadata that no longer matches current code.

@@ -71,6 +71,13 @@ Flags:
   --classifier-model model      optional runtime model override
   --classifier-timeout duration AI classifier timeout (default 180s)
 `
+	case "status":
+		return `Usage:
+  runweaver status --repo <path>
+
+Flags:
+  --repo path    repository path (default ".")
+`
 	case "doctor":
 		return `Usage:
   runweaver doctor --repo <path>
@@ -132,6 +139,20 @@ Flags:
   --classifier-runtime id       AI classifier runtime: opencode, codex, or claude
   --classifier-model model      optional runtime model override
   --classifier-timeout duration AI classifier timeout (default 180s)
+`
+	case "bootstrap":
+		return `Usage:
+  runweaver bootstrap --repo <path> [--runtime opencode|codex|claude|all] [--force] [--require-model] [--classification auto|ai|deterministic]
+
+Alias for runweaver init with friendlier onboarding naming. Flags are identical to init.
+`
+	case "mcp serve":
+		return `Usage:
+  runweaver mcp serve --repo <path> [--allow-workflow-writes]
+
+Flags:
+  --repo path                 repository path exposed through MCP tools (default ".")
+  --allow-workflow-writes     expose tools that create/update .runweaver workflow state
 `
 	case "workflow run":
 		return `Usage:

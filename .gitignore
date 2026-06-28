@@ -1,5 +1,6 @@
 .DS_Store
 .runweaver/tmp/
 .opencode/tmp/
+docs/tasks/
 coverage.out
 *.test
