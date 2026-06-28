@@ -10,27 +10,28 @@ import (
 
 // RunWeaverStatusResult summarizes repository-local RunWeaver readiness.
 type RunWeaverStatusResult struct {
-	Status          string   `json:"status"`
-	Ready           bool     `json:"ready"`
-	RepoRoot        string   `json:"repoRoot"`
-	Initialized     bool     `json:"initialized"`
-	IndexPath       string   `json:"indexPath,omitempty"`
-	ContextPath     string   `json:"contextPath,omitempty"`
-	LatestWorkflow  bool     `json:"latestWorkflow"`
-	RunID           string   `json:"runId,omitempty"`
-	Workflow        string   `json:"workflow,omitempty"`
-	Task            string   `json:"task,omitempty"`
-	WorkflowStatus  string   `json:"workflowStatus,omitempty"`
-	CurrentPhase    string   `json:"currentPhase,omitempty"`
-	NextPhase       string   `json:"nextPhase,omitempty"`
-	RunDir          string   `json:"runDir,omitempty"`
-	CheckpointPath  string   `json:"checkpointPath,omitempty"`
-	TodoPath        string   `json:"todoPath,omitempty"`
-	CurrentPath     string   `json:"currentPath,omitempty"`
-	Participants    []string `json:"participants,omitempty"`
-	NextAction      string   `json:"nextAction,omitempty"`
-	Blockers        []string `json:"blockers,omitempty"`
-	Recommendations []string `json:"recommendations,omitempty"`
+	Status          string               `json:"status"`
+	Ready           bool                 `json:"ready"`
+	RepoRoot        string               `json:"repoRoot"`
+	Initialized     bool                 `json:"initialized"`
+	IndexPath       string               `json:"indexPath,omitempty"`
+	ContextPath     string               `json:"contextPath,omitempty"`
+	IndexFreshness  IndexFreshnessResult `json:"indexFreshness"`
+	LatestWorkflow  bool                 `json:"latestWorkflow"`
+	RunID           string               `json:"runId,omitempty"`
+	Workflow        string               `json:"workflow,omitempty"`
+	Task            string               `json:"task,omitempty"`
+	WorkflowStatus  string               `json:"workflowStatus,omitempty"`
+	CurrentPhase    string               `json:"currentPhase,omitempty"`
+	NextPhase       string               `json:"nextPhase,omitempty"`
+	RunDir          string               `json:"runDir,omitempty"`
+	CheckpointPath  string               `json:"checkpointPath,omitempty"`
+	TodoPath        string               `json:"todoPath,omitempty"`
+	CurrentPath     string               `json:"currentPath,omitempty"`
+	Participants    []string             `json:"participants,omitempty"`
+	NextAction      string               `json:"nextAction,omitempty"`
+	Blockers        []string             `json:"blockers,omitempty"`
+	Recommendations []string             `json:"recommendations,omitempty"`
 }
 
 // RunWeaverStatus reads local RunWeaver metadata without mutating the repository.
@@ -51,6 +52,8 @@ func RunWeaverStatus(repoPath string) (RunWeaverStatusResult, error) {
 			"create a workflow with runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task \"<task>\"",
 		},
 	}
+	result.IndexFreshness = CheckIndexFreshness(root)
+	result.Recommendations = appendIndexFreshnessRecommendations(result.Recommendations, result.IndexFreshness)
 
 	latestPath := statepath.WorkflowLatestPath(root)
 	var latest WorkflowLatest
@@ -86,7 +89,10 @@ func RunWeaverStatus(repoPath string) (RunWeaverStatusResult, error) {
 	result.Participants = checkpoint.Participants
 	result.NextAction = checkpoint.NextAction
 	result.Blockers = checkpoint.Blockers
-	result.Recommendations = statusRecommendations(checkpoint)
+	result.Recommendations = appendIndexFreshnessRecommendations(statusRecommendations(checkpoint), result.IndexFreshness)
+	if !result.IndexFreshness.Fresh {
+		result.Status = "warning"
+	}
 	return result, nil
 }
 
@@ -108,4 +114,20 @@ func statusRecommendations(checkpoint WorkflowCheckpoint) []string {
 		return []string{"continue current phase " + checkpoint.CurrentPhase, "keep checkpoint.json and current.md updated"}
 	}
 	return []string{"inspect checkpoint.json and continue the workflow"}
+}
+
+func appendIndexFreshnessRecommendations(recommendations []string, freshness IndexFreshnessResult) []string {
+	if freshness.Fresh {
+		return recommendations
+	}
+	text := "refresh stale repository context with runweaver index --repo . --changed-only --prune"
+	if freshness.Status == "missing" {
+		text = "build repository context with runweaver index --repo . --changed-only --prune"
+	}
+	for _, existing := range recommendations {
+		if existing == text {
+			return recommendations
+		}
+	}
+	return append([]string{text}, recommendations...)
 }

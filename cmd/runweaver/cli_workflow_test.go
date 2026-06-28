@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCLIStatusWorksBeforeWorkflowExists(t *testing.T) {
@@ -21,6 +23,35 @@ func TestCLIStatusWorksBeforeWorkflowExists(t *testing.T) {
 		!strings.Contains(stdout.String(), `"latestWorkflow": false`) ||
 		!strings.Contains(stdout.String(), `runweaver workflow run`) {
 		t.Fatalf("status stdout = %q, want actionable no-workflow state", stdout.String())
+	}
+}
+
+func TestCLIStatusPrintsIndexFreshness(t *testing.T) {
+	root := t.TempDir()
+	writeCLIFile(t, root, "go.mod", "module example.com/tool\n")
+	writeCLIFile(t, root, "cmd/tool/main.go", "package main\nfunc main() {}\n")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := runCLI([]string{"index", "--repo", root, "--classification", "deterministic"}, &stdout, &stderr, false)
+	if code != 0 {
+		t.Fatalf("index exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	future := time.Now().Add(5 * time.Second)
+	if err := os.Chtimes(filepath.Join(root, "cmd/tool/main.go"), future, future); err != nil {
+		t.Fatal(err)
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	code = runCLI([]string{"status", "--repo", root}, &stdout, &stderr, false)
+	if code != 0 {
+		t.Fatalf("status exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"indexFreshness"`) ||
+		!strings.Contains(stdout.String(), `"status": "stale"`) ||
+		!strings.Contains(stdout.String(), "cmd/tool/main.go") {
+		t.Fatalf("status stdout = %q, want stale index freshness", stdout.String())
 	}
 }
 
