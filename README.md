@@ -78,7 +78,7 @@ Current runtime status:
 | Runtime | Discovery | Init/render | Execute |
 | --- | --- | --- | --- |
 | OpenCode | project/global/managed config and auth | `.opencode/agents`, `.opencode/skills`, `opencode.json` | `workflow run --execute` via `opencode run` |
-| Codex | project/global/managed config and auth | `AGENTS.md`, `.agents/skills`, `.codex/agents`, `.codex/runweaver/profile.json` | `workflow run --runtime codex --execute` via `codex exec --json` |
+| Codex | project/global/managed config, including `.codex/config.toml`, and auth | `AGENTS.md`, `.agents/skills`, `.codex/agents`, `.codex/runweaver/profile.json`; `.codex/config.toml` is discovered but not written by default | `workflow run --runtime codex --execute` via `codex exec --json` |
 | Claude Code | project/global/managed settings and auth | `CLAUDE.md`, `.claude/agents`, `.claude/skills`, `.claude/runweaver/profile.json` | `workflow run --runtime claude --execute` via `claude --print --output-format stream-json` |
 
 For explicit CLI execution instead of relying on Desktop/CLI default-agent behavior:

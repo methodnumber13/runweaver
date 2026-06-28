@@ -108,7 +108,8 @@ Codex support targets these surfaces:
 - `.agents/skills/<name>/SKILL.md` for repo-local skills;
 - optional `.agents/skills/<name>/agents/openai.yaml` for Codex app metadata and invocation policy;
 - `.codex/agents/*.toml` for project-scoped custom subagents;
-- optional `.codex/config.toml` additions only when the user asks for project-local Codex config;
+- `.codex/config.toml` as a discovered project-scoped Codex config surface for sandbox, model, MCP, agent, and related settings;
+- optional `.codex/config.toml` additions only when the user explicitly asks for project-local Codex config;
 - `codex exec --json` for non-interactive execution;
 - `codex -a never exec --json --ephemeral -C <repo> --sandbox workspace-write` when execution needs edits;
 - `codex -a never exec --json --output-last-message <file>` for AI classification through Codex.
@@ -120,6 +121,7 @@ Important Codex constraints:
 - Codex only spawns subagents when explicitly asked, so the root guidance must say when to spawn agents.
 - Codex subagents live in `.codex/agents/*.toml` and require `name`, `description`, and `developer_instructions`.
 - Subagents inherit sandbox policy, so RunWeaver should avoid surprising permission escalation and should document required sandbox mode.
+- `.codex/runweaver/profile.json` is RunWeaver-private metadata, not a native Codex discovery surface. Generated instructions and agents must point Codex to that file when it is needed.
 
 Codex static provider metadata is implemented by `runtimecatalog/codex`. Codex generated layout is implemented for `runweaver init --runtime codex` and `--runtime all`:
 
