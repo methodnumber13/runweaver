@@ -66,6 +66,9 @@ func TestScanSkipsGeneratedRuntimeMetadataDirectories(t *testing.T) {
 	writeTestFile(t, root, ".codex/agents/generated.toml", "name = \"generated\"\n")
 	writeTestFile(t, root, ".claude/agents/generated.md", "`src/generated-claude.ts`\n")
 	writeTestFile(t, root, ".agents/skills/generated/SKILL.md", "`src/generated-skill.ts`\n")
+	writeTestFile(t, root, ".runweaver/tmp/go-build/cache.go", "package cache\n")
+	writeTestFile(t, root, ".runweaver/tmp/swarm-runs/latest/checkpoint.json", `{"status":"complete"}`)
+	writeTestFile(t, root, ".runweaver/workflows/bugfix-swarm.json", `{"id":"bugfix-swarm"}`)
 
 	index, err := Index(root, true)
 	if err != nil {
@@ -78,6 +81,12 @@ func TestScanSkipsGeneratedRuntimeMetadataDirectories(t *testing.T) {
 				t.Fatalf("indexed generated runtime metadata file %q", file.Path)
 			}
 		}
+		if strings.HasPrefix(file.Path, ".runweaver/tmp/") {
+			t.Fatalf("indexed runtime tmp artifact %q", file.Path)
+		}
+	}
+	if !indexFileExists(index.Files, ".runweaver/workflows/bugfix-swarm.json") {
+		t.Fatalf("workflow metadata was skipped; indexed files = %#v", index.Files)
 	}
 }
 
@@ -175,6 +184,15 @@ func TestScanDetectsNestJSBFFEntrypointsAndAvoidsDTOFalsePositives(t *testing.T)
 			t.Fatalf("buildCommands = %#v, want %s", index.BuildCommands, command)
 		}
 	}
+}
+
+func indexFileExists(files []FileInventoryItem, path string) bool {
+	for _, file := range files {
+		if file.Path == path {
+			return true
+		}
+	}
+	return false
 }
 
 func writeTestFile(t *testing.T, root, name, content string) {

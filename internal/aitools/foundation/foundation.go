@@ -123,3 +123,13 @@ func ShouldSkipDir(name string) bool {
 		return strings.HasPrefix(name, ".cache")
 	}
 }
+
+// ShouldSkipWalkDir reports whether a directory should be excluded while walking a repository.
+// It keeps stable RunWeaver metadata visible while excluding volatile runtime state.
+func ShouldSkipWalkDir(root, path string, name string) bool {
+	relPath := Rel(root, path)
+	if relPath == ".runweaver/tmp" || strings.HasPrefix(relPath, ".runweaver/tmp/") {
+		return true
+	}
+	return ShouldSkipDir(name)
+}

@@ -209,11 +209,30 @@ func repoProfileDirMatchesRoot(root, dir string) bool {
 		return filepath.Clean(root) == cleanDir
 	}
 	normalizedDir := strings.TrimPrefix(filepath.ToSlash(cleanDir), "./")
-	rootBase := filepath.Base(filepath.Clean(root))
-	if normalizedDir == rootBase {
-		return true
+	return repoPathHasSuffix(filepath.ToSlash(filepath.Clean(root)), normalizedDir)
+}
+
+func repoPathHasSuffix(rootPath, repoDir string) bool {
+	rootParts := splitCleanPath(rootPath)
+	repoParts := splitCleanPath(repoDir)
+	if len(repoParts) == 0 || len(repoParts) > len(rootParts) {
+		return false
 	}
-	return pathpkg.Base(normalizedDir) == rootBase
+	offset := len(rootParts) - len(repoParts)
+	for index := range repoParts {
+		if rootParts[offset+index] != repoParts[index] {
+			return false
+		}
+	}
+	return true
+}
+
+func splitCleanPath(value string) []string {
+	value = strings.Trim(filepath.ToSlash(filepath.Clean(value)), "/")
+	if value == "" || value == "." {
+		return nil
+	}
+	return strings.Split(value, "/")
 }
 
 func participantEvidence(description string, focusFiles, workflow, verification []string) []string {

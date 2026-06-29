@@ -97,3 +97,7 @@ func rel(root, path string) string {
 func shouldSkipDir(name string) bool {
 	return foundation.ShouldSkipDir(name)
 }
+
+func shouldSkipWalkDir(root, path string, name string) bool {
+	return foundation.ShouldSkipWalkDir(root, path, name)
+}

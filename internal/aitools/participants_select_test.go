@@ -1,6 +1,7 @@
 package aitools
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -185,6 +186,52 @@ func TestSelectParticipantsIgnoresSiblingRepoProfiles(t *testing.T) {
 	}
 	if participantCandidateNamed(result.Candidates, "sibling-auth-agent") || participantCandidateNamed(result.Candidates, "sibling-auth-skill") {
 		t.Fatalf("candidates = %#v, want sibling repo participants filtered out", result.Candidates)
+	}
+}
+
+func TestSelectParticipantsDoesNotMatchSiblingWithSameBasename(t *testing.T) {
+	workspace := t.TempDir()
+	root := filepath.Join(workspace, "services", "api")
+	writeTestFile(t, root, ".runweaver/workflows/bugfix-swarm.json", `{
+  "id": "bugfix-swarm",
+  "name": "Bugfix Swarm",
+  "description": "Fix bugs and regressions",
+  "maxParticipants": 1,
+  "phases": [
+    {"id": "fix", "name": "Fix", "scope": "repo", "mode": "parallel", "writeMode": "write", "agents": [], "prompt": "fix bug"}
+  ]
+}`)
+	writeTestFile(t, root, ".opencode/swarm/profile.json", `{
+  "workspace": {"name": "workspace", "repos": ["services/api", "clients/api"]},
+  "repos": [
+    {
+      "dir": "services/api",
+      "agents": [
+        {"name": "service-api-agent", "description": "Current service API owner", "focusFiles": ["src/service/api.go"]}
+      ]
+    },
+    {
+      "dir": "clients/api",
+      "agents": [
+        {"name": "client-api-agent", "description": "Fix auth route regression public guard token validation", "focusFiles": ["src/client/auth.go"]}
+      ]
+    }
+  ]
+}`)
+
+	result, err := SelectParticipants(root, ParticipantSelectOptions{
+		Task:     "Fix auth route regression in public guard token validation",
+		Workflow: ".runweaver/workflows/bugfix-swarm.json",
+		Runtime:  RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := result.Participants; len(got) != 1 || got[0] != "service-api-agent" {
+		t.Fatalf("participants = %#v, want service-api-agent only", got)
+	}
+	if participantCandidateNamed(result.Candidates, "client-api-agent") {
+		t.Fatalf("candidates = %#v, want same-basename sibling filtered out", result.Candidates)
 	}
 }
 
