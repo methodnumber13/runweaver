@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/methodnumber13/runweaver/internal/aitools"
 )
 
@@ -23,6 +25,13 @@ func (c cli) evalAdoptionCmd(args []string) error {
 	runtimeProvider := fs.String("runtime", aitools.RuntimeOpenCode, "runtime provider: opencode, codex, claude, or all")
 	task := fs.String("task", "RunWeaver adoption smoke test", "smoke task for runweaver start")
 	skipIndex := fs.Bool("skip-index", false, "skip automatic index refresh during start smoke")
+	live := fs.Bool("live", false, "launch the selected runtime instead of preparing a dry-run command")
+	timeout := fs.Duration("timeout", 0, "live runtime execution timeout, for example 2m; 0 disables the timeout")
+	model := fs.String("model", "", "optional runtime model override for live execution")
+	opencodeBin := fs.String("opencode-bin", "opencode", "OpenCode executable path for live execution")
+	codexBin := fs.String("codex-bin", "codex", "Codex executable path for live execution")
+	claudeBin := fs.String("claude-bin", "claude", "Claude Code executable path for live execution")
+	skipGitRepoCheck := fs.Bool("skip-git-repo-check", false, "allow Codex live execution outside a Git repository")
 	if err := fs.Parse(args); err != nil {
 		return usageError{command: "eval adoption", err: err}
 	}
@@ -30,9 +39,16 @@ func (c cli) evalAdoptionCmd(args []string) error {
 		return err
 	}
 	result, err := aitools.EvaluateAdoption(*repo, aitools.AdoptionEvalOptions{
-		Runtime:   *runtimeProvider,
-		Task:      *task,
-		SkipIndex: *skipIndex,
+		Runtime:          *runtimeProvider,
+		Task:             *task,
+		SkipIndex:        *skipIndex,
+		Live:             *live,
+		Timeout:          time.Duration(*timeout),
+		Model:            *model,
+		OpencodeBin:      *opencodeBin,
+		CodexBin:         *codexBin,
+		ClaudeBin:        *claudeBin,
+		SkipGitRepoCheck: *skipGitRepoCheck,
 	})
 	if err != nil {
 		return fmt.Errorf("evaluate adoption: %w", err)

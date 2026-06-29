@@ -162,10 +162,17 @@ Flags:
   runweaver eval adoption --repo <path> [--runtime opencode|codex|claude|all]
 
 Flags:
-  --repo path       repository path (default ".")
-  --runtime id      runtime provider: opencode, codex, claude, or all
-  --task text       smoke task for runweaver start
-  --skip-index      skip automatic index refresh during start smoke
+  --repo path              repository path (default ".")
+  --runtime id             runtime provider: opencode, codex, claude, or all
+  --task text              smoke task for runweaver start
+  --skip-index             skip automatic index refresh during start smoke
+  --live                   launch the selected runtime instead of preparing a dry-run command
+  --timeout duration       live runtime execution timeout; 0 disables the timeout
+  --model model            optional runtime model override for live execution
+  --opencode-bin path      OpenCode executable path for live execution
+  --codex-bin path         Codex executable path for live execution
+  --claude-bin path        Claude Code executable path for live execution
+  --skip-git-repo-check    allow Codex live execution outside a Git repository
 `
 	case "init":
 		return `Usage:

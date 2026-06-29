@@ -1,22 +1,34 @@
 package aitools
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 // AdoptionEvalOptions configures local adoption smoke checks.
 type AdoptionEvalOptions struct {
-	Runtime   string
-	Task      string
-	SkipIndex bool
+	Runtime          string
+	Task             string
+	SkipIndex        bool
+	Live             bool
+	OpencodeBin      string
+	CodexBin         string
+	ClaudeBin        string
+	Model            string
+	SkipGitRepoCheck bool
+	Timeout          time.Duration
 }
 
 // AdoptionEvalResult combines adoption doctor output with a start smoke run.
 type AdoptionEvalResult struct {
-	Status          string                  `json:"status"`
-	Ready           bool                    `json:"ready"`
-	Doctor          AdoptionDoctorResult    `json:"doctor"`
-	Start           StartResult             `json:"start,omitempty"`
-	ExecutionDryRun WorkflowExecutionResult `json:"executionDryRun,omitempty"`
-	Checks          []AdoptionEvalCheck     `json:"checks,omitempty"`
+	Status          string                   `json:"status"`
+	Ready           bool                     `json:"ready"`
+	Live            bool                     `json:"live,omitempty"`
+	Doctor          AdoptionDoctorResult     `json:"doctor"`
+	Start           StartResult              `json:"start,omitempty"`
+	ExecutionDryRun *WorkflowExecutionResult `json:"executionDryRun,omitempty"`
+	Execution       *WorkflowExecutionResult `json:"execution,omitempty"`
+	Checks          []AdoptionEvalCheck      `json:"checks,omitempty"`
 }
 
 // AdoptionEvalCheck is one local proof that a runtime can adopt RunWeaver.
@@ -41,6 +53,7 @@ func EvaluateAdoption(repoPath string, opts AdoptionEvalOptions) (AdoptionEvalRe
 	result := AdoptionEvalResult{
 		Status: "ok",
 		Ready:  doctor.Ready,
+		Live:   opts.Live,
 		Doctor: doctor,
 	}
 	if !doctor.Ready {
@@ -65,21 +78,35 @@ func EvaluateAdoption(repoPath string, opts AdoptionEvalOptions) (AdoptionEvalRe
 		return AdoptionEvalResult{}, err
 	}
 	result.Start = start
-	executionDryRun, err := ExecuteWorkflow(repoPath, WorkflowExecuteOptions{
+	execution, err := ExecuteWorkflow(repoPath, WorkflowExecuteOptions{
 		Resume:           "latest",
 		Runtime:          start.Runtime,
-		DryRun:           true,
+		DryRun:           !opts.Live,
 		SkipModelCheck:   true,
-		SkipGitRepoCheck: true,
+		SkipGitRepoCheck: opts.SkipGitRepoCheck || start.Runtime == RuntimeCodex,
+		OpencodeBin:      opts.OpencodeBin,
+		CodexBin:         opts.CodexBin,
+		ClaudeBin:        opts.ClaudeBin,
+		Model:            opts.Model,
+		Timeout:          opts.Timeout,
 	})
 	if err != nil {
-		result.Checks = adoptionEvalChecks(doctor, start, WorkflowExecutionResult{}, err)
+		if opts.Live {
+			result.Execution = &execution
+		} else {
+			result.ExecutionDryRun = &execution
+		}
+		result.Checks = adoptionEvalChecks(doctor, start, execution, err)
 		result.Ready = false
 		result.Status = "warning"
 		return result, nil
 	}
-	result.ExecutionDryRun = executionDryRun
-	result.Checks = adoptionEvalChecks(doctor, start, executionDryRun, nil)
+	if opts.Live {
+		result.Execution = &execution
+	} else {
+		result.ExecutionDryRun = &execution
+	}
+	result.Checks = adoptionEvalChecks(doctor, start, execution, nil)
 	result.Ready = doctor.Ready && start.Ready && adoptionEvalChecksReady(result.Checks)
 	if !result.Ready {
 		result.Status = "warning"
@@ -139,12 +166,21 @@ func contextReturnedEvalCheck(start StartResult) AdoptionEvalCheck {
 
 func runtimeDryRunEvalCheck(execution WorkflowExecutionResult, err error) AdoptionEvalCheck {
 	if err != nil {
-		return AdoptionEvalCheck{Name: "runtime-dry-run", Status: "error", Summary: "Runtime execution command could not be prepared", Evidence: []string{err.Error()}}
+		return AdoptionEvalCheck{Name: "runtime-execution", Status: "error", Summary: "Runtime execution command could not be prepared", Evidence: []string{err.Error()}}
 	}
 	if len(execution.Command) > 0 && execution.DryRun && !execution.Executed {
 		return AdoptionEvalCheck{Name: "runtime-dry-run", Status: "ok", Summary: "Runtime execution command was prepared without launching the model", Evidence: execution.Command}
 	}
-	return AdoptionEvalCheck{Name: "runtime-dry-run", Status: "error", Summary: "Runtime execution dry-run did not return a command"}
+	if len(execution.Command) > 0 && execution.Executed {
+		check := AdoptionEvalCheck{Name: "runtime-execution", Status: "ok", Summary: "Runtime execution completed", Evidence: execution.Command}
+		if execution.PostCheck != nil && execution.PostCheck.Status == "warning" {
+			check.Status = "warning"
+			check.Summary = "Runtime execution completed but workflow checkpoint needs attention"
+			check.NextActions = execution.PostCheck.Warnings
+		}
+		return check
+	}
+	return AdoptionEvalCheck{Name: "runtime-execution", Status: "error", Summary: "Runtime execution did not return a command"}
 }
 
 func adoptionEvalChecksReady(checks []AdoptionEvalCheck) bool {

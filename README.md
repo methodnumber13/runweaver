@@ -81,6 +81,21 @@ runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke t
 
 Then open the repository in the selected runtime and write the task to the generated `swarm` entrypoint or generated shortcut. The generated instructions tell the runtime to call `runweaver start --repo . --runtime <current> --task "<user task>"`, which creates or resumes a workflow run under `.runweaver/tmp/swarm-runs`, selects repo-specific participants from the runtime profile, returns task tier and task-scoped context, updates `checkpoint.json`/`todo.md`, and returns the next execution contract.
 
+60-second local smoke after init:
+
+```sh
+runweaver start --repo . --runtime auto --task "fix auth guard public route test"
+runweaver participants select --repo . --runtime auto --task "fix auth guard public route test"
+runweaver context query --repo . --task "fix auth guard public route test"
+runweaver eval adoption --repo . --runtime codex --task "Run Codex adoption smoke test"
+```
+
+`eval adoption` is dry-run by default: it checks adoption metadata, calls `start`, verifies workflow state, and prepares the runtime command without launching a model. Use `--live --timeout 2m` only when you intentionally want to run the selected runtime:
+
+```sh
+runweaver eval adoption --repo . --runtime codex --live --timeout 2m --task "Run live Codex adoption smoke test"
+```
+
 For multi-runtime metadata:
 
 ```sh
@@ -121,6 +136,7 @@ runweaver doctor runtime --repo . --runtime all
 runweaver doctor adoption --repo . --runtime all
 runweaver doctor processes --summary
 runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
+runweaver eval adoption --repo . --runtime codex --live --timeout 2m --task "Run live adoption smoke test"
 runweaver refresh --repo .
 runweaver refresh --repo . --apply
 runweaver doctor --repo .
@@ -296,7 +312,7 @@ This exposes only `.runweaver/tmp` workflow-state tools:
 
 These tools do not edit source files or runtime config files.
 
-`runweaver eval adoption` is still local and credential-free by default. It runs `doctor adoption`, calls `runweaver start`, verifies workflow state/participants/context, and prepares a runtime execution dry-run command without launching the selected model.
+`runweaver eval adoption` is still local and credential-free by default. It runs `doctor adoption`, calls `runweaver start`, verifies workflow state/participants/context, and prepares a runtime execution dry-run command without launching the selected model. Add `--live` plus a timeout when you explicitly want to launch OpenCode, Codex, or Claude Code as part of the adoption eval.
 
 RunWeaver does not add MCP entries to user or project runtime configs during `init`. Connect it explicitly when you want the selected LLM client to see RunWeaver as tools instead of only files and commands.
 
