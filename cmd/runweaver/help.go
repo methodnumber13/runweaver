@@ -26,6 +26,7 @@ func (c cli) usage() {
                                         verify RunWeaver auto-start contract for runtimes
   doctor processes [--summary]          show Codex/OpenCode runtime, VS Code debugger, and duplicate MCP processes
   eval adoption --repo <path>           run local adoption/start smoke checks
+  smoke codex [--live]                  create a disposable repo and verify Codex adoption
   init --repo <path> [--runtime opencode] [--force]
                                         smart index, plan intelligence workflow, bootstrap metadata
   bootstrap --repo <path> [--runtime opencode]

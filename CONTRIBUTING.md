@@ -52,7 +52,14 @@ tmpdir=$(mktemp -d)
 RUNWEAVER_BIN_DIR="$tmpdir" ./scripts/install.sh
 "$tmpdir/runweaver" version
 "$tmpdir/runweaver" help
+"$tmpdir/runweaver" smoke codex --keep
 rm -rf "$tmpdir"
+```
+
+When Codex is configured locally, also run a live smoke on a disposable repo:
+
+```sh
+runweaver smoke codex --live --timeout 4m --keep
 ```
 
 For tagged releases:

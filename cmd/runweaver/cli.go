@@ -97,6 +97,8 @@ func (c cli) run(args []string) error {
 		return wrapCommandError("doctor", c.doctorCmd(args[1:]))
 	case "eval":
 		return wrapCommandError("eval adoption", c.evalCmd(args[1:]))
+	case "smoke":
+		return wrapCommandError("smoke codex", c.smokeCmd(args[1:]))
 	case "init":
 		return wrapCommandError("init", c.initCmd(args[1:]))
 	case "bootstrap":

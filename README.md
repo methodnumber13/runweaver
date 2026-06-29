@@ -58,6 +58,15 @@ runweaver version
 runweaver version --json
 ```
 
+Quick disposable Codex smoke:
+
+```sh
+runweaver smoke codex --keep
+runweaver smoke codex --live --timeout 4m --keep
+```
+
+The first command is a local dry-run that creates a tiny temporary Go repository, initializes Codex metadata, and prepares the Codex execution command without launching a model. The live form requires a working local Codex session and keeps the generated repo so you can inspect `.runweaver/tmp` afterward.
+
 ## Project Status
 
 RunWeaver is an early public alpha. The core CLI, repository indexer,
@@ -84,6 +93,7 @@ Then open the repository in the selected runtime and write the task to the gener
 60-second local smoke after init:
 
 ```sh
+runweaver smoke codex --keep
 runweaver start --repo . --runtime auto --task "fix auth guard public route test"
 runweaver participants select --repo . --runtime auto --task "fix auth guard public route test"
 runweaver context query --repo . --task "fix auth guard public route test"
