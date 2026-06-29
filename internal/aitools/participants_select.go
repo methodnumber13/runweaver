@@ -2,6 +2,7 @@ package aitools
 
 import (
 	"fmt"
+	pathpkg "path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -41,7 +42,8 @@ func SelectParticipants(repoPath string, opts ParticipantSelectOptions) (Partici
 	}
 	cap = applyTaskTierCap(cap, taskTier)
 	candidates := participantCandidates(profile, profileLoaded, workflow)
-	scoreParticipantCandidates(candidates, task, workflow)
+	contextEvidence := loadParticipantContextEvidence(root, task)
+	scoreParticipantCandidates(candidates, task, workflow, contextEvidence)
 	sort.SliceStable(candidates, func(i, j int) bool {
 		if candidates[i].Score == candidates[j].Score {
 			if participantKindRank(candidates[i].Kind) == participantKindRank(candidates[j].Kind) {
@@ -198,7 +200,7 @@ func participantEvidence(description string, focusFiles, workflow, verification 
 	return evidence
 }
 
-func scoreParticipantCandidates(candidates []ParticipantSelectionCandidate, task string, workflow WorkflowSpec) {
+func scoreParticipantCandidates(candidates []ParticipantSelectionCandidate, task string, workflow WorkflowSpec, context participantContextEvidence) {
 	taskTokens := tokenizeSelectionText(task)
 	workflowAgentNames := map[string]bool{}
 	for _, phase := range workflow.Phases {
@@ -223,6 +225,7 @@ func scoreParticipantCandidates(candidates []ParticipantSelectionCandidate, task
 			candidate.Score += 5
 			candidate.Rationale = append(candidate.Rationale, "listed by workflow phase")
 		}
+		scoreParticipantContext(candidate, context)
 		switch candidate.Kind {
 		case "agent":
 			candidate.Score += 3
@@ -231,6 +234,132 @@ func scoreParticipantCandidates(candidates []ParticipantSelectionCandidate, task
 		}
 		candidate.Rationale = Unique(candidate.Rationale)
 	}
+}
+
+type participantContextEvidence struct {
+	strongPaths map[string]string
+	weakPaths   map[string]string
+}
+
+func loadParticipantContextEvidence(root, task string) participantContextEvidence {
+	context, err := QueryContext(root, ContextQueryOptions{
+		Task:  task,
+		Limit: 12,
+	})
+	if err != nil || context.Status != "success" {
+		return participantContextEvidence{}
+	}
+	return newParticipantContextEvidence(context)
+}
+
+func newParticipantContextEvidence(context ContextQueryResult) participantContextEvidence {
+	evidence := participantContextEvidence{
+		strongPaths: map[string]string{},
+		weakPaths:   map[string]string{},
+	}
+	for _, file := range context.Files {
+		if len(file.Rationale) > 0 {
+			evidence.addWeak(file.Path, "file: "+file.Path)
+		}
+	}
+	for _, symbol := range context.Symbols {
+		evidence.addStrong(symbol.Path, "symbol: "+symbol.Name)
+	}
+	for _, edge := range context.Routes {
+		evidence.addStrong(edge.From, "route: "+edge.To)
+	}
+	for _, edge := range context.Tests {
+		evidence.addStrong(edge.From, "test: "+edge.From)
+		evidence.addStrong(edge.To, "tested source: "+edge.To)
+	}
+	return evidence
+}
+
+func (e participantContextEvidence) addStrong(value, reason string) {
+	path := normalizeParticipantContextPath(value)
+	if !looksLikeRepoPath(path) {
+		return
+	}
+	e.strongPaths[path] = reason
+}
+
+func (e participantContextEvidence) addWeak(value, reason string) {
+	path := normalizeParticipantContextPath(value)
+	if !looksLikeRepoPath(path) {
+		return
+	}
+	e.weakPaths[path] = reason
+}
+
+func scoreParticipantContext(candidate *ParticipantSelectionCandidate, context participantContextEvidence) {
+	if len(context.strongPaths) == 0 && len(context.weakPaths) == 0 {
+		return
+	}
+	focusFiles := participantFocusFiles(*candidate)
+	for _, focusFile := range focusFiles {
+		focusPath := normalizeParticipantContextPath(focusFile)
+		if _, ok := context.strongPaths[focusPath]; ok {
+			candidate.Score += 14
+			candidate.Rationale = append(candidate.Rationale, "task context matched focus file: "+focusFile)
+			return
+		}
+	}
+	for _, focusFile := range focusFiles {
+		focusPath := normalizeParticipantContextPath(focusFile)
+		if _, ok := context.weakPaths[focusPath]; ok {
+			candidate.Score += 6
+			candidate.Rationale = append(candidate.Rationale, "task context matched focus file: "+focusFile)
+			return
+		}
+	}
+	for _, focusFile := range focusFiles {
+		focusPath := normalizeParticipantContextPath(focusFile)
+		if matchedPath, ok := context.matchStrongDirectory(focusPath); ok {
+			candidate.Score += 7
+			candidate.Rationale = append(candidate.Rationale, "task context matched focus directory: "+pathpkg.Dir(matchedPath))
+			return
+		}
+	}
+}
+
+func participantFocusFiles(candidate ParticipantSelectionCandidate) []string {
+	var files []string
+	for _, item := range candidate.Rationale {
+		if file, ok := strings.CutPrefix(item, "focus file: "); ok {
+			files = append(files, strings.TrimSpace(file))
+		}
+	}
+	return files
+}
+
+func (e participantContextEvidence) matchStrongDirectory(focusPath string) (string, bool) {
+	focusDir := pathpkg.Dir(focusPath)
+	if focusDir == "." || focusDir == "" {
+		return "", false
+	}
+	for contextPath := range e.strongPaths {
+		if pathpkg.Dir(contextPath) == focusDir {
+			return contextPath, true
+		}
+	}
+	return "", false
+}
+
+func normalizeParticipantContextPath(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	value = filepath.ToSlash(filepath.Clean(value))
+	return strings.TrimPrefix(value, "./")
+}
+
+func looksLikeRepoPath(value string) bool {
+	if value == "" || strings.ContainsAny(value, " \t\n\r") {
+		return false
+	}
+	base := pathpkg.Base(value)
+	return strings.Contains(value, "/") || strings.Contains(base, ".")
 }
 
 func selectParticipantCandidates(candidates []ParticipantSelectionCandidate, cap int) []ParticipantSelectionCandidate {

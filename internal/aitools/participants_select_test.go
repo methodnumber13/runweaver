@@ -1,6 +1,9 @@
 package aitools
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestSelectParticipantsPrefersDomainAgentAndRelevantSkill(t *testing.T) {
 	root := t.TempDir()
@@ -48,6 +51,45 @@ func TestSelectParticipantsFallsBackToWorkflowAgents(t *testing.T) {
 	}
 	if !containsString(result.Participants, "agent-skill-drift-reviewer") {
 		t.Fatalf("participants = %#v, want workflow fallback agent", result.Participants)
+	}
+}
+
+func TestSelectParticipantsUsesTaskScopedContextFocusFiles(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/bugfix-swarm.json", `{
+  "id": "bugfix-swarm",
+  "name": "Bugfix Swarm",
+  "description": "Fix bugs and regressions",
+  "maxParticipants": 1,
+  "phases": [
+    {"id": "fix", "name": "Fix", "scope": "repo", "mode": "parallel", "writeMode": "write", "agents": [], "prompt": "fix bug"}
+  ]
+}`)
+	writeTestFile(t, root, ".opencode/swarm/profile.json", `{
+  "workspace": {"name": "api", "repos": ["."]},
+  "repos": [{
+    "dir": ".",
+    "agents": [
+      {"name": "aaa-billing-agent", "description": "Primary domain owner", "focusFiles": ["src/billing/billing.service.ts"]},
+      {"name": "zzz-auth-agent", "description": "Primary domain owner", "focusFiles": ["src/auth/auth.guard.ts"]}
+    ]
+  }]
+}`)
+	writeContextIndexFixture(t, root)
+
+	result, err := SelectParticipants(root, ParticipantSelectOptions{
+		Task:     "Fix public route decorator bypass",
+		Workflow: ".runweaver/workflows/bugfix-swarm.json",
+		Runtime:  RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := result.Participants; len(got) != 1 || got[0] != "zzz-auth-agent" {
+		t.Fatalf("participants = %#v, want task context to select zzz-auth-agent", got)
+	}
+	if !stringsContain(result.Rationale, "task context matched focus file: src/auth/auth.guard.ts") {
+		t.Fatalf("rationale = %#v, want task-context focus-file evidence", result.Rationale)
 	}
 }
 
@@ -105,5 +147,14 @@ func writeParticipantSelectionFixtures(t *testing.T, root string) {
       }
     ]
   }]
-}`)
+	}`)
+}
+
+func stringsContain(values []string, needle string) bool {
+	for _, value := range values {
+		if strings.Contains(value, needle) {
+			return true
+		}
+	}
+	return false
 }
