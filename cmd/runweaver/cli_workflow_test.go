@@ -192,7 +192,7 @@ func TestCLIWorkflowSelectChoosesSpecificWorkflow(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := runCLI([]string{"workflow", "select", "--repo", root, "--task", "Fix failing auth regression"}, &stdout, &stderr, false)
+	code := runCLI([]string{"workflow", "select", "--repo", root, "--task", "Fix failing auth regression", "--json"}, &stdout, &stderr, false)
 	if code != 0 {
 		t.Fatalf("workflow select exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
 	}

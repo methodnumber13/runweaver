@@ -37,6 +37,7 @@ func TestCLIParticipantsSelectReturnsParticipants(t *testing.T) {
 		"--runtime", "opencode",
 		"--workflow", ".runweaver/workflows/bugfix-swarm.json",
 		"--task", "Fix public route handling in src/auth/auth.guard.ts",
+		"--json",
 	}, &stdout, &stderr, false)
 	if code != 0 {
 		t.Fatalf("participants select exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())

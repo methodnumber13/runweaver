@@ -146,6 +146,7 @@ func (c cli) workflowSelectCmd(args []string) error {
 	repo := fs.String("repo", ".", "repository path")
 	task := fs.String("task", "", "task description")
 	workflow := fs.String("workflow", "", "explicit workflow JSON path")
+	addJSONFlag(fs)
 	if err := fs.Parse(args); err != nil {
 		return usageError{command: "workflow select", err: err}
 	}

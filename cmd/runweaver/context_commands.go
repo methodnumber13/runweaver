@@ -24,6 +24,7 @@ func (c cli) contextQueryCmd(args []string) error {
 	task := fs.String("task", "", "task description")
 	limit := fs.Int("limit", 12, "max context files/symbols/routes/tests to return; clamped to 5..20")
 	includeGenerated := fs.Bool("include-generated", false, "include generated files in context candidates")
+	addJSONFlag(fs)
 	if err := fs.Parse(args); err != nil {
 		return usageError{command: "context query", err: err}
 	}

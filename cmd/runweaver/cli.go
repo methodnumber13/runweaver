@@ -136,6 +136,10 @@ func newFlagSet(name string) *flag.FlagSet {
 	return fs
 }
 
+func addJSONFlag(fs *flag.FlagSet) {
+	fs.Bool("json", true, "print JSON output")
+}
+
 func rejectExtraArgs(fs *flag.FlagSet, command string) error {
 	if fs.NArg() == 0 {
 		return nil

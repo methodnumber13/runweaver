@@ -90,6 +90,7 @@ Flags:
   --profile file    explicit RunWeaver profile JSON path
   --skip-index      skip automatic index refresh
   --force-new       create a new workflow even when latest matches
+  --json            print JSON output (default)
 `
 	case "context query":
 		return `Usage:
@@ -100,6 +101,7 @@ Flags:
   --task text            task description to route into indexed context
   --limit n              max files/symbols/routes/tests to return; clamped to 5..20
   --include-generated    include generated files in context candidates
+  --json                 print JSON output (default)
 `
 	case "doctor":
 		return `Usage:
@@ -206,6 +208,7 @@ Flags:
   --workflow file   workflow JSON path; selected automatically when omitted
   --runtime id      runtime profile to inspect: auto, opencode, codex, or claude
   --profile file    explicit RunWeaver profile JSON path
+  --json            print JSON output (default)
 `
 	case "workflow run":
 		return `Usage:
@@ -245,6 +248,7 @@ Flags:
   --repo path        repository path (default ".")
   --task text        task description to route
   --workflow file    explicit workflow JSON path; bypasses scoring when provided
+  --json             print JSON output (default)
 `
 	case "workflow update":
 		return `Usage:

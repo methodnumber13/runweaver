@@ -42,6 +42,7 @@ func TestCLIStartCreatesWorkflowContract(t *testing.T) {
 		"--repo", root,
 		"--runtime", "opencode",
 		"--task", "Fix public route auth regression in src/auth/auth.guard.ts",
+		"--json",
 	}, &stdout, &stderr, false)
 	if code != 0 {
 		t.Fatalf("start exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())

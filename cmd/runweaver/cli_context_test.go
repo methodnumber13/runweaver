@@ -33,6 +33,7 @@ func TestCLIContextQueryReturnsScopedContext(t *testing.T) {
 		"--repo", root,
 		"--task", "Fix auth guard test",
 		"--limit", "3",
+		"--json",
 	}, &stdout, &stderr, false)
 	if code != 0 {
 		t.Fatalf("context query exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())

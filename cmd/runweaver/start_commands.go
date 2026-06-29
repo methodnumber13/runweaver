@@ -14,6 +14,7 @@ func (c cli) startCmd(args []string) error {
 	profilePath := fs.String("profile", "", "explicit RunWeaver profile JSON path")
 	skipIndex := fs.Bool("skip-index", false, "skip automatic index refresh")
 	forceNew := fs.Bool("force-new", false, "create a new workflow even when latest matches")
+	addJSONFlag(fs)
 	if err := fs.Parse(args); err != nil {
 		return usageError{command: "start", err: err}
 	}
