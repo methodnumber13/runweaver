@@ -23,9 +23,9 @@ func SelectParticipants(repoPath string, opts ParticipantSelectOptions) (Partici
 	if err != nil {
 		return ParticipantSelectResult{}, err
 	}
-	runtimeID := normalizeRuntimeID(opts.Runtime)
-	if runtimeID == "" || runtimeID == RuntimeAll {
-		runtimeID = RuntimeOpenCode
+	runtimeID, _, err := ResolveSingleRuntime(root, opts.Runtime)
+	if err != nil {
+		return ParticipantSelectResult{}, err
 	}
 	profile, profilePath, profileLoaded, err := loadParticipantProfile(root, runtimeID, opts.ProfilePath)
 	if err != nil {
@@ -35,6 +35,11 @@ func SelectParticipants(repoPath string, opts ParticipantSelectOptions) (Partici
 	if cap <= 0 {
 		cap = defaultParticipantCap
 	}
+	taskTier := opts.TaskTier
+	if strings.TrimSpace(taskTier) == "" {
+		taskTier = ClassifyTaskTier(task).Tier
+	}
+	cap = applyTaskTierCap(cap, taskTier)
 	candidates := participantCandidates(profile, profileLoaded, workflow)
 	scoreParticipantCandidates(candidates, task, workflow)
 	sort.SliceStable(candidates, func(i, j int) bool {
@@ -65,6 +70,7 @@ func SelectParticipants(repoPath string, opts ParticipantSelectOptions) (Partici
 		RepoRoot:     root,
 		Task:         task,
 		Runtime:      runtimeID,
+		TaskTier:     taskTier,
 		Workflow:     workflow.ID,
 		WorkflowPath: rel(root, workflowPath),
 		ProfilePath:  relOrEmpty(root, profilePath),

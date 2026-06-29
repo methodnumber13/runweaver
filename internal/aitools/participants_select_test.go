@@ -14,8 +14,11 @@ func TestSelectParticipantsPrefersDomainAgentAndRelevantSkill(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Cap != 3 {
-		t.Fatalf("cap = %d, want 3", result.Cap)
+	if result.TaskTier != "small" {
+		t.Fatalf("task tier = %q, want small", result.TaskTier)
+	}
+	if result.Cap != 2 {
+		t.Fatalf("cap = %d, want tier-aware cap 2", result.Cap)
 	}
 	if !containsString(result.Participants, "auth-access-agent") {
 		t.Fatalf("participants = %#v, want auth-access-agent", result.Participants)

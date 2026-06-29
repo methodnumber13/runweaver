@@ -41,6 +41,24 @@ func TestSelectWorkflowFallsBackToFeatureDelivery(t *testing.T) {
 	}
 }
 
+func TestSelectWorkflowReportsTaskTier(t *testing.T) {
+	root := t.TempDir()
+	writeWorkflowSelectionFixtures(t, root)
+
+	result, err := SelectWorkflow(root, WorkflowSelectOptions{
+		Task: "Rename typo in README",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.TaskTier.Tier != "trivial" {
+		t.Fatalf("tier = %#v, want trivial", result.TaskTier)
+	}
+	if len(result.TaskTier.Rationale) == 0 {
+		t.Fatalf("tier rationale is empty: %#v", result.TaskTier)
+	}
+}
+
 func TestSelectWorkflowHonorsExplicitWorkflow(t *testing.T) {
 	root := t.TempDir()
 	writeWorkflowSelectionFixtures(t, root)

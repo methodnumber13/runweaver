@@ -80,12 +80,12 @@ Flags:
 `
 	case "start":
 		return `Usage:
-  runweaver start --repo <path> --task <text> [--runtime opencode|codex|claude]
+  runweaver start --repo <path> --task <text> [--runtime auto|opencode|codex|claude]
 
 Flags:
   --repo path       repository path (default ".")
   --task text       user task to start or resume
-  --runtime id      runtime profile to inspect: opencode, codex, or claude
+  --runtime id      runtime profile to inspect: auto, opencode, codex, or claude
   --workflow file   explicit workflow JSON path
   --profile file    explicit RunWeaver profile JSON path
   --skip-index      skip automatic index refresh
@@ -194,7 +194,7 @@ Flags:
   --repo path       repository path (default ".")
   --task text       task description to route
   --workflow file   workflow JSON path; selected automatically when omitted
-  --runtime id      runtime profile to inspect: opencode, codex, or claude
+  --runtime id      runtime profile to inspect: auto, opencode, codex, or claude
   --profile file    explicit RunWeaver profile JSON path
 `
 	case "workflow run":

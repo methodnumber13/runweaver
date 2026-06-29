@@ -44,9 +44,20 @@ type WorkflowSelectResult struct {
 	Status       string                       `json:"status"`
 	RepoRoot     string                       `json:"repoRoot"`
 	Task         string                       `json:"task"`
+	TaskTier     TaskTierResult               `json:"taskTier"`
 	WorkflowPath string                       `json:"workflowPath"`
 	Selected     WorkflowSelectionCandidate   `json:"selected"`
 	Candidates   []WorkflowSelectionCandidate `json:"candidates"`
+}
+
+// TaskTierResult describes how much orchestration one task should receive.
+type TaskTierResult struct {
+	Tier           string   `json:"tier"`
+	Score          int      `json:"score"`
+	ParticipantCap int      `json:"participantCap"`
+	PhaseStrategy  string   `json:"phaseStrategy"`
+	Verification   string   `json:"verification"`
+	Rationale      []string `json:"rationale,omitempty"`
 }
 
 // WorkflowSelectionCandidate is one workflow considered for a task.
@@ -66,6 +77,7 @@ type ParticipantSelectOptions struct {
 	Workflow    string
 	Runtime     string
 	ProfilePath string
+	TaskTier    string
 }
 
 // ParticipantSelectResult reports selected agents/skills for one workflow task.
@@ -74,6 +86,7 @@ type ParticipantSelectResult struct {
 	RepoRoot     string                          `json:"repoRoot"`
 	Task         string                          `json:"task"`
 	Runtime      string                          `json:"runtime"`
+	TaskTier     string                          `json:"taskTier,omitempty"`
 	Workflow     string                          `json:"workflow"`
 	WorkflowPath string                          `json:"workflowPath"`
 	ProfilePath  string                          `json:"profilePath,omitempty"`

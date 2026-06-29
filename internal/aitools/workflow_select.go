@@ -20,6 +20,7 @@ func SelectWorkflow(repoPath string, opts WorkflowSelectOptions) (WorkflowSelect
 	if task == "" {
 		return WorkflowSelectResult{}, fmt.Errorf("workflow task is required")
 	}
+	taskTier := ClassifyTaskTier(task)
 	if strings.TrimSpace(opts.Workflow) != "" {
 		candidate, err := explicitWorkflowCandidate(root, opts.Workflow)
 		if err != nil {
@@ -31,6 +32,7 @@ func SelectWorkflow(repoPath string, opts WorkflowSelectOptions) (WorkflowSelect
 			Status:       "success",
 			RepoRoot:     root,
 			Task:         task,
+			TaskTier:     taskTier,
 			WorkflowPath: candidate.Path,
 			Selected:     candidate,
 			Candidates:   []WorkflowSelectionCandidate{candidate},
@@ -58,6 +60,7 @@ func SelectWorkflow(repoPath string, opts WorkflowSelectOptions) (WorkflowSelect
 		Status:       "success",
 		RepoRoot:     root,
 		Task:         task,
+		TaskTier:     taskTier,
 		WorkflowPath: selected.Path,
 		Selected:     selected,
 		Candidates:   workflows,

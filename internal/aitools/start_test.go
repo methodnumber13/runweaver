@@ -60,6 +60,40 @@ func TestStartWorkflowResumesMatchingActiveWorkflow(t *testing.T) {
 	}
 }
 
+func TestStartWorkflowAutoRuntimeUsesAvailableProfile(t *testing.T) {
+	root := t.TempDir()
+	writeWorkflowSelectionFixtures(t, root)
+	writeTestFile(t, root, ".codex/runweaver/profile.json", `{
+  "workspace": {"name": "api", "repos": ["."]},
+  "repos": [{
+    "dir": ".",
+    "agents": [
+      {"name": "codex-docs-agent", "description": "Owns README docs and markdown edits", "focusFiles": ["README.md"]}
+    ]
+  }]
+}`)
+
+	result, err := StartWorkflow(root, StartOptions{
+		Task:    "Rename typo in README",
+		Runtime: RuntimeAuto,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Runtime != RuntimeCodex {
+		t.Fatalf("runtime = %q, want codex", result.Runtime)
+	}
+	if result.RuntimeResolution.Source != "profile" {
+		t.Fatalf("runtime resolution = %#v, want profile source", result.RuntimeResolution)
+	}
+	if result.ExecutionContract.TaskTier.Tier != "trivial" {
+		t.Fatalf("execution contract = %#v, want trivial tier", result.ExecutionContract)
+	}
+	if result.Participants.Cap != 1 {
+		t.Fatalf("participant cap = %d, want trivial cap 1", result.Participants.Cap)
+	}
+}
+
 func writeStartFixtures(t *testing.T, root string) {
 	t.Helper()
 	writeTestFile(t, root, "go.mod", "module example.com/api\n")

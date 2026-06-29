@@ -22,7 +22,7 @@ func (c cli) participantsSelectCmd(args []string) error {
 	repo := fs.String("repo", ".", "repository path")
 	task := fs.String("task", "", "task description")
 	workflow := fs.String("workflow", "", "workflow JSON path; selected automatically when omitted")
-	runtimeProvider := fs.String("runtime", aitools.RuntimeOpenCode, "runtime provider profile to inspect: opencode, codex, or claude")
+	runtimeProvider := fs.String("runtime", aitools.RuntimeAuto, "runtime provider profile to inspect: auto, opencode, codex, or claude")
 	profilePath := fs.String("profile", "", "explicit RunWeaver profile JSON path")
 	if err := fs.Parse(args); err != nil {
 		return usageError{command: "participants select", err: err}

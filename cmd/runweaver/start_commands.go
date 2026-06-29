@@ -9,7 +9,7 @@ func (c cli) startCmd(args []string) error {
 	fs := newFlagSet("start")
 	repo := fs.String("repo", ".", "repository path")
 	task := fs.String("task", "", "task description")
-	runtimeProvider := fs.String("runtime", aitools.RuntimeOpenCode, "runtime provider: opencode, codex, or claude")
+	runtimeProvider := fs.String("runtime", aitools.RuntimeAuto, "runtime provider: auto, opencode, codex, or claude")
 	workflow := fs.String("workflow", "", "explicit workflow JSON path")
 	profilePath := fs.String("profile", "", "explicit RunWeaver profile JSON path")
 	skipIndex := fs.Bool("skip-index", false, "skip automatic index refresh")

@@ -43,7 +43,8 @@ func TestCLIParticipantsSelectReturnsParticipants(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), `"auth-agent"`) ||
 		!strings.Contains(stdout.String(), `"security-middleware"`) ||
-		!strings.Contains(stdout.String(), `"cap": 3`) {
+		!strings.Contains(stdout.String(), `"taskTier": "small"`) ||
+		!strings.Contains(stdout.String(), `"cap": 2`) {
 		t.Fatalf("participants stdout = %q, want domain agent, skill, and cap", stdout.String())
 	}
 }

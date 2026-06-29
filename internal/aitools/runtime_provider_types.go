@@ -6,6 +6,8 @@ import (
 )
 
 const (
+	// RuntimeAuto selects the best available single runtime from repo metadata.
+	RuntimeAuto = catalog.Auto
 	// RuntimeOpenCode identifies the OpenCode runtime provider.
 	RuntimeOpenCode = catalog.OpenCode
 	// RuntimeCodex identifies the Codex runtime provider.
