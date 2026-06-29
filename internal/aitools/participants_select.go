@@ -384,6 +384,14 @@ func selectParticipantCandidates(candidates []ParticipantSelectionCandidate, cap
 			break
 		}
 	}
+	if !selectedParticipantKind(selected, "agent") {
+		for _, candidate := range candidates {
+			if candidate.Kind == "agent" && candidate.Score > 0 {
+				add(candidate)
+				break
+			}
+		}
+	}
 	for _, candidate := range candidates {
 		if candidate.Kind == "skill" && candidate.Score >= 8 {
 			add(candidate)
@@ -398,6 +406,15 @@ func selectParticipantCandidates(candidates []ParticipantSelectionCandidate, cap
 		add(candidates[0])
 	}
 	return selected
+}
+
+func selectedParticipantKind(selected []ParticipantSelectionCandidate, kind string) bool {
+	for _, candidate := range selected {
+		if candidate.Kind == kind {
+			return true
+		}
+	}
+	return false
 }
 
 func participantKindRank(kind string) int {

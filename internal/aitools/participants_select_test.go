@@ -93,6 +93,44 @@ func TestSelectParticipantsUsesTaskScopedContextFocusFiles(t *testing.T) {
 	}
 }
 
+func TestSelectParticipantsKeepsExecutableAgentWhenSkillsOutscore(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-hardening-swarm.json", `{
+  "id": "test-hardening-swarm",
+  "name": "Test Hardening Swarm",
+  "description": "Improve tests",
+  "maxParticipants": 2,
+  "phases": [
+    {"id": "verify", "name": "Verify", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["fallback-agent"], "prompt": "verify tests"}
+  ]
+}`)
+	writeTestFile(t, root, ".opencode/swarm/profile.json", `{
+  "workspace": {"name": "api", "repos": ["."]},
+  "repos": [{
+    "dir": ".",
+    "customSkills": [
+      {"name": "fix-test-skill-a", "description": "Use for fix test work"},
+      {"name": "fix-test-skill-b", "description": "Use for fix test verification"}
+    ]
+  }]
+}`)
+
+	result, err := SelectParticipants(root, ParticipantSelectOptions{
+		Task:     "fix test",
+		Workflow: ".runweaver/workflows/test-hardening-swarm.json",
+		Runtime:  RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsString(result.Participants, "fallback-agent") {
+		t.Fatalf("participants = %#v, want executable workflow agent even when skills score higher", result.Participants)
+	}
+	if len(result.Participants) != 2 {
+		t.Fatalf("participants = %#v, want cap-sized selection", result.Participants)
+	}
+}
+
 func writeParticipantSelectionFixtures(t *testing.T, root string) {
 	t.Helper()
 	writeTestFile(t, root, ".runweaver/workflows/bugfix-swarm.json", `{
