@@ -205,6 +205,7 @@ type WorkflowUpdateOptions struct {
 	Phase                string
 	Status               string
 	Participants         []string
+	ReplaceParticipants  bool
 	ParticipantRationale []string
 	Findings             []string
 	Decisions            []string

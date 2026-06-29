@@ -174,6 +174,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	phase := fs.String("phase", "", "current workflow phase")
 	status := fs.String("status", "", "checkpoint status, for example in_progress or complete")
 	participants := fs.String("participants", "", "comma-separated participant names")
+	replaceParticipants := fs.Bool("replace-participants", false, "replace checkpoint participants instead of appending")
 	lastResult := fs.String("last-result", "", "last command, agent, or phase result that explains why the workflow is moving or pausing")
 	nextAction := fs.String("next-action", "", "next action to persist in checkpoint")
 	nextVerification := fs.String("next-verification", "", "next verification step that should be run before continuing or finishing")
@@ -209,6 +210,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 		Phase:                *phase,
 		Status:               *status,
 		Participants:         splitCSV(*participants),
+		ReplaceParticipants:  *replaceParticipants,
 		ParticipantRationale: participantRationale.Values(),
 		Findings:             findings.Values(),
 		Decisions:            decisions.Values(),
