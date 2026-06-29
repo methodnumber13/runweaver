@@ -58,6 +58,7 @@ func runtimeBaselineDirs(runtimeIDs []string) []string {
 	if hasRuntime(runtimeIDs, RuntimeOpenCode) {
 		dirs = append(dirs,
 			".opencode/agents",
+			".opencode/commands",
 			".opencode/skills/context-discipline",
 			".opencode/skills/metadata-refresh",
 			".opencode/skills/repo-onboarding",
@@ -69,6 +70,7 @@ func runtimeBaselineDirs(runtimeIDs []string) []string {
 			".agents/skills/context-discipline",
 			".agents/skills/metadata-refresh",
 			".agents/skills/repo-onboarding",
+			".agents/skills/runweaver-start",
 			".codex/agents",
 			".codex/runweaver",
 		)
@@ -79,6 +81,8 @@ func runtimeBaselineDirs(runtimeIDs []string) []string {
 			".claude/skills/context-discipline",
 			".claude/skills/metadata-refresh",
 			".claude/skills/repo-onboarding",
+			".claude/skills/runweaver-start",
+			".claude/workflows",
 			".claude/runweaver",
 		)
 	}
@@ -110,6 +114,7 @@ func runtimeBaselineFiles(runtimeIDs []string) map[string]string {
 		files[".opencode/agents/repo-surface-engineer.md"] = repoSurfaceEngineerAgent
 		files[".opencode/agents/repo-contract-reviewer.md"] = repoContractReviewerAgent
 		files[".opencode/agents/repo-test-quality-reviewer.md"] = repoTestQualityReviewerAgent
+		files[".opencode/commands/runweaver-start.md"] = opencodeRunWeaverStartCommand
 		files[".opencode/skills/context-discipline/SKILL.md"] = contextDisciplineSkill
 		files[".opencode/skills/metadata-refresh/SKILL.md"] = metadataRefreshSkill
 		files[".opencode/skills/repo-onboarding/SKILL.md"] = repoOnboardingSkill
@@ -120,6 +125,7 @@ func runtimeBaselineFiles(runtimeIDs []string) map[string]string {
 		files[".agents/skills/context-discipline/SKILL.md"] = codexContextDisciplineSkill
 		files[".agents/skills/metadata-refresh/SKILL.md"] = codexMetadataRefreshSkill
 		files[".agents/skills/repo-onboarding/SKILL.md"] = codexRepoOnboardingSkill
+		files[".agents/skills/runweaver-start/SKILL.md"] = codexRunWeaverStartSkill
 	}
 	if hasRuntime(runtimeIDs, RuntimeClaude) {
 		files["CLAUDE.md"] = claudeMD
@@ -127,6 +133,7 @@ func runtimeBaselineFiles(runtimeIDs []string) map[string]string {
 		files[".claude/skills/context-discipline/SKILL.md"] = claudeContextDisciplineSkill
 		files[".claude/skills/metadata-refresh/SKILL.md"] = claudeMetadataRefreshSkill
 		files[".claude/skills/repo-onboarding/SKILL.md"] = claudeRepoOnboardingSkill
+		files[".claude/skills/runweaver-start/SKILL.md"] = claudeRunWeaverStartSkill
 	}
 	return files
 }

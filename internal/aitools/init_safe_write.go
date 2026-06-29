@@ -208,11 +208,13 @@ func isGeneratedMetadataPath(path string) bool {
 	path = filepath.ToSlash(path)
 	generatedPrefixes := []string{
 		".opencode/agents/",
+		".opencode/commands/",
 		".opencode/skills/",
 		".codex/agents/",
 		".agents/skills/",
 		".claude/agents/",
 		".claude/skills/",
+		".claude/workflows/",
 	}
 	for _, prefix := range generatedPrefixes {
 		if strings.HasPrefix(path, prefix) {

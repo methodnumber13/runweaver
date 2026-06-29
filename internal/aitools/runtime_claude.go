@@ -39,6 +39,7 @@ func (claudeRuntimeAdapter) PathChecks(root string) (configs, auth, metadata, ma
 		{Path: filepath.Join(root, ".claude", "CLAUDE.md"), Source: "project"},
 		{Path: filepath.Join(root, ".claude", "agents"), Source: "project"},
 		{Path: filepath.Join(root, ".claude", "skills"), Source: "project"},
+		{Path: filepath.Join(root, ".claude", "workflows"), Source: "project"},
 		{Path: filepath.Join(root, ".claude", "runweaver", "profile.json"), Source: "project"},
 		{Path: modelconfig.ExpandHome("~/.claude/CLAUDE.md"), Source: "user"},
 		{Path: modelconfig.ExpandHome("~/.claude/agents"), Source: "user"},

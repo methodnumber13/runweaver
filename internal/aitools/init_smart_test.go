@@ -145,6 +145,37 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	}
 }
 
+func TestInitSmartGeneratesRuntimeShortcutsAndClaudeWorkflows(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "go.mod", "module example.com/tool\n")
+	writeTestFile(t, root, "cmd/tool/main.go", "package main\nfunc main() {}\n")
+
+	if _, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeAll,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{
+		".opencode/commands/runweaver-start.md",
+		".agents/skills/runweaver-start/SKILL.md",
+		".claude/skills/runweaver-start/SKILL.md",
+		".claude/workflows/feature-delivery-swarm.md",
+	} {
+		if !Exists(filepath.Join(root, path)) {
+			t.Fatalf("expected generated shortcut/workflow to exist: %s", path)
+		}
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(data), "runweaver start") {
+			t.Fatalf("%s does not point to runweaver start:\n%s", path, string(data))
+		}
+	}
+}
+
 func TestInitSmartMergesExistingOpenCodeConfigAndKeepsBackup(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{"scripts":{"test":"go test ./..."},"devDependencies":{"typescript":"latest"}}`)

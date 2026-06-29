@@ -115,6 +115,11 @@ func InitSmartWithOptions(repoPath string, opts InitOptions) (InitResult, error)
 			return InitResult{}, err
 		}
 	}
+	if hasRuntime(runtimeIDs, RuntimeClaude) {
+		if err := ExportClaudeWorkflows(root, opts.Force); err != nil {
+			return InitResult{}, err
+		}
+	}
 	reportInitProgress(opts, 5, "index-classify", "Indexing repository and running "+initClassifierSummary(opts.Classification))
 	repoIndex, err := IndexWithOptions(root, IndexOptions{ChangedOnly: true, Prune: true, MaxCacheMB: 256, Classification: opts.Classification})
 	if err != nil {

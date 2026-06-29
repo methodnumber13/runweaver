@@ -96,6 +96,7 @@ func materializeCodexProfile(root string, profile Profile, force bool) error {
 			".agents/skills/context-discipline/SKILL.md",
 			".agents/skills/metadata-refresh/SKILL.md",
 			".agents/skills/repo-onboarding/SKILL.md",
+			".agents/skills/runweaver-start/SKILL.md",
 		},
 	)
 	for _, repo := range profile.Repos {
@@ -146,6 +147,7 @@ func materializeClaudeProfile(root string, profile Profile, force bool) error {
 			".claude/skills/context-discipline/SKILL.md",
 			".claude/skills/metadata-refresh/SKILL.md",
 			".claude/skills/repo-onboarding/SKILL.md",
+			".claude/skills/runweaver-start/SKILL.md",
 		},
 	)
 	for _, repo := range profile.Repos {

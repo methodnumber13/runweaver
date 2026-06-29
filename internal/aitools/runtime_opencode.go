@@ -36,6 +36,7 @@ func (openCodeRuntimeAdapter) PathChecks(root string) (configs, auth, metadata, 
 	auth = runtimeChecks("auth", runtimeOpenCodeAuthCandidates())
 	metadata = runtimeChecks("metadata", []configCandidate{
 		{Path: filepath.Join(root, ".opencode", "agents"), Source: "project"},
+		{Path: filepath.Join(root, ".opencode", "commands"), Source: "project"},
 		{Path: filepath.Join(root, ".opencode", "skills"), Source: "project"},
 		{Path: filepath.Join(root, ".opencode", "workflows"), Source: "project"},
 		{Path: filepath.Join(root, ".opencode", "swarm", "profile.json"), Source: "project"},
