@@ -35,8 +35,9 @@ func StartWorkflow(repoPath string, opts StartOptions) (StartResult, error) {
 		indexRefreshed = true
 		indexFreshness = CheckIndexFreshness(root)
 	}
+	context := contextForStart(root, task)
 	if !opts.ForceNew {
-		resumed, ok, err := tryResumeStart(root, task, runtimeID, runtimeResolution, taskTier, opts)
+		resumed, ok, err := tryResumeStart(root, task, runtimeID, runtimeResolution, taskTier, context, opts)
 		if err != nil {
 			return StartResult{}, err
 		}
@@ -82,15 +83,16 @@ func StartWorkflow(repoPath string, opts StartOptions) (StartResult, error) {
 		TaskTier:          taskTier,
 		IndexRefreshed:    indexRefreshed,
 		IndexFreshness:    indexFreshness,
+		Context:           context,
 		WorkflowSelection: workflowSelection,
 		Workflow:          workflow,
 		Participants:      participants,
-		ExecutionContract: startExecutionContract(status, participants.Participants, taskTier),
+		ExecutionContract: startExecutionContract(status, participants.Participants, taskTier, context),
 		Recommendations:   []string{"continue phase by phase; update checkpoint after each phase", "run runweaver workflow verify --repo . --resume latest before final response"},
 	}, nil
 }
 
-func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResolutionResult, taskTier TaskTierResult, opts StartOptions) (StartResult, bool, error) {
+func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResolutionResult, taskTier TaskTierResult, context ContextQueryResult, opts StartOptions) (StartResult, bool, error) {
 	status, err := RunWeaverStatus(root)
 	if err != nil {
 		return StartResult{}, false, err
@@ -142,6 +144,7 @@ func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResol
 		Task:              task,
 		TaskTier:          taskTier,
 		IndexFreshness:    status.IndexFreshness,
+		Context:           context,
 		Workflow:          workflow,
 		Participants:      participants,
 		ExecutionContract: startExecutionContract(map[string]any{
@@ -152,7 +155,7 @@ func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResol
 			"nextPhase":        status.NextPhase,
 			"nextAction":       status.NextAction,
 			"nextVerification": status.NextVerification,
-		}, participantNamesOrExisting(participants.Participants, status.Participants), taskTier),
+		}, participantNamesOrExisting(participants.Participants, status.Participants), taskTier, context),
 		Recommendations: []string{"resume automatically from checkpoint; do not ask the user to run resume manually"},
 	}, true, nil
 }
@@ -189,7 +192,20 @@ func workflowPathForID(root, workflowID string) string {
 	return ""
 }
 
-func startExecutionContract(status map[string]any, participants []string, taskTier TaskTierResult) StartExecutionContract {
+func contextForStart(root, task string) ContextQueryResult {
+	context, err := QueryContext(root, ContextQueryOptions{Task: task, Limit: 12})
+	if err == nil {
+		return context
+	}
+	return ContextQueryResult{
+		Status:   "warning",
+		RepoRoot: root,
+		Task:     task,
+		Warnings: []string{err.Error()},
+	}
+}
+
+func startExecutionContract(status map[string]any, participants []string, taskTier TaskTierResult, context ContextQueryResult) StartExecutionContract {
 	return StartExecutionContract{
 		RunDir:           stringValue(status["runDir"]),
 		CheckpointPath:   stringValue(status["checkpointPath"]),
@@ -197,6 +213,7 @@ func startExecutionContract(status map[string]any, participants []string, taskTi
 		CurrentPhase:     stringValue(status["currentPhase"]),
 		NextPhase:        stringValue(status["nextPhase"]),
 		TaskTier:         taskTier,
+		Context:          context,
 		Participants:     participants,
 		NextAction:       fallbackString(stringValue(status["nextAction"]), "execute the next workflow phase and update checkpoint.json"),
 		NextVerification: fallbackString(stringValue(status["nextVerification"]), "run runweaver workflow verify --repo . --resume latest before final response"),

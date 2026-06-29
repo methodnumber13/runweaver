@@ -94,6 +94,27 @@ func TestStartWorkflowAutoRuntimeUsesAvailableProfile(t *testing.T) {
 	}
 }
 
+func TestStartWorkflowIncludesTaskScopedContext(t *testing.T) {
+	root := t.TempDir()
+	writeStartFixtures(t, root)
+	writeContextIndexFixture(t, root)
+
+	result, err := StartWorkflow(root, StartOptions{
+		Task:      "Fix public route auth guard test",
+		Runtime:   RuntimeOpenCode,
+		SkipIndex: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !contextFileSelected(result.ExecutionContract.Context.Files, "src/auth/auth.guard.ts") {
+		t.Fatalf("context = %#v, want auth guard source", result.ExecutionContract.Context)
+	}
+	if len(result.ExecutionContract.Context.Tests) == 0 {
+		t.Fatalf("context = %#v, want related tests", result.ExecutionContract.Context)
+	}
+}
+
 func writeStartFixtures(t *testing.T, root string) {
 	t.Helper()
 	writeTestFile(t, root, "go.mod", "module example.com/api\n")

@@ -91,6 +91,8 @@ func (c cli) run(args []string) error {
 		return wrapCommandError("status", c.statusCmd(args[1:]))
 	case "start":
 		return wrapCommandError("start", c.startCmd(args[1:]))
+	case "context":
+		return wrapCommandError("context query", c.contextCmd(args[1:]))
 	case "doctor":
 		return wrapCommandError("doctor", c.doctorCmd(args[1:]))
 	case "eval":

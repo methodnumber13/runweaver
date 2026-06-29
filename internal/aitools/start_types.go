@@ -22,6 +22,7 @@ type StartResult struct {
 	TaskTier          TaskTierResult          `json:"taskTier"`
 	IndexRefreshed    bool                    `json:"indexRefreshed"`
 	IndexFreshness    IndexFreshnessResult    `json:"indexFreshness"`
+	Context           ContextQueryResult      `json:"context,omitempty"`
 	WorkflowSelection WorkflowSelectResult    `json:"workflowSelection,omitempty"`
 	Workflow          WorkflowRunSummary      `json:"workflow"`
 	Participants      ParticipantSelectResult `json:"participants"`
@@ -31,16 +32,17 @@ type StartResult struct {
 
 // StartExecutionContract is the short instruction block an LLM should follow next.
 type StartExecutionContract struct {
-	RunDir           string         `json:"runDir"`
-	CheckpointPath   string         `json:"checkpointPath"`
-	TodoPath         string         `json:"todoPath"`
-	CurrentPhase     string         `json:"currentPhase,omitempty"`
-	NextPhase        string         `json:"nextPhase,omitempty"`
-	TaskTier         TaskTierResult `json:"taskTier"`
-	Participants     []string       `json:"participants"`
-	NextAction       string         `json:"nextAction"`
-	NextVerification string         `json:"nextVerification"`
-	ResumeStrategy   string         `json:"resumeStrategy"`
+	RunDir           string             `json:"runDir"`
+	CheckpointPath   string             `json:"checkpointPath"`
+	TodoPath         string             `json:"todoPath"`
+	CurrentPhase     string             `json:"currentPhase,omitempty"`
+	NextPhase        string             `json:"nextPhase,omitempty"`
+	TaskTier         TaskTierResult     `json:"taskTier"`
+	Context          ContextQueryResult `json:"context,omitempty"`
+	Participants     []string           `json:"participants"`
+	NextAction       string             `json:"nextAction"`
+	NextVerification string             `json:"nextVerification"`
+	ResumeStrategy   string             `json:"resumeStrategy"`
 }
 
 // RuntimeResolutionResult explains how a single runtime was selected.

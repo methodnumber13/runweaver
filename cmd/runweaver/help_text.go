@@ -91,6 +91,16 @@ Flags:
   --skip-index      skip automatic index refresh
   --force-new       create a new workflow even when latest matches
 `
+	case "context query":
+		return `Usage:
+  runweaver context query --repo <path> --task <text> [--limit 12]
+
+Flags:
+  --repo path            repository path (default ".")
+  --task text            task description to route into indexed context
+  --limit n              max files/symbols/routes/tests to return; clamped to 5..20
+  --include-generated    include generated files in context candidates
+`
 	case "doctor":
 		return `Usage:
   runweaver doctor --repo <path>
