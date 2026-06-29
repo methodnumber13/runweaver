@@ -26,7 +26,7 @@ func QueryContext(repoPath string, opts ContextQueryOptions) (ContextQueryResult
 	}
 	tokens := tokenizeSelectionText(task)
 	files := rankedContextFiles(index, tokens, opts.IncludeGenerated, limit)
-	selectedFiles := contextFileSet(files)
+	selectedFiles := contextSpecificFileSet(files)
 	routes := rankedContextEdges(index.Edges, "declares-route", tokens, selectedFiles, limit)
 	tests := rankedContextEdges(index.Edges, "tests", tokens, selectedFiles, limit)
 	symbols := rankedContextSymbols(index.Symbols, tokens, selectedFiles, limit)
@@ -65,8 +65,8 @@ func rankedContextFiles(index RepoIndex, tokens map[string]bool, includeGenerate
 			continue
 		}
 		score, rationale := scoreContextText(file.Path+" "+file.Category+" "+file.Language, tokens)
-		score += contextCategoryBoost(file.Category)
 		if score > 0 {
+			score += contextCategoryBoost(file.Category)
 			hits = append(hits, ContextFileHit{
 				Path:      file.Path,
 				Category:  file.Category,
@@ -130,11 +130,12 @@ func rankedContextEdges(edges []IndexEdge, kind string, tokens map[string]bool, 
 		if edge.Kind != kind {
 			continue
 		}
-		score, _ := scoreContextText(edge.From+" "+edge.To+" "+edge.Reason, tokens)
-		if selectedFiles[edge.From] || selectedFiles[edge.To] {
+		score, rationale := scoreContextText(edge.From+" "+edge.To+" "+edge.Reason, tokens)
+		selectedFileEdge := selectedFiles[edge.From] || selectedFiles[edge.To]
+		if selectedFileEdge {
 			score += 6
 		}
-		if score > 0 {
+		if score > 0 && (selectedFileEdge || hasSpecificContextMatch(rationale)) {
 			hits = append(hits, edgeHit{edge: edge, score: score})
 		}
 	}
@@ -189,13 +190,41 @@ func scoreContextText(text string, tokens map[string]bool) (int, []string) {
 	textTokens := tokenizeSelectionText(text)
 	score := 0
 	var rationale []string
-	for token := range tokens {
+	for _, token := range sortedSelectionTokens(tokens) {
 		if textTokens[token] {
-			score += 10
+			score += contextTokenWeight(token)
 			rationale = append(rationale, "matched token: "+token)
 		}
 	}
 	return score, Unique(rationale)
+}
+
+func sortedSelectionTokens(tokens map[string]bool) []string {
+	out := make([]string, 0, len(tokens))
+	for token := range tokens {
+		out = append(out, token)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func contextTokenWeight(token string) int {
+	switch token {
+	case "add", "bug", "bugs", "change", "changes", "fix", "fixes", "fixed", "failing", "failure", "implement", "issue", "issues", "regression", "test", "tests", "update":
+		return 3
+	default:
+		return 10
+	}
+}
+
+func hasSpecificContextMatch(rationale []string) bool {
+	for _, item := range rationale {
+		token, ok := strings.CutPrefix(item, "matched token: ")
+		if ok && contextTokenWeight(token) > 3 {
+			return true
+		}
+	}
+	return false
 }
 
 func contextCategoryBoost(category string) int {
@@ -213,10 +242,12 @@ func contextCategoryBoost(category string) int {
 	}
 }
 
-func contextFileSet(files []ContextFileHit) map[string]bool {
+func contextSpecificFileSet(files []ContextFileHit) map[string]bool {
 	out := map[string]bool{}
 	for _, file := range files {
-		out[file.Path] = true
+		if hasSpecificContextMatch(file.Rationale) {
+			out[file.Path] = true
+		}
 	}
 	return out
 }

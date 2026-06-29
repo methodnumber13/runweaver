@@ -212,10 +212,10 @@ func tokenizeSelectionText(value string) map[string]bool {
 	flush := func() {
 		token := strings.TrimSpace(current.String())
 		current.Reset()
-		if len(token) < 2 {
-			return
+		addSelectionToken(tokens, token)
+		for _, part := range strings.Split(token, "-") {
+			addSelectionToken(tokens, part)
 		}
-		tokens[token] = true
 	}
 	for _, r := range strings.ToLower(value) {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' {
@@ -226,4 +226,12 @@ func tokenizeSelectionText(value string) map[string]bool {
 	}
 	flush()
 	return tokens
+}
+
+func addSelectionToken(tokens map[string]bool, token string) {
+	token = strings.TrimSpace(token)
+	if len(token) < 2 {
+		return
+	}
+	tokens[token] = true
 }
