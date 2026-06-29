@@ -165,7 +165,7 @@ Read AGENTS.md, .codex/runweaver/profile.json, .runweaver/tmp/index/repo-context
 
 For non-trivial work, use runweaver start as the single intake/resume entrypoint. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
 
-Use repo-specific agents from .codex/agents and repo skills from .agents/skills as local role instructions. Record participants, files read, files changed, findings, decisions, lastResult, rejectedPaths, verification results, blockers, nextAction, and nextVerification in the checkpoint.
+Use repo-specific agents from .codex/agents and repo skills from .agents/skills as local role instructions. In unattended codex exec runs, emulate selected participants in the primary agent by default; do not block on child-agent wait unless the user explicitly asked for live Codex subagents. Record participants, files read, files changed, findings, decisions, lastResult, rejectedPaths, verification results, blockers, nextAction, and nextVerification in the checkpoint.
 """
 `
 

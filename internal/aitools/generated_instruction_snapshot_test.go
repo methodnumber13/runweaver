@@ -69,6 +69,7 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"## RunWeaver Startup Protocol",
 		"executionContract",
 		"Use repo-specific agents from .codex/agents",
+		"do not block on child-agent wait",
 		"lastResult",
 		"rejectedPaths",
 		"nextVerification",

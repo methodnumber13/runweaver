@@ -83,7 +83,7 @@ func EvaluateAdoption(repoPath string, opts AdoptionEvalOptions) (AdoptionEvalRe
 		Runtime:          start.Runtime,
 		DryRun:           !opts.Live,
 		SkipModelCheck:   true,
-		SkipGitRepoCheck: opts.SkipGitRepoCheck || start.Runtime == RuntimeCodex,
+		SkipGitRepoCheck: opts.SkipGitRepoCheck,
 		OpencodeBin:      opts.OpencodeBin,
 		CodexBin:         opts.CodexBin,
 		ClaudeBin:        opts.ClaudeBin,
@@ -92,12 +92,13 @@ func EvaluateAdoption(repoPath string, opts AdoptionEvalOptions) (AdoptionEvalRe
 	})
 	if err != nil {
 		if opts.Live {
+			attachExecutionPostCheck(start.RepoRoot, &execution)
 			result.Execution = &execution
 		} else {
 			result.ExecutionDryRun = &execution
 		}
 		result.Checks = adoptionEvalChecks(doctor, start, execution, err)
-		result.Ready = false
+		result.Ready = doctor.Ready && start.Ready && adoptionEvalChecksReady(result.Checks)
 		result.Status = "warning"
 		return result, nil
 	}
@@ -123,6 +124,14 @@ func adoptionEvalChecks(doctor AdoptionDoctorResult, start StartResult, executio
 		contextReturnedEvalCheck(start),
 		runtimeDryRunEvalCheck(execution, executionErr),
 	}
+}
+
+func attachExecutionPostCheck(root string, execution *WorkflowExecutionResult) {
+	if execution == nil || execution.Plan.CheckpointPath == "" {
+		return
+	}
+	postCheck := workflowExecutionPostCheck(root, execution.Plan)
+	execution.PostCheck = &postCheck
 }
 
 func firstActionContractEvalCheck(doctor AdoptionDoctorResult) AdoptionEvalCheck {
@@ -166,6 +175,18 @@ func contextReturnedEvalCheck(start StartResult) AdoptionEvalCheck {
 
 func runtimeDryRunEvalCheck(execution WorkflowExecutionResult, err error) AdoptionEvalCheck {
 	if err != nil {
+		if execution.Executed && execution.PostCheck != nil && execution.PostCheck.CheckpointState == "complete" && execution.PostCheck.CompletedPhases > 0 {
+			return AdoptionEvalCheck{
+				Name:    "runtime-execution",
+				Status:  "warning",
+				Summary: "Runtime process ended with an error after durable workflow state completed",
+				Evidence: append([]string{
+					err.Error(),
+					"checkpoint status: " + execution.PostCheck.CheckpointState,
+				}, execution.Command...),
+				NextActions: []string{"Inspect runtime stdout/stderr if the runtime repeatedly fails to exit after writing a complete checkpoint."},
+			}
+		}
 		return AdoptionEvalCheck{Name: "runtime-execution", Status: "error", Summary: "Runtime execution command could not be prepared", Evidence: []string{err.Error()}}
 	}
 	if len(execution.Command) > 0 && execution.DryRun && !execution.Executed {

@@ -147,13 +147,92 @@ func TestEvaluateAdoptionLivePreservesFailedExecutionResult(t *testing.T) {
 	}
 }
 
+func TestEvaluateAdoptionLiveAcceptsCompletedCheckpointAfterRuntimeTimeout(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "go.mod", "module example.com/tool\n")
+	writeTestFile(t, root, "cmd/tool/main.go", "package main\nfunc main() {}\n")
+	if _, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeCodex,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	hangingCodex := writeCompletingHangingCodexBinary(t, root)
+
+	result, err := EvaluateAdoption(root, AdoptionEvalOptions{
+		Runtime:          RuntimeCodex,
+		Task:             "Fix a Codex adoption smoke bug",
+		Live:             true,
+		CodexBin:         hangingCodex,
+		SkipGitRepoCheck: true,
+		Timeout:          time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Ready || result.Status != "warning" {
+		t.Fatalf("eval = %#v, want ready warning with durable completion", result)
+	}
+	if result.Execution == nil || result.Execution.PostCheck == nil || result.Execution.PostCheck.CheckpointState != "complete" {
+		t.Fatalf("execution = %#v, want complete checkpoint post-check", result.Execution)
+	}
+	check := adoptionEvalCheckByName(result.Checks, "runtime-execution")
+	if check == nil || check.Status != "warning" {
+		t.Fatalf("runtime check = %#v, want warning", check)
+	}
+}
+
+func TestEvaluateAdoptionCodexDryRunHonorsGitCheckFlag(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "go.mod", "module example.com/tool\n")
+	writeTestFile(t, root, "cmd/tool/main.go", "package main\nfunc main() {}\n")
+	if _, err := InitSmartWithOptions(root, InitOptions{
+		Force:          true,
+		Runtime:        RuntimeCodex,
+		Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	defaultResult, err := EvaluateAdoption(root, AdoptionEvalOptions{
+		Runtime: RuntimeCodex,
+		Task:    "Run a Codex adoption dry-run",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if defaultResult.ExecutionDryRun == nil {
+		t.Fatalf("default dry-run = %#v, want execution command", defaultResult.ExecutionDryRun)
+	}
+	if containsString(defaultResult.ExecutionDryRun.Command, "--skip-git-repo-check") {
+		t.Fatalf("command = %#v, want git repo check preserved by default", defaultResult.ExecutionDryRun.Command)
+	}
+
+	skipResult, err := EvaluateAdoption(root, AdoptionEvalOptions{
+		Runtime:          RuntimeCodex,
+		Task:             "Run a Codex adoption dry-run",
+		SkipGitRepoCheck: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if skipResult.ExecutionDryRun == nil || !containsString(skipResult.ExecutionDryRun.Command, "--skip-git-repo-check") {
+		t.Fatalf("command = %#v, want explicit --skip-git-repo-check", skipResult.ExecutionDryRun)
+	}
+}
+
 func adoptionEvalCheckNamed(checks []AdoptionEvalCheck, name string) bool {
+	return adoptionEvalCheckByName(checks, name) != nil
+}
+
+func adoptionEvalCheckByName(checks []AdoptionEvalCheck, name string) *AdoptionEvalCheck {
 	for _, check := range checks {
 		if check.Name == name {
-			return true
+			return &check
 		}
 	}
-	return false
+	return nil
 }
 
 func writeFailingRuntimeBinary(t *testing.T, root string) string {
@@ -191,6 +270,24 @@ func writeFakeCodexBinary(t *testing.T, root string) string {
 	return path
 }
 
+func writeCompletingHangingCodexBinary(t *testing.T, root string) string {
+	t.Helper()
+	name := "hanging-codex"
+	if runtime.GOOS == "windows" {
+		name += ".cmd"
+	}
+	path := filepath.Join(root, name)
+	testBinary := strconv.Quote(os.Args[0])
+	content := fmt.Sprintf("#!/bin/sh\nRUNWEAVER_FAKE_CODEX_HANG=1 %s -test.run=TestFakeCodexCompletesThenHangsHelper -- \"$@\"\n", testBinary)
+	if runtime.GOOS == "windows" {
+		content = fmt.Sprintf("@echo off\r\nset RUNWEAVER_FAKE_CODEX_HANG=1\r\n%s -test.run=TestFakeCodexCompletesThenHangsHelper -- %%*\r\n", testBinary)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
 func TestFakeCodexHelper(t *testing.T) {
 	if os.Getenv("RUNWEAVER_FAKE_CODEX") != "1" {
 		return
@@ -199,6 +296,18 @@ func TestFakeCodexHelper(t *testing.T) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
+	os.Exit(0)
+}
+
+func TestFakeCodexCompletesThenHangsHelper(t *testing.T) {
+	if os.Getenv("RUNWEAVER_FAKE_CODEX_HANG") != "1" {
+		return
+	}
+	if err := runFakeCodexCompleteCheckpoint(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	time.Sleep(3 * time.Second)
 	os.Exit(0)
 }
 
@@ -242,6 +351,39 @@ func runFakeCodexHelper(args []string) error {
 		}
 	}
 	fmt.Println(`{"type":"message","content":"fake codex completed"}`)
+	return nil
+}
+
+func runFakeCodexCompleteCheckpoint(args []string) error {
+	runtimeArgs := argsAfterDoubleDash(args)
+	root := flagValue(runtimeArgs, "-C")
+	if root == "" {
+		return fmt.Errorf("fake Codex did not receive -C <repo>")
+	}
+	var latest WorkflowLatest
+	if err := ReadJSON(statepath.WorkflowLatestPath(root), &latest); err != nil {
+		return fmt.Errorf("read latest workflow: %w", err)
+	}
+	checkpointPath := filepath.Join(root, latest.RunDir, "checkpoint.json")
+	var checkpoint WorkflowCheckpoint
+	if err := ReadJSON(checkpointPath, &checkpoint); err != nil {
+		return fmt.Errorf("read checkpoint: %w", err)
+	}
+	checkpoint.Status = "complete"
+	checkpoint.CurrentPhase = "verify"
+	checkpoint.NextPhase = ""
+	checkpoint.CompletedPhases = []string{"reproduce", "fix", "verify"}
+	checkpoint.FilesChanged = []string{"cmd/tool/main.go"}
+	checkpoint.LastResult = "fake Codex completed checkpoint before timeout"
+	checkpoint.NextAction = "complete"
+	checkpoint.NextVerification = "none"
+	checkpoint.Verification = []string{"go test ./..."}
+	checkpoint.VerificationResults = []string{"GREEN: fake verification passed"}
+	checkpoint.UpdatedAt = Now()
+	if err := WriteJSON(checkpointPath, checkpoint); err != nil {
+		return fmt.Errorf("write checkpoint: %w", err)
+	}
+	fmt.Println(`{"type":"message","content":"fake codex checkpoint complete"}`)
 	return nil
 }
 

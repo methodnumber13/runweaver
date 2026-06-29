@@ -70,8 +70,11 @@ func TestExecuteWorkflowRunsCodexCommandWithoutOpenCodePreflight(t *testing.T) {
 	if !strings.Contains(args, "-a never exec") || !strings.Contains(args, "--json") {
 		t.Fatalf("args = %q, want codex exec JSON command", args)
 	}
-	if len(capturedEnv) != 0 {
-		t.Fatalf("env = %#v, want no OpenCode env mutation", capturedEnv)
+	if envValue(capturedEnv, "RUNWEAVER_BIN") == "" {
+		t.Fatalf("env = %#v, want RUNWEAVER_BIN", capturedEnv)
+	}
+	if envValue(capturedEnv, "RUNWEAVER_MODEL_API_KEY") != "" {
+		t.Fatalf("env = %#v, want no OpenCode model env mutation", capturedEnv)
 	}
 	if !result.Executed || result.Status != "success" {
 		t.Fatalf("result = %#v, want codex executed success", result)

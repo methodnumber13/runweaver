@@ -87,7 +87,7 @@ Then open the repository in the selected runtime and write the task to the gener
 runweaver start --repo . --runtime auto --task "fix auth guard public route test"
 runweaver participants select --repo . --runtime auto --task "fix auth guard public route test"
 runweaver context query --repo . --task "fix auth guard public route test"
-runweaver eval adoption --repo . --runtime codex --task "Run Codex adoption smoke test"
+runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
 ```
 
 `eval adoption` is dry-run by default: it checks adoption metadata, calls `start`, verifies workflow state, and prepares the runtime command without launching a model. Use `--live --timeout 2m` only when you intentionally want to run the selected runtime:
@@ -101,6 +101,7 @@ For multi-runtime metadata:
 ```sh
 runweaver doctor runtime --repo . --runtime all
 runweaver init --repo . --runtime all --force --classification deterministic
+runweaver eval adoption --repo . --runtime codex --task "Run Codex adoption smoke test"
 ```
 
 Current runtime status:
