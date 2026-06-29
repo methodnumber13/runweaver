@@ -25,23 +25,27 @@ func QueryContext(repoPath string, opts ContextQueryOptions) (ContextQueryResult
 		return ContextQueryResult{}, fmt.Errorf("read repo index for context query: %w", err)
 	}
 	tokens := tokenizeSelectionText(task)
+	sortedTokens := sortedSelectionTokens(tokens)
 	files := rankedContextFiles(index, tokens, opts.IncludeGenerated, limit)
 	selectedFiles := contextSpecificFileSet(files)
 	routes := rankedContextEdges(index.Edges, "declares-route", tokens, selectedFiles, limit)
 	tests := rankedContextEdges(index.Edges, "tests", tokens, selectedFiles, limit)
 	symbols := rankedContextSymbols(index.Symbols, tokens, selectedFiles, limit)
+	commands := contextCommands(index.Tools.RecommendedCommands, tokens, limit)
 	return ContextQueryResult{
-		Status:   "success",
-		RepoRoot: root,
-		Task:     task,
-		Index:    rel(root, indexPath),
-		Limit:    limit,
-		Files:    files,
-		Symbols:  symbols,
-		Routes:   routes,
-		Tests:    tests,
-		Commands: contextCommands(index.Tools.RecommendedCommands, tokens, limit),
-		Warnings: Limit(index.Warnings, 5),
+		Status:      "success",
+		RepoRoot:    root,
+		Task:        task,
+		Index:       rel(root, indexPath),
+		Limit:       limit,
+		Tokens:      sortedTokens,
+		Explanation: contextExplanation(sortedTokens, files, symbols, routes, tests, commands),
+		Files:       files,
+		Symbols:     symbols,
+		Routes:      routes,
+		Tests:       tests,
+		Commands:    commands,
+		Warnings:    Limit(index.Warnings, 5),
 	}, nil
 }
 
@@ -163,9 +167,6 @@ func contextCommands(commands []string, tokens map[string]bool, limit int) []str
 	var hits []commandHit
 	for _, command := range commands {
 		score, _ := scoreContextText(command, tokens)
-		if score == 0 && len(hits) < 2 {
-			score = 1
-		}
 		if score > 0 {
 			hits = append(hits, commandHit{command: command, score: score})
 		}
@@ -182,6 +183,21 @@ func contextCommands(commands []string, tokens map[string]bool, limit int) []str
 		if len(out) >= minInt(limit, 5) {
 			break
 		}
+	}
+	return out
+}
+
+func contextExplanation(tokens []string, files []ContextFileHit, symbols []SymbolInfo, routes []IndexEdge, tests []IndexEdge, commands []string) []string {
+	var out []string
+	if len(tokens) > 0 {
+		out = append(out, "task tokens: "+strings.Join(tokens, ", "))
+	}
+	out = append(out, fmt.Sprintf("selected %d file(s), %d symbol(s), %d route edge(s), %d test edge(s)", len(files), len(symbols), len(routes), len(tests)))
+	if len(files) == 0 {
+		out = append(out, "no indexed file matched task-specific tokens")
+	}
+	if len(commands) == 0 {
+		out = append(out, "no recommended command matched task tokens")
 	}
 	return out
 }

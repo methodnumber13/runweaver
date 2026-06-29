@@ -92,8 +92,20 @@ type ParticipantSelectResult struct {
 	ProfilePath  string                          `json:"profilePath,omitempty"`
 	Cap          int                             `json:"cap"`
 	Participants []string                        `json:"participants"`
+	Assignments  []ParticipantAssignment         `json:"assignments,omitempty"`
 	Rationale    []string                        `json:"rationale"`
 	Candidates   []ParticipantSelectionCandidate `json:"candidates"`
+	Warnings     []string                        `json:"warnings,omitempty"`
+}
+
+// ParticipantAssignment turns a selected agent/skill into an execution role.
+type ParticipantAssignment struct {
+	Name      string   `json:"name"`
+	Kind      string   `json:"kind"`
+	Role      string   `json:"role"`
+	Source    string   `json:"source,omitempty"`
+	Score     int      `json:"score,omitempty"`
+	Rationale []string `json:"rationale,omitempty"`
 }
 
 // ParticipantSelectionCandidate is one agent or skill considered for routing.

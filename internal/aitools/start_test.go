@@ -1,6 +1,9 @@
 package aitools
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestStartWorkflowCreatesWorkflowAndRecordsParticipants(t *testing.T) {
 	root := t.TempDir()
@@ -63,6 +66,8 @@ func TestStartWorkflowResumesMatchingActiveWorkflow(t *testing.T) {
 func TestStartWorkflowAutoRuntimeUsesAvailableProfile(t *testing.T) {
 	root := t.TempDir()
 	writeWorkflowSelectionFixtures(t, root)
+	t.Setenv("PATH", t.TempDir())
+	writeRuntimeShimOnPath(t, "codex")
 	writeTestFile(t, root, ".codex/runweaver/profile.json", `{
   "workspace": {"name": "api", "repos": ["."]},
   "repos": [{
@@ -83,7 +88,7 @@ func TestStartWorkflowAutoRuntimeUsesAvailableProfile(t *testing.T) {
 	if result.Runtime != RuntimeCodex {
 		t.Fatalf("runtime = %q, want codex", result.Runtime)
 	}
-	if result.RuntimeResolution.Source != "profile" {
+	if !strings.Contains(result.RuntimeResolution.Source, "profile") {
 		t.Fatalf("runtime resolution = %#v, want profile source", result.RuntimeResolution)
 	}
 	if result.ExecutionContract.TaskTier.Tier != "trivial" {

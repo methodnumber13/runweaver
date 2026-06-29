@@ -92,6 +92,38 @@ func TestQueryContextPrefersDomainTokensOverGenericTestToken(t *testing.T) {
 	}
 }
 
+func TestQueryContextDoesNotReturnUnmatchedCommands(t *testing.T) {
+	root := t.TempDir()
+	index := RepoIndex{
+		SchemaVersion: 1,
+		GeneratedAt:   Now(),
+		RepoRoot:      root,
+		Tools: ToolchainInfo{
+			RecommendedCommands: []string{"npm run lint", "npm run build"},
+		},
+		Files: []FileInventoryItem{
+			{Path: "src/pricing/pricing.service.ts", Category: "source", Language: "typescript"},
+		},
+	}
+	if err := WriteJSON(filepath.Join(root, ".runweaver", "tmp", "index", "repo-index.json"), index); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := QueryContext(root, ContextQueryOptions{
+		Task:  "change catalog pricing flow",
+		Limit: 5,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Commands) != 0 {
+		t.Fatalf("commands = %#v, want no unmatched recommended commands", result.Commands)
+	}
+	if !stringsContain(result.Explanation, "no recommended command matched task tokens") {
+		t.Fatalf("explanation = %#v, want command relevance note", result.Explanation)
+	}
+}
+
 func writeContextIndexFixture(t *testing.T, root string) {
 	t.Helper()
 	index := RepoIndex{

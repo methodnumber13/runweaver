@@ -87,7 +87,7 @@ func StartWorkflow(repoPath string, opts StartOptions) (StartResult, error) {
 		WorkflowSelection: workflowSelection,
 		Workflow:          workflow,
 		Participants:      participants,
-		ExecutionContract: startExecutionContract(status, participants.Participants, taskTier, context),
+		ExecutionContract: startExecutionContract(status, participants.Participants, participants.Assignments, taskTier, context),
 		Recommendations:   []string{"continue phase by phase; update checkpoint after each phase", "run runweaver workflow verify --repo . --resume latest before final response"},
 	}, nil
 }
@@ -155,7 +155,7 @@ func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResol
 			"nextPhase":        status.NextPhase,
 			"nextAction":       status.NextAction,
 			"nextVerification": status.NextVerification,
-		}, participantNamesOrExisting(participants.Participants, status.Participants), taskTier, context),
+		}, participantNamesOrExisting(participants.Participants, status.Participants), participants.Assignments, taskTier, context),
 		Recommendations: []string{"resume automatically from checkpoint; do not ask the user to run resume manually"},
 	}, true, nil
 }
@@ -205,7 +205,7 @@ func contextForStart(root, task string) ContextQueryResult {
 	}
 }
 
-func startExecutionContract(status map[string]any, participants []string, taskTier TaskTierResult, context ContextQueryResult) StartExecutionContract {
+func startExecutionContract(status map[string]any, participants []string, assignments []ParticipantAssignment, taskTier TaskTierResult, context ContextQueryResult) StartExecutionContract {
 	return StartExecutionContract{
 		RunDir:           stringValue(status["runDir"]),
 		CheckpointPath:   stringValue(status["checkpointPath"]),
@@ -215,6 +215,7 @@ func startExecutionContract(status map[string]any, participants []string, taskTi
 		TaskTier:         taskTier,
 		Context:          context,
 		Participants:     participants,
+		Assignments:      assignments,
 		NextAction:       fallbackString(stringValue(status["nextAction"]), "execute the next workflow phase and update checkpoint.json"),
 		NextVerification: fallbackString(stringValue(status["nextVerification"]), "run runweaver workflow verify --repo . --resume latest before final response"),
 		ResumeStrategy:   "automatic via runweaver start; use runweaver workflow run --resume latest --status only as a diagnostic",
