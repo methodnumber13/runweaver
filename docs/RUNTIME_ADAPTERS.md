@@ -78,7 +78,8 @@ runweaver init --repo . --runtime codex
 runweaver init --repo . --runtime claude
 runweaver init --repo . --runtime all
 
-runweaver start --repo . --runtime opencode --task "implement task"
+runweaver start --repo . --runtime auto --task "implement task"
+runweaver context query --repo . --task "implement task"
 runweaver participants select --repo . --runtime codex --task "implement task"
 runweaver workflow select --repo . --task "implement task"
 runweaver doctor adoption --repo . --runtime all
@@ -87,9 +88,17 @@ runweaver doctor runtime --repo . --runtime codex
 runweaver workflow run --repo . --runtime claude --execute
 ```
 
-Default runtime is `opencode` to preserve existing behavior. Codex and Claude Code also support provider discovery, generated metadata, AI classification, and workflow execution.
+Task intake defaults to `runtime auto`, which chooses a single runtime from repo-local generated metadata and falls back to OpenCode when nothing more specific is present. Codex and Claude Code also support provider discovery, generated metadata, AI classification, and workflow execution.
 
-`runweaver start` is the portable task-intake boundary generated instructions point at. It refreshes stale local context when needed, creates or resumes the closest workflow, selects participants from the runtime profile, persists checkpoint state, and returns an `executionContract` for the current LLM session. Runtime-specific instructions should call `start` first and use lower-level `workflow run`, `workflow update`, and `workflow verify` commands only for fallback, diagnostics, or explicit automation.
+`runweaver start` is the portable task-intake boundary generated instructions point at. It refreshes stale local context when needed, creates or resumes the closest workflow, classifies the task tier, queries task-scoped files/symbols/routes/tests, selects participants from the runtime profile, persists checkpoint state, and returns an `executionContract` for the current LLM session. Runtime-specific instructions should call `start` first and use lower-level `workflow run`, `workflow update`, and `workflow verify` commands only for fallback, diagnostics, or explicit automation.
+
+Generated shortcuts reduce the chance that the model or user enters the wrong path:
+
+- OpenCode: `.opencode/commands/runweaver-start.md`
+- Codex: `.agents/skills/runweaver-start/SKILL.md`
+- Claude Code: `.claude/skills/runweaver-start/SKILL.md`
+
+Claude Code also gets optional `.claude/workflows/*.md` wrappers generated from `.runweaver/workflows/*.json`. These are convenience entrypoints only; `.runweaver/workflows`, `plan.json`, and `checkpoint.json` remain the portable source of truth.
 
 ## MCP Boundary
 
@@ -228,6 +237,7 @@ Claude Code static provider metadata is implemented by `runtimecatalog/claude`. 
 
 ```text
 CLAUDE.md
+.claude/workflows/*.md
 .claude/agents/swarm.md
 .claude/agents/<repo-specific-agent>.md
 .claude/skills/context-discipline/SKILL.md
