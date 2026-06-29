@@ -14,6 +14,8 @@ func (c cli) workflowCmd(args []string) error {
 		return c.workflowUpdateCmd(args[1:])
 	case "verify":
 		return c.workflowVerifyCmd(args[1:])
+	case "select":
+		return c.workflowSelectCmd(args[1:])
 	case "run":
 	default:
 		return usageError{command: "workflow run", err: fmt.Errorf("usage: runweaver workflow run --workflow <file> --task <text> [--repo <path>]")}
@@ -136,6 +138,32 @@ func (c cli) workflowCmd(args []string) error {
 		return err
 	}
 	c.printStatus("success", "workflow plan/checkpoint created")
+	return nil
+}
+
+func (c cli) workflowSelectCmd(args []string) error {
+	fs := newFlagSet("workflow select")
+	repo := fs.String("repo", ".", "repository path")
+	task := fs.String("task", "", "task description")
+	workflow := fs.String("workflow", "", "explicit workflow JSON path")
+	addJSONFlag(fs)
+	if err := fs.Parse(args); err != nil {
+		return usageError{command: "workflow select", err: err}
+	}
+	if err := rejectExtraArgs(fs, "workflow select"); err != nil {
+		return err
+	}
+	result, err := aitools.SelectWorkflow(*repo, aitools.WorkflowSelectOptions{
+		Task:     *task,
+		Workflow: *workflow,
+	})
+	if err != nil {
+		return fmt.Errorf("select workflow: %w", err)
+	}
+	if err := c.printJSON(result); err != nil {
+		return err
+	}
+	c.printStatus("success", "workflow selected")
 	return nil
 }
 

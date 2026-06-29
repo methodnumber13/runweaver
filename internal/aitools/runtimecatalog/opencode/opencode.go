@@ -27,7 +27,7 @@ func (Adapter) ProfilePath() string {
 
 // GeneratedPaths returns OpenCode files and directories managed by RunWeaver.
 func (a Adapter) GeneratedPaths() []string {
-	return []string{"opencode.json", ".opencode/agents", ".opencode/skills", ".runweaver/workflows", a.ProfilePath()}
+	return []string{"opencode.json", ".opencode/agents", ".opencode/commands", ".opencode/skills", ".runweaver/workflows", a.ProfilePath()}
 }
 
 // Capabilities returns OpenCode runtime support flags.

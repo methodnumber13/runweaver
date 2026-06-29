@@ -27,7 +27,7 @@ func (Adapter) ProfilePath() string {
 
 // GeneratedPaths returns Claude Code files and directories managed by RunWeaver.
 func (a Adapter) GeneratedPaths() []string {
-	return []string{"CLAUDE.md", ".claude/agents", ".claude/skills", a.ProfilePath()}
+	return []string{"CLAUDE.md", ".claude/agents", ".claude/skills", ".claude/workflows", a.ProfilePath()}
 }
 
 // Capabilities returns Claude Code runtime support flags.

@@ -78,12 +78,38 @@ Flags:
 Flags:
   --repo path    repository path (default ".")
 `
+	case "start":
+		return `Usage:
+  runweaver start --repo <path> --task <text> [--runtime auto|opencode|codex|claude]
+
+Flags:
+  --repo path       repository path (default ".")
+  --task text       user task to start or resume
+  --runtime id      runtime profile to inspect: auto, opencode, codex, or claude
+  --workflow file   explicit workflow JSON path
+  --profile file    explicit RunWeaver profile JSON path
+  --skip-index      skip automatic index refresh
+  --force-new       create a new workflow even when latest matches
+  --json            print JSON output (default)
+`
+	case "context query":
+		return `Usage:
+  runweaver context query --repo <path> --task <text> [--limit 12]
+
+Flags:
+  --repo path            repository path (default ".")
+  --task text            task description to route into indexed context
+  --limit n              max files/symbols/routes/tests to return; clamped to 5..20
+  --include-generated    include generated files in context candidates
+  --json                 print JSON output (default)
+`
 	case "doctor":
 		return `Usage:
   runweaver doctor --repo <path>
   runweaver doctor model --repo <path>
   runweaver doctor opencode --repo <path> [--skip-model-check]
   runweaver doctor runtime --repo <path> [--runtime all]
+  runweaver doctor adoption --repo <path> [--runtime all]
   runweaver doctor processes [--summary]
 `
 	case "doctor model":
@@ -116,12 +142,30 @@ Flags:
   --repo path       repository path (default ".")
   --runtime ids     runtime provider: opencode, codex, claude, all, or comma-separated list (default all)
 `
+	case "doctor adoption":
+		return `Usage:
+  runweaver doctor adoption --repo <path> [--runtime opencode|codex|claude|all]
+
+Flags:
+  --repo path       repository path (default ".")
+  --runtime ids     runtime provider: opencode, codex, claude, all, or comma-separated list (default all)
+`
 	case "doctor processes":
 		return `Usage:
   runweaver doctor processes [--summary]
 
 Flags:
   --summary    print counts and duplicate process groups without full process details
+`
+	case "eval adoption":
+		return `Usage:
+  runweaver eval adoption --repo <path> [--runtime opencode|codex|claude|all]
+
+Flags:
+  --repo path       repository path (default ".")
+  --runtime id      runtime provider: opencode, codex, claude, or all
+  --task text       smoke task for runweaver start
+  --skip-index      skip automatic index refresh during start smoke
 `
 	case "init":
 		return `Usage:
@@ -154,6 +198,18 @@ Flags:
   --repo path                 repository path exposed through MCP tools (default ".")
   --allow-workflow-writes     expose tools that create/update .runweaver workflow state
 `
+	case "participants select":
+		return `Usage:
+  runweaver participants select --repo <path> --task <text> [--workflow file]
+
+Flags:
+  --repo path       repository path (default ".")
+  --task text       task description to route
+  --workflow file   workflow JSON path; selected automatically when omitted
+  --runtime id      runtime profile to inspect: auto, opencode, codex, or claude
+  --profile file    explicit RunWeaver profile JSON path
+  --json            print JSON output (default)
+`
 	case "workflow run":
 		return `Usage:
   runweaver workflow run --workflow <file> --task <text> [--repo <path>] [--execute]
@@ -183,6 +239,16 @@ Flags:
   --claude-tools list      Claude tools passed to --tools
   --skip-git-repo-check    allow Codex outside a Git repository
   --skip-runtime-check     skip runtime binary/config discovery before execution
+`
+	case "workflow select":
+		return `Usage:
+  runweaver workflow select --repo <path> --task <text> [--workflow file]
+
+Flags:
+  --repo path        repository path (default ".")
+  --task text        task description to route
+  --workflow file    explicit workflow JSON path; bypasses scoring when provided
+  --json             print JSON output (default)
 `
 	case "workflow update":
 		return `Usage:

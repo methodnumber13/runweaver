@@ -299,7 +299,7 @@ func TestCLISubcommandHelpPrintsUsageWithoutError(t *testing.T) {
 }
 
 func TestCommandHintsAndColorEnabledFallbacks(t *testing.T) {
-	for _, command := range []string{"scan", "index", "index clean", "refresh", "doctor", "doctor model", "doctor opencode", "doctor runtime", "doctor processes", "init", "mcp serve", "workflow run", "workflow update", "workflow verify", "version", "missing"} {
+	for _, command := range []string{"scan", "index", "index clean", "refresh", "context query", "doctor", "doctor model", "doctor opencode", "doctor runtime", "doctor processes", "init", "mcp serve", "workflow run", "workflow update", "workflow verify", "version", "missing"} {
 		if hint := commandHint(command); hint == "" {
 			t.Fatalf("commandHint(%q) returned empty", command)
 		}
@@ -327,6 +327,7 @@ func TestCommandUsageCoversEveryPublicCommand(t *testing.T) {
 		"refresh",
 		"status",
 		"classify",
+		"context query",
 		"init",
 		"bootstrap",
 		"mcp serve",

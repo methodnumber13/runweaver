@@ -16,6 +16,9 @@ func (c cli) doctorCmd(args []string) error {
 	if len(args) > 0 && args[0] == "runtime" {
 		return c.doctorRuntimeCmd(args[1:])
 	}
+	if len(args) > 0 && args[0] == "adoption" {
+		return c.doctorAdoptionCmd(args[1:])
+	}
 	if len(args) > 0 && args[0] == "processes" {
 		return c.doctorProcessesCmd(args[1:])
 	}
@@ -86,6 +89,31 @@ func (c cli) doctorRuntimeCmd(args []string) error {
 		return err
 	}
 	c.printStatus(statusKind, "runtime provider discovery complete")
+	return nil
+}
+
+func (c cli) doctorAdoptionCmd(args []string) error {
+	fs := newFlagSet("doctor adoption")
+	repo := fs.String("repo", ".", "repository path")
+	runtimeProvider := fs.String("runtime", aitools.RuntimeAll, "runtime provider: opencode, codex, claude, all, or comma-separated list")
+	if err := fs.Parse(args); err != nil {
+		return usageError{command: "doctor adoption", err: err}
+	}
+	if err := rejectExtraArgs(fs, "doctor adoption"); err != nil {
+		return err
+	}
+	result, err := aitools.DoctorAdoption(*repo, aitools.AdoptionDoctorOptions{Runtime: *runtimeProvider})
+	if err != nil {
+		return fmt.Errorf("check RunWeaver adoption: %w", err)
+	}
+	if err := c.printJSON(result); err != nil {
+		return err
+	}
+	if result.Ready {
+		c.printStatus("success", "RunWeaver adoption contract is ready")
+	} else {
+		c.printStatus("warning", "RunWeaver adoption contract has issues; see JSON checks")
+	}
 	return nil
 }
 

@@ -89,14 +89,22 @@ func (c cli) run(args []string) error {
 		return wrapCommandError("refresh", c.refreshCmd(args[1:]))
 	case "status":
 		return wrapCommandError("status", c.statusCmd(args[1:]))
+	case "start":
+		return wrapCommandError("start", c.startCmd(args[1:]))
+	case "context":
+		return wrapCommandError("context query", c.contextCmd(args[1:]))
 	case "doctor":
 		return wrapCommandError("doctor", c.doctorCmd(args[1:]))
+	case "eval":
+		return wrapCommandError("eval adoption", c.evalCmd(args[1:]))
 	case "init":
 		return wrapCommandError("init", c.initCmd(args[1:]))
 	case "bootstrap":
 		return wrapCommandError("bootstrap", c.initCmd(args[1:]))
 	case "mcp":
 		return wrapCommandError("mcp serve", c.mcpCmd(args[1:]))
+	case "participants":
+		return wrapCommandError("participants select", c.participantsCmd(args[1:]))
 	case "workflow":
 		return wrapCommandError("workflow run", c.workflowCmd(args[1:]))
 	case "version":
@@ -126,6 +134,10 @@ func newFlagSet(name string) *flag.FlagSet {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	return fs
+}
+
+func addJSONFlag(fs *flag.FlagSet) {
+	fs.Bool("json", true, "print JSON output")
 }
 
 func rejectExtraArgs(fs *flag.FlagSet, command string) error {

@@ -58,6 +58,7 @@ func runtimeBaselineDirs(runtimeIDs []string) []string {
 	if hasRuntime(runtimeIDs, RuntimeOpenCode) {
 		dirs = append(dirs,
 			".opencode/agents",
+			".opencode/commands",
 			".opencode/skills/context-discipline",
 			".opencode/skills/metadata-refresh",
 			".opencode/skills/repo-onboarding",
@@ -69,6 +70,7 @@ func runtimeBaselineDirs(runtimeIDs []string) []string {
 			".agents/skills/context-discipline",
 			".agents/skills/metadata-refresh",
 			".agents/skills/repo-onboarding",
+			".agents/skills/runweaver-start",
 			".codex/agents",
 			".codex/runweaver",
 		)
@@ -79,6 +81,8 @@ func runtimeBaselineDirs(runtimeIDs []string) []string {
 			".claude/skills/context-discipline",
 			".claude/skills/metadata-refresh",
 			".claude/skills/repo-onboarding",
+			".claude/skills/runweaver-start",
+			".claude/workflows",
 			".claude/runweaver",
 		)
 	}
@@ -110,6 +114,7 @@ func runtimeBaselineFiles(runtimeIDs []string) map[string]string {
 		files[".opencode/agents/repo-surface-engineer.md"] = repoSurfaceEngineerAgent
 		files[".opencode/agents/repo-contract-reviewer.md"] = repoContractReviewerAgent
 		files[".opencode/agents/repo-test-quality-reviewer.md"] = repoTestQualityReviewerAgent
+		files[".opencode/commands/runweaver-start.md"] = opencodeRunWeaverStartCommand
 		files[".opencode/skills/context-discipline/SKILL.md"] = contextDisciplineSkill
 		files[".opencode/skills/metadata-refresh/SKILL.md"] = metadataRefreshSkill
 		files[".opencode/skills/repo-onboarding/SKILL.md"] = repoOnboardingSkill
@@ -120,6 +125,7 @@ func runtimeBaselineFiles(runtimeIDs []string) map[string]string {
 		files[".agents/skills/context-discipline/SKILL.md"] = codexContextDisciplineSkill
 		files[".agents/skills/metadata-refresh/SKILL.md"] = codexMetadataRefreshSkill
 		files[".agents/skills/repo-onboarding/SKILL.md"] = codexRepoOnboardingSkill
+		files[".agents/skills/runweaver-start/SKILL.md"] = codexRunWeaverStartSkill
 	}
 	if hasRuntime(runtimeIDs, RuntimeClaude) {
 		files["CLAUDE.md"] = claudeMD
@@ -127,6 +133,7 @@ func runtimeBaselineFiles(runtimeIDs []string) map[string]string {
 		files[".claude/skills/context-discipline/SKILL.md"] = claudeContextDisciplineSkill
 		files[".claude/skills/metadata-refresh/SKILL.md"] = claudeMetadataRefreshSkill
 		files[".claude/skills/repo-onboarding/SKILL.md"] = claudeRepoOnboardingSkill
+		files[".claude/skills/runweaver-start/SKILL.md"] = claudeRunWeaverStartSkill
 	}
 	return files
 }
@@ -152,11 +159,11 @@ description = "Primary RunWeaver workflow coordinator for Codex"
 developer_instructions = """
 You are the RunWeaver swarm coordinator for this repository.
 
-Read AGENTS.md, .codex/runweaver/profile.json, .runweaver/tmp/index/repo-context.md, and the latest workflow checkpoint when present.
+Read AGENTS.md, .codex/runweaver/profile.json, .runweaver/tmp/index/repo-context.md, and the latest workflow checkpoint when present. For non-trivial user tasks, call runweaver start --repo . --runtime codex --task "<user task>" before coding and follow its executionContract.
 
 ` + runWeaverStartupProtocol + `
 
-For non-trivial work, create or resume a durable workflow under .runweaver/tmp/swarm-runs. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
+For non-trivial work, use runweaver start as the single intake/resume entrypoint. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
 
 Use repo-specific agents from .codex/agents and repo skills from .agents/skills as local role instructions. Record participants, files read, files changed, findings, decisions, lastResult, rejectedPaths, verification results, blockers, nextAction, and nextVerification in the checkpoint.
 """
@@ -203,7 +210,7 @@ Use runweaver index --repo . --changed-only --prune to refresh the local package
 
 Use runweaver refresh --repo . after route, page, controller, service, test, or build config moves.
 
-For non-trivial work, create or resume a workflow under .runweaver/tmp/swarm-runs and keep checkpoint.json current with runweaver workflow update.
+For non-trivial work, call runweaver start --repo . --runtime claude --task "<user task>" and keep checkpoint.json current with runweaver workflow update.
 `
 
 const claudeSwarmAgent = `---
@@ -214,11 +221,11 @@ tools: Read, Glob, Grep, Bash, Edit, MultiEdit, Write
 
 You are the RunWeaver swarm coordinator for this repository.
 
-Read CLAUDE.md, .claude/runweaver/profile.json, .runweaver/tmp/index/repo-context.md, and the latest workflow checkpoint when present.
+Read CLAUDE.md, .claude/runweaver/profile.json, .runweaver/tmp/index/repo-context.md, and the latest workflow checkpoint when present. For non-trivial user tasks, call runweaver start --repo . --runtime claude --task "<user task>" before coding and follow its executionContract.
 
 ` + runWeaverStartupProtocol + `
 
-For non-trivial work, create or resume a durable workflow under .runweaver/tmp/swarm-runs. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
+For non-trivial work, use runweaver start as the single intake/resume entrypoint. Keep checkpoint.json and todo.md current through runweaver workflow update. Continue through implementation and verification unless the user explicitly asks for planning only.
 
 Use repo-specific agents from .claude/agents and repo skills from .claude/skills as local role instructions. Record participants, files read, files changed, findings, decisions, lastResult, rejectedPaths, verification results, blockers, nextAction, and nextVerification in the checkpoint.
 `

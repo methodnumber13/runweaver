@@ -33,6 +33,79 @@ type WorkflowRunSummary struct {
 	Status         string   `json:"status"`
 }
 
+// WorkflowSelectOptions configures deterministic workflow routing for a task.
+type WorkflowSelectOptions struct {
+	Task     string
+	Workflow string
+}
+
+// WorkflowSelectResult reports the selected workflow plus ranked alternatives.
+type WorkflowSelectResult struct {
+	Status       string                       `json:"status"`
+	RepoRoot     string                       `json:"repoRoot"`
+	Task         string                       `json:"task"`
+	TaskTier     TaskTierResult               `json:"taskTier"`
+	WorkflowPath string                       `json:"workflowPath"`
+	Selected     WorkflowSelectionCandidate   `json:"selected"`
+	Candidates   []WorkflowSelectionCandidate `json:"candidates"`
+}
+
+// TaskTierResult describes how much orchestration one task should receive.
+type TaskTierResult struct {
+	Tier           string   `json:"tier"`
+	Score          int      `json:"score"`
+	ParticipantCap int      `json:"participantCap"`
+	PhaseStrategy  string   `json:"phaseStrategy"`
+	Verification   string   `json:"verification"`
+	Rationale      []string `json:"rationale,omitempty"`
+}
+
+// WorkflowSelectionCandidate is one workflow considered for a task.
+type WorkflowSelectionCandidate struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Path        string   `json:"path"`
+	Score       int      `json:"score"`
+	Explicit    bool     `json:"explicit,omitempty"`
+	Rationale   []string `json:"rationale,omitempty"`
+}
+
+// ParticipantSelectOptions configures repo-specific participant routing.
+type ParticipantSelectOptions struct {
+	Task        string
+	Workflow    string
+	Runtime     string
+	ProfilePath string
+	TaskTier    string
+}
+
+// ParticipantSelectResult reports selected agents/skills for one workflow task.
+type ParticipantSelectResult struct {
+	Status       string                          `json:"status"`
+	RepoRoot     string                          `json:"repoRoot"`
+	Task         string                          `json:"task"`
+	Runtime      string                          `json:"runtime"`
+	TaskTier     string                          `json:"taskTier,omitempty"`
+	Workflow     string                          `json:"workflow"`
+	WorkflowPath string                          `json:"workflowPath"`
+	ProfilePath  string                          `json:"profilePath,omitempty"`
+	Cap          int                             `json:"cap"`
+	Participants []string                        `json:"participants"`
+	Rationale    []string                        `json:"rationale"`
+	Candidates   []ParticipantSelectionCandidate `json:"candidates"`
+}
+
+// ParticipantSelectionCandidate is one agent or skill considered for routing.
+type ParticipantSelectionCandidate struct {
+	Name      string   `json:"name"`
+	Kind      string   `json:"kind"`
+	Source    string   `json:"source,omitempty"`
+	Score     int      `json:"score"`
+	Selected  bool     `json:"selected,omitempty"`
+	Rationale []string `json:"rationale,omitempty"`
+}
+
 // WorkflowPlanFile is the durable plan written into a run directory.
 type WorkflowPlanFile struct {
 	SchemaVersion int          `json:"schemaVersion"`

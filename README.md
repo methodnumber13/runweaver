@@ -75,10 +75,11 @@ For a newly cloned repository:
 ```sh
 runweaver doctor runtime --repo . --runtime all
 runweaver init --repo . --force --classification ai --classifier-runtime opencode
-runweaver doctor opencode --repo .
+runweaver doctor adoption --repo . --runtime all
+runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
 ```
 
-Then open the repository in the selected runtime and write the task to the generated `swarm` entrypoint. The swarm should create or resume a workflow run under `.runweaver/tmp/swarm-runs`, select repo-specific participants from the runtime profile, update `checkpoint.json`/`todo.md`, and continue phase by phase.
+Then open the repository in the selected runtime and write the task to the generated `swarm` entrypoint or generated shortcut. The generated instructions tell the runtime to call `runweaver start --repo . --runtime <current> --task "<user task>"`, which creates or resumes a workflow run under `.runweaver/tmp/swarm-runs`, selects repo-specific participants from the runtime profile, returns task tier and task-scoped context, updates `checkpoint.json`/`todo.md`, and returns the next execution contract.
 
 For multi-runtime metadata:
 
@@ -91,9 +92,9 @@ Current runtime status:
 
 | Runtime | Discovery | Init/render | Execute |
 | --- | --- | --- | --- |
-| OpenCode | project/global/managed config and auth | `.opencode/agents`, `.opencode/skills`, `opencode.json` | `workflow run --execute` via `opencode run` |
+| OpenCode | project/global/managed config and auth | `.opencode/agents`, `.opencode/skills`, `.opencode/commands`, `opencode.json` | `workflow run --execute` via `opencode run` |
 | Codex | project/global/managed config, including `.codex/config.toml`, and auth | `AGENTS.md`, `.agents/skills`, `.codex/agents`, `.codex/runweaver/profile.json`; `.codex/config.toml` is discovered but not written by default | `workflow run --runtime codex --execute` via `codex exec --json` |
-| Claude Code | project/global/managed settings and auth | `CLAUDE.md`, `.claude/agents`, `.claude/skills`, `.claude/runweaver/profile.json` | `workflow run --runtime claude --execute` via `claude --print --output-format stream-json` |
+| Claude Code | project/global/managed settings and auth | `CLAUDE.md`, `.claude/agents`, `.claude/skills`, `.claude/workflows`, `.claude/runweaver/profile.json` | `workflow run --runtime claude --execute` via `claude --print --output-format stream-json` |
 
 For explicit CLI execution instead of relying on Desktop/CLI default-agent behavior:
 
@@ -117,12 +118,18 @@ runweaver classify --repo . --classification ai --apply
 runweaver doctor model --repo .
 runweaver doctor opencode --repo .
 runweaver doctor runtime --repo . --runtime all
+runweaver doctor adoption --repo . --runtime all
 runweaver doctor processes --summary
+runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
 runweaver refresh --repo .
 runweaver refresh --repo . --apply
 runweaver doctor --repo .
 runweaver init --repo . --require-model
 runweaver status --repo .
+runweaver start --repo . --runtime auto --task "implement task"
+runweaver context query --repo . --task "implement task"
+runweaver participants select --repo . --runtime auto --task "implement task"
+runweaver workflow select --repo . --task "implement task"
 runweaver mcp serve --repo .
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task"
 runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task "implement task" --execute
@@ -272,6 +279,7 @@ The first MCP surface is read/status-oriented:
 - `runweaver_status`: repository initialization, index, and latest workflow state.
 - `runweaver_get_current`: `.runweaver/tmp/current.md` markdown resume surface.
 - `runweaver_list_workflows`: generated workflow templates under `.runweaver/workflows`.
+- `runweaver_query_context`: task-scoped files, symbols, routes, tests, and verification commands from the local index.
 - `runweaver_verify_workflow`: deterministic verification for `latest` or an explicit run.
 
 To let MCP-native clients create and update RunWeaver workflow state, start the server with explicit workflow-write authority:
@@ -282,10 +290,13 @@ runweaver mcp serve --repo . --allow-workflow-writes
 
 This exposes only `.runweaver/tmp` workflow-state tools:
 
+- `runweaver_start_or_resume`: single task intake tool; refreshes context when needed, creates or resumes a workflow, selects participants, and returns the execution contract.
 - `runweaver_plan_workflow`: creates `plan.json`, `checkpoint.json`, `todo.md`, `events.ndjson`, and `latest.json`.
 - `runweaver_update_workflow`: updates checkpoint/todo/current workflow state.
 
 These tools do not edit source files or runtime config files.
+
+`runweaver eval adoption` is still local and credential-free by default. It runs `doctor adoption`, calls `runweaver start`, verifies workflow state/participants/context, and prepares a runtime execution dry-run command without launching the selected model.
 
 RunWeaver does not add MCP entries to user or project runtime configs during `init`. Connect it explicitly when you want the selected LLM client to see RunWeaver as tools instead of only files and commands.
 

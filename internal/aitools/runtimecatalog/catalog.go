@@ -3,6 +3,8 @@ package runtimecatalog
 import "strings"
 
 const (
+	// Auto lets RunWeaver select the best runtime for one task from repo metadata.
+	Auto = "auto"
 	// OpenCode is the canonical ID for the OpenCode runtime.
 	OpenCode = "opencode"
 	// Codex is the canonical ID for the Codex runtime.
@@ -48,7 +50,7 @@ func NormalizeID(value string) string {
 	value = strings.ToLower(strings.TrimSpace(value))
 	value = strings.ReplaceAll(value, "_", "-")
 	switch value {
-	case "", OpenCode, Codex, Claude, All:
+	case "", Auto, OpenCode, Codex, Claude, All:
 		return value
 	case "open-code":
 		return OpenCode

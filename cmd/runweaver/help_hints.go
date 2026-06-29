@@ -12,6 +12,8 @@ func commandHint(command string) string {
 		return "runweaver classify --repo <path> [--classification auto|ai|deterministic] [--apply]"
 	case "refresh":
 		return "runweaver refresh --repo <path> [--apply] [--classification auto|ai|deterministic]"
+	case "context query":
+		return "runweaver context query --repo <path> --task <text> [--limit 12]"
 	case "doctor":
 		return "runweaver doctor --repo <path>"
 	case "doctor model":
