@@ -76,6 +76,27 @@ func TestServeMCPStdioWorkflowToolsExposeCurrentAndVerification(t *testing.T) {
 	}
 }
 
+func TestServeMCPStdioContextQueryIsReadOnly(t *testing.T) {
+	root := t.TempDir()
+	writeContextIndexFixture(t, root)
+	input := strings.Join([]string{
+		`{"jsonrpc":"2.0","id":"list","method":"tools/list"}`,
+		`{"jsonrpc":"2.0","id":"context","method":"tools/call","params":{"name":"runweaver_query_context","arguments":{"repo":"` + root + `","task":"Fix public route auth guard test","limit":5}}}`,
+	}, "\n") + "\n"
+	var out bytes.Buffer
+
+	if err := ServeMCPStdio(strings.NewReader(input), &out, MCPServerOptions{RepoPath: root}); err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	for _, want := range []string{"RunWeaver Context Query", "src/auth/auth.guard.ts", "test/unit/auth.guard.spec.ts", "AuthGuard", `"id":"context"`} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("MCP context query output missing %q:\n%s", want, output)
+		}
+	}
+}
+
 func TestServeMCPStdioHidesWorkflowWriteToolsByDefault(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "go.mod", "module example.com/tool\n")

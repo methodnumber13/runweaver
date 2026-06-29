@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -174,6 +175,17 @@ func runWeaverMCPTools(allowWorkflowWrites bool) []mcpTool {
 			},
 		),
 		readOnlyMCPTool(
+			"runweaver_query_context",
+			"RunWeaver Context Query",
+			"Return task-scoped files, symbols, routes, tests, and verification commands from the local index without creating workflow state.",
+			map[string]any{
+				"repo":             map[string]any{"type": "string", "description": "Repository path. Defaults to the server --repo value."},
+				"task":             map[string]any{"type": "string", "description": "User task text to route into indexed context."},
+				"limit":            map[string]any{"type": "integer", "description": "Max context files/symbols/routes/tests to return; clamped to 5..20.", "default": 12},
+				"includeGenerated": map[string]any{"type": "boolean", "description": "Include generated files in context candidates."},
+			},
+		),
+		readOnlyMCPTool(
 			"runweaver_verify_workflow",
 			"Verify RunWeaver Workflow",
 			"Verify latest or explicit workflow run artifacts before finishing a task.",
@@ -315,6 +327,8 @@ func callRunWeaverMCPTool(params json.RawMessage, opts MCPServerOptions) (mcpToo
 		return mcpStructuredToolResult(RunWeaverCurrent(repo))
 	case "runweaver_list_workflows":
 		return mcpStructuredToolResult(ListRunWeaverWorkflows(repo))
+	case "runweaver_query_context":
+		return mcpStructuredToolResult(QueryContext(repo, mcpContextQueryOptions(call.Arguments)))
 	case "runweaver_verify_workflow":
 		resume := argumentString(call.Arguments, "resume", "latest")
 		return mcpStructuredToolResult(VerifyWorkflowRun(repo, resume))
@@ -337,6 +351,14 @@ func callRunWeaverMCPTool(params json.RawMessage, opts MCPServerOptions) (mcpToo
 		return mcpStructuredToolResult(UpdateWorkflow(repo, mcpWorkflowUpdateOptions(call.Arguments)))
 	default:
 		return mcpToolResult{}, fmt.Errorf("unknown RunWeaver MCP tool %q", call.Name)
+	}
+}
+
+func mcpContextQueryOptions(arguments map[string]any) ContextQueryOptions {
+	return ContextQueryOptions{
+		Task:             argumentString(arguments, "task", ""),
+		Limit:            argumentInt(arguments, "limit", 12),
+		IncludeGenerated: argumentBool(arguments, "includeGenerated"),
 	}
 }
 
@@ -451,6 +473,30 @@ func argumentBool(arguments map[string]any, key string) bool {
 	}
 	typed, ok := value.(bool)
 	return ok && typed
+}
+
+func argumentInt(arguments map[string]any, key string, fallback int) int {
+	if arguments == nil {
+		return fallback
+	}
+	value, ok := arguments[key]
+	if !ok || value == nil {
+		return fallback
+	}
+	switch typed := value.(type) {
+	case int:
+		return typed
+	case int64:
+		return int(typed)
+	case float64:
+		return int(typed)
+	case string:
+		parsed, err := strconv.Atoi(strings.TrimSpace(typed))
+		if err == nil {
+			return parsed
+		}
+	}
+	return fallback
 }
 
 func mcpErrorResponse(id json.RawMessage, code int, message string) mcpResponse {

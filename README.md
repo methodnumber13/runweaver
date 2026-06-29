@@ -279,6 +279,7 @@ The first MCP surface is read/status-oriented:
 - `runweaver_status`: repository initialization, index, and latest workflow state.
 - `runweaver_get_current`: `.runweaver/tmp/current.md` markdown resume surface.
 - `runweaver_list_workflows`: generated workflow templates under `.runweaver/workflows`.
+- `runweaver_query_context`: task-scoped files, symbols, routes, tests, and verification commands from the local index.
 - `runweaver_verify_workflow`: deterministic verification for `latest` or an explicit run.
 
 To let MCP-native clients create and update RunWeaver workflow state, start the server with explicit workflow-write authority:

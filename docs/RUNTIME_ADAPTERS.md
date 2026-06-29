@@ -115,6 +115,7 @@ Current tools:
 - `runweaver_status`
 - `runweaver_get_current`
 - `runweaver_list_workflows`
+- `runweaver_query_context`
 - `runweaver_verify_workflow`
 
 Workflow-state write tools are available only when the server is started explicitly with:
@@ -267,7 +268,7 @@ Claude execution artifacts:
 10. Done: introduce an internal `RuntimeAdapter` contract with OpenCode, Codex, and Claude implementations.
 11. Done: make drift scanning and generated workflow prompts runtime-aware instead of OpenCode-only.
 12. Done: split runtime provider metadata into `runtimecatalog/{opencode,codex,claude}` subpackages.
-13. Done: add read-only MCP stdio surface over RunWeaver status/current/workflow verification.
+13. Done: add read-only MCP stdio surface over RunWeaver status/current/context/workflow verification.
 14. Next: move renderer/executor behavior into provider packages only after the shared `Profile` and workflow command-spec types are promoted into a lower-level core package.
 15. Next: add golden generated-file snapshots once renderer formats stabilize.
 
