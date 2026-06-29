@@ -30,4 +30,18 @@ func TestEvaluateAdoptionRunsDoctorAndStartSmoke(t *testing.T) {
 	if result.Doctor.Status != "ok" {
 		t.Fatalf("doctor status = %q, want ok", result.Doctor.Status)
 	}
+	for _, name := range []string{"first-action-contract", "start-smoke", "workflow-state", "participants-recorded", "context-returned"} {
+		if !adoptionEvalCheckNamed(result.Checks, name) {
+			t.Fatalf("eval checks = %#v, want %s", result.Checks, name)
+		}
+	}
+}
+
+func adoptionEvalCheckNamed(checks []AdoptionEvalCheck, name string) bool {
+	for _, check := range checks {
+		if check.Name == name {
+			return true
+		}
+	}
+	return false
 }

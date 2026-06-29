@@ -94,11 +94,93 @@ func doctorRuntimeAdoption(root string, provider RuntimeProvider) RuntimeAdoptio
 	add(adoptionWorkflowCheck(root))
 	add(adoptionProfileCheck(root, provider.ID))
 	add(adoptionStartupContractCheck(root, provider.ID))
+	add(adoptionCommandShortcutCheck(root, provider.ID))
+	add(adoptionMCPToolingCheck(root, provider.ID))
+	add(adoptionRuntimePermissionCheck(root, provider.ID))
 	if !result.Ready {
 		result.Status = "warning"
 	}
 	result.Recommendations = Unique(result.Recommendations)
 	return result
+}
+
+func adoptionCommandShortcutCheck(root, runtimeID string) AdoptionCheck {
+	paths := commandShortcutPaths(runtimeID)
+	for _, relPath := range paths {
+		path := filepath.Join(root, relPath)
+		data, err := os.ReadFile(path)
+		if err == nil && strings.Contains(string(data), "runweaver start") {
+			return AdoptionCheck{
+				Name:     "command-shortcut",
+				Status:   "ok",
+				Summary:  "Runtime shortcut points to runweaver start",
+				Evidence: []string{relPath},
+			}
+		}
+	}
+	return AdoptionCheck{
+		Name:     "command-shortcut",
+		Status:   "warning",
+		Summary:  "Runtime shortcut was not found or does not point to runweaver start",
+		Evidence: paths,
+		NextActions: []string{
+			"Run runweaver init --repo . --runtime " + runtimeID + " --force to refresh generated shortcuts.",
+		},
+	}
+}
+
+func adoptionMCPToolingCheck(root, runtimeID string) AdoptionCheck {
+	paths := mcpConfigPaths(runtimeID)
+	for _, relPath := range paths {
+		path := filepath.Join(root, relPath)
+		data, err := os.ReadFile(path)
+		if err == nil && strings.Contains(string(data), "runweaver") && strings.Contains(strings.ToLower(string(data)), "mcp") {
+			return AdoptionCheck{
+				Name:     "mcp-tooling",
+				Status:   "ok",
+				Summary:  "Runtime config references RunWeaver MCP tooling",
+				Evidence: []string{relPath},
+			}
+		}
+	}
+	return AdoptionCheck{
+		Name:     "mcp-tooling",
+		Status:   "warning",
+		Summary:  "RunWeaver MCP is not configured for this runtime; CLI fallback remains available",
+		Evidence: paths,
+		NextActions: []string{
+			"Optional: connect runweaver mcp serve --repo . --allow-workflow-writes in the selected runtime config.",
+		},
+	}
+}
+
+func adoptionRuntimePermissionCheck(root, runtimeID string) AdoptionCheck {
+	paths := permissionHintPaths(runtimeID)
+	for _, relPath := range paths {
+		path := filepath.Join(root, relPath)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		text := strings.ToLower(string(data))
+		if runtimePermissionLooksWritable(runtimeID, text) {
+			return AdoptionCheck{
+				Name:     "runtime-permissions",
+				Status:   "ok",
+				Summary:  "Runtime metadata includes a write-capable RunWeaver permission hint",
+				Evidence: []string{relPath},
+			}
+		}
+	}
+	return AdoptionCheck{
+		Name:     "runtime-permissions",
+		Status:   "warning",
+		Summary:  "Runtime write permissions/sandbox hints were not found",
+		Evidence: paths,
+		NextActions: []string{
+			"Ensure the selected runtime can execute runweaver start and update .runweaver/tmp workflow state.",
+		},
+	}
 }
 
 func adoptionRunWeaverPathCheck() AdoptionCheck {
@@ -216,5 +298,57 @@ func startupContractInstructionPaths(runtimeID string) []string {
 		return []string{"CLAUDE.md", ".claude/agents/swarm.md"}
 	default:
 		return []string{statepath.RootDir}
+	}
+}
+
+func commandShortcutPaths(runtimeID string) []string {
+	switch runtimeID {
+	case RuntimeOpenCode:
+		return []string{".opencode/commands/runweaver-start.md"}
+	case RuntimeCodex:
+		return []string{".agents/skills/runweaver-start/SKILL.md"}
+	case RuntimeClaude:
+		return []string{".claude/skills/runweaver-start/SKILL.md", ".claude/commands/runweaver-start.md"}
+	default:
+		return nil
+	}
+}
+
+func mcpConfigPaths(runtimeID string) []string {
+	switch runtimeID {
+	case RuntimeOpenCode:
+		return []string{"opencode.json", "opencode.jsonc"}
+	case RuntimeCodex:
+		return []string{".codex/config.toml"}
+	case RuntimeClaude:
+		return []string{".mcp.json", ".claude/settings.json"}
+	default:
+		return nil
+	}
+}
+
+func permissionHintPaths(runtimeID string) []string {
+	switch runtimeID {
+	case RuntimeOpenCode:
+		return []string{".opencode/agents/swarm.md", "opencode.json", "opencode.jsonc"}
+	case RuntimeCodex:
+		return []string{".codex/config.toml", "AGENTS.md"}
+	case RuntimeClaude:
+		return []string{".claude/settings.json", "CLAUDE.md", ".claude/agents/swarm.md"}
+	default:
+		return nil
+	}
+}
+
+func runtimePermissionLooksWritable(runtimeID, text string) bool {
+	switch runtimeID {
+	case RuntimeOpenCode:
+		return strings.Contains(text, "runweaver start") && strings.Contains(text, "allow")
+	case RuntimeCodex:
+		return strings.Contains(text, "workspace-write") || strings.Contains(text, "danger-full-access")
+	case RuntimeClaude:
+		return strings.Contains(text, "runweaver start") || strings.Contains(text, "bash(runweaver")
+	default:
+		return false
 	}
 }
