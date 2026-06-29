@@ -11,11 +11,12 @@ type AdoptionEvalOptions struct {
 
 // AdoptionEvalResult combines adoption doctor output with a start smoke run.
 type AdoptionEvalResult struct {
-	Status string               `json:"status"`
-	Ready  bool                 `json:"ready"`
-	Doctor AdoptionDoctorResult `json:"doctor"`
-	Start  StartResult          `json:"start,omitempty"`
-	Checks []AdoptionEvalCheck  `json:"checks,omitempty"`
+	Status          string                  `json:"status"`
+	Ready           bool                    `json:"ready"`
+	Doctor          AdoptionDoctorResult    `json:"doctor"`
+	Start           StartResult             `json:"start,omitempty"`
+	ExecutionDryRun WorkflowExecutionResult `json:"executionDryRun,omitempty"`
+	Checks          []AdoptionEvalCheck     `json:"checks,omitempty"`
 }
 
 // AdoptionEvalCheck is one local proof that a runtime can adopt RunWeaver.
@@ -64,7 +65,21 @@ func EvaluateAdoption(repoPath string, opts AdoptionEvalOptions) (AdoptionEvalRe
 		return AdoptionEvalResult{}, err
 	}
 	result.Start = start
-	result.Checks = adoptionEvalChecks(doctor, start)
+	executionDryRun, err := ExecuteWorkflow(repoPath, WorkflowExecuteOptions{
+		Resume:           "latest",
+		Runtime:          start.Runtime,
+		DryRun:           true,
+		SkipModelCheck:   true,
+		SkipGitRepoCheck: true,
+	})
+	if err != nil {
+		result.Checks = adoptionEvalChecks(doctor, start, WorkflowExecutionResult{}, err)
+		result.Ready = false
+		result.Status = "warning"
+		return result, nil
+	}
+	result.ExecutionDryRun = executionDryRun
+	result.Checks = adoptionEvalChecks(doctor, start, executionDryRun, nil)
 	result.Ready = doctor.Ready && start.Ready && adoptionEvalChecksReady(result.Checks)
 	if !result.Ready {
 		result.Status = "warning"
@@ -72,13 +87,14 @@ func EvaluateAdoption(repoPath string, opts AdoptionEvalOptions) (AdoptionEvalRe
 	return result, nil
 }
 
-func adoptionEvalChecks(doctor AdoptionDoctorResult, start StartResult) []AdoptionEvalCheck {
+func adoptionEvalChecks(doctor AdoptionDoctorResult, start StartResult, execution WorkflowExecutionResult, executionErr error) []AdoptionEvalCheck {
 	return []AdoptionEvalCheck{
 		firstActionContractEvalCheck(doctor),
 		startSmokeEvalCheck(start),
 		workflowStateEvalCheck(start),
 		participantsEvalCheck(start),
 		contextReturnedEvalCheck(start),
+		runtimeDryRunEvalCheck(execution, executionErr),
 	}
 }
 
@@ -119,6 +135,16 @@ func contextReturnedEvalCheck(start StartResult) AdoptionEvalCheck {
 		return AdoptionEvalCheck{Name: "context-returned", Status: "ok", Summary: "Task-scoped context was returned", Evidence: contextEvidence(start.ExecutionContract.Context)}
 	}
 	return AdoptionEvalCheck{Name: "context-returned", Status: "warning", Summary: "Task-scoped context was not available", Evidence: start.ExecutionContract.Context.Warnings}
+}
+
+func runtimeDryRunEvalCheck(execution WorkflowExecutionResult, err error) AdoptionEvalCheck {
+	if err != nil {
+		return AdoptionEvalCheck{Name: "runtime-dry-run", Status: "error", Summary: "Runtime execution command could not be prepared", Evidence: []string{err.Error()}}
+	}
+	if len(execution.Command) > 0 && execution.DryRun && !execution.Executed {
+		return AdoptionEvalCheck{Name: "runtime-dry-run", Status: "ok", Summary: "Runtime execution command was prepared without launching the model", Evidence: execution.Command}
+	}
+	return AdoptionEvalCheck{Name: "runtime-dry-run", Status: "error", Summary: "Runtime execution dry-run did not return a command"}
 }
 
 func adoptionEvalChecksReady(checks []AdoptionEvalCheck) bool {

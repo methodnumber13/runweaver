@@ -30,10 +30,13 @@ func TestEvaluateAdoptionRunsDoctorAndStartSmoke(t *testing.T) {
 	if result.Doctor.Status != "ok" {
 		t.Fatalf("doctor status = %q, want ok", result.Doctor.Status)
 	}
-	for _, name := range []string{"first-action-contract", "start-smoke", "workflow-state", "participants-recorded", "context-returned"} {
+	for _, name := range []string{"first-action-contract", "start-smoke", "workflow-state", "participants-recorded", "context-returned", "runtime-dry-run"} {
 		if !adoptionEvalCheckNamed(result.Checks, name) {
 			t.Fatalf("eval checks = %#v, want %s", result.Checks, name)
 		}
+	}
+	if result.ExecutionDryRun.Command == nil {
+		t.Fatalf("execution dry-run = %#v, want prepared runtime command", result.ExecutionDryRun)
 	}
 }
 
