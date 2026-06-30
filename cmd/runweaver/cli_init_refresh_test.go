@@ -94,7 +94,7 @@ func TestCLIBootstrapAliasesInit(t *testing.T) {
 	}
 	for _, path := range []string{
 		"AGENTS.md",
-		".codex/agents/swarm.toml",
+		".codex/agents/runweaver-swarm.toml",
 		".codex/runweaver/profile.json",
 		".runweaver/START_HERE.md",
 	} {

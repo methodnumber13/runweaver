@@ -352,8 +352,8 @@ func TestInitSmartWritesRunWeaverStartupProtocolForAllRuntimes(t *testing.T) {
 		"AGENTS.md",
 		"CLAUDE.md",
 		".opencode/agents/runweaver-swarm.md",
-		".codex/agents/swarm.toml",
-		".claude/agents/swarm.md",
+		".codex/agents/runweaver-swarm.toml",
+		".claude/agents/runweaver-swarm.md",
 	} {
 		data, err := os.ReadFile(filepath.Join(root, path))
 		if err != nil {

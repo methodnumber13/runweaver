@@ -36,12 +36,12 @@ func TestDiscoverRuntimesFindsProjectAndGlobalMetadata(t *testing.T) {
 	t.Setenv("CODEX_HOME", codexHome)
 	t.Setenv("CLAUDE_CONFIG_DIR", claudeHome)
 	writeTestFile(t, root, ".codex/config.toml", "[features]\nmulti_agent = true\n")
-	writeTestFile(t, root, ".codex/agents/swarm.toml", "name = \"swarm\"\n")
+	writeTestFile(t, root, ".codex/agents/runweaver-swarm.toml", "name = \"runweaver-swarm\"\n")
 	writeTestFile(t, root, ".agents/skills/repo-onboarding/SKILL.md", "---\nname: repo-onboarding\n---\n")
 	writeTestFile(t, codexHome, "config.toml", "model = \"gpt-5.4\"\n")
 	writeTestFile(t, codexHome, "auth.json", "{}\n")
 	writeTestFile(t, root, ".claude/settings.json", "{}\n")
-	writeTestFile(t, root, ".claude/agents/swarm.md", "---\nname: swarm\n---\n")
+	writeTestFile(t, root, ".claude/agents/runweaver-swarm.md", "---\nname: runweaver-swarm\n---\n")
 	writeTestFile(t, claudeHome, "settings.json", "{}\n")
 	writeTestFile(t, claudeHome, "auth.json", "{}\n")
 
@@ -177,7 +177,7 @@ func TestInitSmartCanBootstrapCodexRuntimeWithoutOpenCodeMetadata(t *testing.T) 
 	}
 	for _, path := range []string{
 		"AGENTS.md",
-		".codex/agents/swarm.toml",
+		".codex/agents/runweaver-swarm.toml",
 		".codex/runweaver/profile.json",
 		".agents/skills/context-discipline/SKILL.md",
 		".runweaver/workflows/feature-delivery-swarm.json",

@@ -62,7 +62,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"runweaver workflow verify --repo . --resume latest",
 		"resume is automatic via RunWeaver",
 	})
-	assertGeneratedInstructionSnapshot(t, root, ".codex/agents/swarm.toml", []string{
+	assertGeneratedInstructionSnapshot(t, root, ".codex/agents/runweaver-swarm.toml", []string{
+		`name = "runweaver-swarm"`,
 		`description = "Primary RunWeaver workflow coordinator for Codex"`,
 		"Read AGENTS.md, .codex/runweaver/profile.json",
 		"runweaver start --repo . --runtime codex",
@@ -81,7 +82,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"executionContract",
 		"runweaver start --repo . --runtime claude",
 	})
-	assertGeneratedInstructionSnapshot(t, root, ".claude/agents/swarm.md", []string{
+	assertGeneratedInstructionSnapshot(t, root, ".claude/agents/runweaver-swarm.md", []string{
+		"name: runweaver-swarm",
 		"description: Primary RunWeaver workflow coordinator for Claude Code",
 		"Read CLAUDE.md, .claude/runweaver/profile.json",
 		"runweaver start --repo . --runtime claude",
@@ -107,13 +109,13 @@ func TestGeneratedInstructionSnapshotsKeepRuntimeBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertGeneratedInstructionExcludes(t, root, ".codex/agents/swarm.toml", []string{
+	assertGeneratedInstructionExcludes(t, root, ".codex/agents/runweaver-swarm.toml", []string{
 		".opencode/",
 		"opencode run",
 		".claude/",
 		"claude --print",
 	})
-	assertGeneratedInstructionExcludes(t, root, ".claude/agents/swarm.md", []string{
+	assertGeneratedInstructionExcludes(t, root, ".claude/agents/runweaver-swarm.md", []string{
 		".opencode/",
 		"opencode run",
 		".codex/",

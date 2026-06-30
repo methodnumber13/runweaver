@@ -109,7 +109,7 @@ esac
 func TestCLIDoctorRuntimeCommand(t *testing.T) {
 	root := t.TempDir()
 	writeCLIFile(t, root, ".codex/config.toml", "[features]\nmulti_agent = true\n")
-	writeCLIFile(t, root, ".codex/agents/swarm.toml", "name = \"swarm\"\n")
+	writeCLIFile(t, root, ".codex/agents/runweaver-swarm.toml", "name = \"runweaver-swarm\"\n")
 	writeCLIFile(t, root, ".agents/skills/context-discipline/SKILL.md", "---\nname: context-discipline\n---\n")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
