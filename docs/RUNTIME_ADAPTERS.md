@@ -153,9 +153,12 @@ Current adapter behavior:
 - writes `.opencode/skills/*/SKILL.md` only when the target is absent or already marked as RunWeaver-generated;
 - writes `.runweaver/workflows/*.json`;
 - writes `.opencode/swarm/profile.json`;
-- executes `opencode run --agent swarm --dir <repo> --format json`;
+- writes the reserved primary agent `.opencode/agents/runweaver-swarm.md`;
+- executes `opencode run --agent runweaver-swarm --dir <repo> --format json`;
 - writes `opencode-exec-prompt.md`, `opencode-stdout.jsonl`, and `opencode-stderr.log`;
 - relies on OpenCode primary agents, subagents, task delegation, permissions, and `todowrite`.
+
+The OpenCode agent name intentionally avoids the generic `swarm` id. Global OpenCode plugins may define or shadow `swarm`, so RunWeaver uses `runweaver-swarm` for the project-local entrypoint and keeps `swarm` only as a runtime-neutral workflow naming convention.
 
 Static provider metadata is implemented by `runtimecatalog/opencode`. Runtime behavior is implemented by `runtime_opencode.go`; behavior is covered by runtime-aware command specs and tests.
 
@@ -201,10 +204,12 @@ Codex execution prompts instruct the root session to:
 
 1. read `AGENTS.md`, `.codex/runweaver/profile.json`, and `.runweaver/tmp/index/repo-context.md`;
 2. create or resume `.runweaver/tmp/swarm-runs/latest.json`;
-3. spawn named Codex subagents for selected participants;
+3. emulate selected participants in the primary unattended `codex exec` session by default;
 4. update checkpoints with `runweaver workflow update`;
 5. run `runweaver workflow verify`;
 6. finish only when workflow verification is clean or a blocker is recorded.
+
+Live Codex child agents can still be used when a user explicitly asks for them, but the default adapter contract must not block unattended execution on subagent spawn/wait behavior.
 
 Codex execution artifacts:
 

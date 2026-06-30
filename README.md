@@ -88,7 +88,7 @@ runweaver doctor adoption --repo . --runtime all
 runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
 ```
 
-Then open the repository in the selected runtime and write the task to the generated `swarm` entrypoint or generated shortcut. The generated instructions tell the runtime to call `runweaver start --repo . --runtime <current> --task "<user task>"`, which creates or resumes a workflow run under `.runweaver/tmp/swarm-runs`, selects repo-specific participants from the runtime profile, returns task tier and task-scoped context, updates `checkpoint.json`/`todo.md`, and returns the next execution contract.
+Then open the repository in the selected runtime and write the task to the generated entrypoint or shortcut. For OpenCode the generated primary agent is `runweaver-swarm`, not the generic `swarm` name, so global plugins that define `swarm` do not shadow RunWeaver. The generated instructions tell the runtime to call `runweaver start --repo . --runtime <current> --task "<user task>"`, which creates or resumes a workflow run under `.runweaver/tmp/swarm-runs`, selects repo-specific participants from the runtime profile, returns task tier and task-scoped context, updates `checkpoint.json`/`todo.md`, and returns the next execution contract.
 
 60-second local smoke after init:
 
@@ -146,6 +146,8 @@ runweaver doctor opencode --repo .
 runweaver doctor runtime --repo . --runtime all
 runweaver doctor adoption --repo . --runtime all
 runweaver doctor processes --summary
+runweaver smoke codex --keep
+runweaver smoke codex --live --timeout 4m --keep
 runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
 runweaver eval adoption --repo . --runtime codex --live --timeout 2m --task "Run live adoption smoke test"
 runweaver refresh --repo .
@@ -234,9 +236,9 @@ runweaver refresh --repo . --apply --runtime all --classification auto
 
 ## OpenCode Desktop/CLI flow
 
-`init` writes `opencode.json` with `default_agent: "swarm"` and project agents under `.opencode/agents`. OpenCode docs state `default_agent` applies across the TUI, `opencode run`, Desktop, and GitHub Action; the generated setup relies on that so a user can open the repo in either OpenCode Desktop or CLI and type the task to the repo-local `swarm` agent.
+`init` writes project OpenCode metadata under `.opencode/agents` and, for new or legacy RunWeaver configs, sets `default_agent: "runweaver-swarm"`. If a project already has a custom non-RunWeaver `default_agent`, RunWeaver preserves it and adds the `runweaver-swarm` agent plus the generated command shortcut instead of replacing the user's choice. OpenCode docs state `default_agent` applies across the TUI, `opencode run`, Desktop, and GitHub Action; the generated setup relies on the reserved `runweaver-swarm` name so global plugins that define `swarm` do not take over the RunWeaver entrypoint.
 
-The generated `swarm` agent is responsible for:
+The generated `runweaver-swarm` agent is responsible for:
 
 1. running `runweaver index --repo . --changed-only --prune`
 2. creating or resuming a durable workflow under `.runweaver/tmp/swarm-runs`
@@ -397,7 +399,7 @@ The command prints JSON to stdout. `status: "warning"` keeps exit code 0 for in-
 2. creates or resumes the durable workflow plan
 3. writes `<runtime>-exec-prompt.md` into the run directory
 4. launches the selected runtime:
-   - OpenCode: `opencode run --agent swarm --dir <repo> --format json`
+   - OpenCode: `opencode run --agent runweaver-swarm --dir <repo> --format json`
    - Codex: `codex -a never exec --json --ephemeral -C <repo> --sandbox workspace-write`
    - Claude Code: `claude --print --output-format stream-json --permission-mode dontAsk`
 5. points the runtime at `plan.json`, `checkpoint.json`, `todo.md`, the runtime profile, `repo-context.md`, `repo-index.compact.json`, and `manifest.json` through the execution prompt or provider-native attachment flags
