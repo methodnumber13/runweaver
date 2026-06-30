@@ -80,7 +80,7 @@ JSON
     ;;
   "debug agent runweaver-swarm")
     cat <<'JSON'
-{"name":"runweaver-swarm","mode":"primary","tools":{"task":true,"todowrite":true}}
+{"name":"runweaver-swarm","mode":"primary","prompt":"You are the workflow-aware primary RunWeaver OpenCode agent. RunWeaver Startup Protocol. runweaver start --repo .","tools":{"task":true,"todowrite":true}}
 JSON
     ;;
   "agent list ")
@@ -101,7 +101,7 @@ esac
 	if code != 0 {
 		t.Fatalf("doctor opencode exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
 	}
-	if !strings.Contains(stdout.String(), `"ready": true`) || !strings.Contains(stdout.String(), `"resolved-agent-tools"`) {
+	if !strings.Contains(stdout.String(), `"ready": true`) || !strings.Contains(stdout.String(), `"resolved-agent-tools"`) || !strings.Contains(stdout.String(), `"resolved-agent-marker"`) {
 		t.Fatalf("stdout = %q, want ready OpenCode doctor result", stdout.String())
 	}
 }

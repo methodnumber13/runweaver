@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func checkRunWeaverAvailability(result *OpenCodeDoctorResult) {
@@ -54,10 +55,11 @@ func checkResolvedConfig(config map[string]any, agent string, result *OpenCodeDo
 func checkResolvedAgent(agentConfig map[string]any, agent string, result *OpenCodeDoctorResult) {
 	name := firstString(agentConfig, "name", "id")
 	if name != "" && name != agent {
-		addDoctorCheck(result, "resolved-agent-name", "warning", "OpenCode resolved a different agent name", []string{name}, []string{"Check .opencode/agents/" + agent + ".md."})
+		addDoctorCheck(result, "resolved-agent-name", "error", "OpenCode resolved a different agent name", []string{name}, []string{"agent name collision, plugin/config shadows " + agent + "; check .opencode/agents/" + agent + ".md or use reserved fallback name " + openCodeFallbackPrimaryAgentName + "."})
 	} else {
 		addDoctorCheck(result, "resolved-agent-name", "ok", "OpenCode resolves the RunWeaver OpenCode agent", []string{agent}, nil)
 	}
+	checkResolvedAgentMarker(agentConfig, agent, result)
 	mode := firstString(agentConfig, "mode")
 	if mode != "" && mode != "primary" {
 		addDoctorCheck(result, "resolved-agent-mode", "warning", "RunWeaver OpenCode agent is not primary mode", []string{"mode=" + mode}, []string{"Set mode: primary in .opencode/agents/" + agent + ".md."})
@@ -69,6 +71,35 @@ func checkResolvedAgent(agentConfig map[string]any, agent string, result *OpenCo
 	} else {
 		addDoctorCheck(result, "resolved-agent-tools", "error", "RunWeaver OpenCode agent is missing task or todowrite", []string{"task", "todowrite"}, []string{"Regenerate .opencode/agents/" + agent + ".md and opencode.json with runweaver init --repo . --force."})
 	}
+}
+
+func checkResolvedAgentMarker(agentConfig map[string]any, agent string, result *OpenCodeDoctorResult) {
+	prompt := resolvedAgentPrompt(agentConfig)
+	if hasRunWeaverAgentMarker(prompt) {
+		addDoctorCheck(result, "resolved-agent-marker", "ok", "Resolved OpenCode agent prompt contains the RunWeaver startup marker", []string{agent}, nil)
+		return
+	}
+	addDoctorCheck(result, "resolved-agent-marker", "error", "agent name collision, plugin/config shadows "+agent, []string{agent, "missing RunWeaver Startup Protocol marker"}, []string{
+		"agent name collision, plugin/config shadows " + agent + "; run opencode debug agent " + agent + " and inspect the prompt.",
+		"Regenerate project metadata with runweaver init --repo . --force.",
+		"If another plugin owns " + agent + ", switch RunWeaver to reserved fallback name " + openCodeFallbackPrimaryAgentName + " in a follow-up migration.",
+	})
+}
+
+func resolvedAgentPrompt(agentConfig map[string]any) string {
+	return strings.Join(compactStrings([]string{
+		firstString(agentConfig, "prompt"),
+		firstString(agentConfig, "instructions"),
+		firstString(agentConfig, "system"),
+		firstString(agentConfig, "description"),
+	}), "\n")
+}
+
+func hasRunWeaverAgentMarker(prompt string) bool {
+	prompt = strings.ToLower(prompt)
+	return strings.Contains(prompt, "runweaver startup protocol") &&
+		strings.Contains(prompt, "runweaver start") &&
+		strings.Contains(prompt, "workflow-aware primary runweaver")
 }
 
 func addDoctorCheck(result *OpenCodeDoctorResult, name, status, summary string, evidence []string, nextActions []string) {

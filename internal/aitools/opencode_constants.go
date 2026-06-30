@@ -10,5 +10,6 @@ const (
 	// and tests that refer to the OpenCode runtime explicitly.
 	OpenCodePrimaryAgentName = RunWeaverPrimaryAgentName
 
-	openCodeLegacyPrimaryAgentName = "swarm"
+	openCodeFallbackPrimaryAgentName = "runweaver-coordinator"
+	openCodeLegacyPrimaryAgentName   = "swarm"
 )
