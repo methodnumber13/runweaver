@@ -254,6 +254,8 @@ func startExecutionContract(status map[string]any, participants []string, assign
 		Assignments:      assignments,
 		NextAction:       fallbackString(stringValue(status["nextAction"]), "execute the next workflow phase and update checkpoint.json"),
 		NextVerification: fallbackString(stringValue(status["nextVerification"]), "run runweaver workflow verify --repo . --resume latest before final response"),
+		PhaseCompletion:  "after each finished phase run: runweaver workflow update --repo . --resume latest --phase <phase> --complete-phase --verification \"<command/result>\"",
+		TerminalRule:     "do not send a final response while checkpoint status is in_progress after successful verification; complete all workflow phases with --complete-phase or record a blocker with --blocker and nextVerification",
 		ResumeStrategy:   "automatic via runweaver start; use runweaver workflow run --resume latest --status only as a diagnostic",
 	}
 }

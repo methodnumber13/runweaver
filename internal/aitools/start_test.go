@@ -216,6 +216,27 @@ func TestStartWorkflowIncludesTaskScopedContext(t *testing.T) {
 	}
 }
 
+func TestStartWorkflowReturnsTerminalCompletionContract(t *testing.T) {
+	root := t.TempDir()
+	writeStartFixtures(t, root)
+
+	result, err := StartWorkflow(root, StartOptions{
+		Task:    "Implement product card accessibility and verify",
+		Runtime: RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(result.ExecutionContract.PhaseCompletion, "--complete-phase") {
+		t.Fatalf("phase completion = %q, want --complete-phase command", result.ExecutionContract.PhaseCompletion)
+	}
+	for _, want := range []string{"in_progress", "complete all workflow phases", "--blocker", "nextVerification"} {
+		if !strings.Contains(result.ExecutionContract.TerminalRule, want) {
+			t.Fatalf("terminal rule = %q, want %q", result.ExecutionContract.TerminalRule, want)
+		}
+	}
+}
+
 func writeStartFixtures(t *testing.T, root string) {
 	t.Helper()
 	writeTestFile(t, root, "go.mod", "module example.com/api\n")

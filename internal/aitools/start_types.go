@@ -43,6 +43,8 @@ type StartExecutionContract struct {
 	Assignments      []ParticipantAssignment `json:"assignments,omitempty"`
 	NextAction       string                  `json:"nextAction"`
 	NextVerification string                  `json:"nextVerification"`
+	PhaseCompletion  string                  `json:"phaseCompletion"`
+	TerminalRule     string                  `json:"terminalRule"`
 	ResumeStrategy   string                  `json:"resumeStrategy"`
 }
 

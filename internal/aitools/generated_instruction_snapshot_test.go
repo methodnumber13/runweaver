@@ -31,6 +31,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"lastResult",
 		"rejectedPaths",
 		"nextVerification",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"runweaver workflow verify --repo . --resume latest",
 		"Do not ask the user to run start, resume, status, update, or verify commands manually",
 	})
@@ -51,6 +53,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"Assume the user may only type a task into OpenCode",
 		"## RunWeaver Startup Protocol",
 		"runweaver start --repo . --task",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"## Planning And Execution Mode",
 		"For normal coding, bugfix, refactor, or test tasks, the plan is only the durable checkpoint",
 		"## Default Task Flow",
@@ -59,6 +63,7 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"--last-result",
 		"--rejected-path",
 		"--next-verification",
+		"--complete-phase",
 		"runweaver workflow verify --repo . --resume latest",
 		"resume is automatic via RunWeaver",
 	})
@@ -69,6 +74,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"runweaver start --repo . --runtime codex",
 		"## RunWeaver Startup Protocol",
 		"executionContract",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"Use repo-specific agents from .codex/agents",
 		"do not block on child-agent wait",
 		"lastResult",
@@ -80,6 +87,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"## RunWeaver Startup Protocol",
 		"runweaver start --repo . --task",
 		"executionContract",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"runweaver start --repo . --runtime claude",
 	})
 	assertGeneratedInstructionSnapshot(t, root, ".claude/agents/runweaver-swarm.md", []string{
@@ -89,6 +98,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"runweaver start --repo . --runtime claude",
 		"## RunWeaver Startup Protocol",
 		"executionContract",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"Use repo-specific agents from .claude/agents",
 		"lastResult",
 		"rejectedPaths",
