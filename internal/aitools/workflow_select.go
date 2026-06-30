@@ -238,8 +238,7 @@ func addSelectionToken(tokens map[string]bool, token string) {
 
 func selectionStopword(token string) bool {
 	switch token {
-	case "a", "an", "and", "are", "as", "at", "be", "by", "did", "do", "does", "for", "from", "in", "into", "is", "it", "its", "not", "of", "on", "only", "or", "please", "that", "the", "then", "these", "this", "those", "to", "with", "you", "your",
-		"без", "для", "до", "его", "ее", "если", "еще", "же", "из", "или", "как", "ли", "мне", "над", "не", "но", "от", "по", "под", "при", "про", "со", "то", "что", "это":
+	case "a", "an", "and", "are", "as", "at", "be", "by", "did", "do", "does", "for", "from", "in", "into", "is", "it", "its", "not", "of", "on", "only", "or", "please", "that", "the", "then", "these", "this", "those", "to", "with", "you", "your":
 		return true
 	default:
 		return false
