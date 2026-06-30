@@ -42,6 +42,13 @@ func TestListAndSkipHelpers(t *testing.T) {
 	if !ShouldSkipDir("node_modules") || !ShouldSkipDir(".cache-v1") || ShouldSkipDir("src") {
 		t.Fatalf("unexpected ShouldSkipDir decisions")
 	}
+	repoRoot := filepath.Join(string(filepath.Separator), "repo")
+	if !ShouldSkipWalkDir(repoRoot, filepath.Join(repoRoot, ".runweaver", "tmp"), "tmp") {
+		t.Fatalf("expected .runweaver/tmp to be skipped")
+	}
+	if ShouldSkipWalkDir(repoRoot, filepath.Join(repoRoot, ".runweaver", "workflows"), "workflows") {
+		t.Fatalf("stable .runweaver/workflows metadata should remain visible")
+	}
 }
 
 func TestRepositoryAndJSONErrorPaths(t *testing.T) {

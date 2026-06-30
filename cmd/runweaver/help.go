@@ -11,7 +11,7 @@ func (c cli) usage() {
                                         build repo-local package/file/symbol index
   index clean --repo <path>             remove .runweaver/tmp index/cache
   classify --repo <path> [--classification auto]
-                                        classify repo into swarm agents/skills
+                                        classify repo into RunWeaver agents/skills
   refresh --repo <path> [--apply]       write surface/drift/profile artifacts
   status --repo <path>                  show active workflow and current RunWeaver state
   start --repo <path> --task <text>     create or resume the right workflow for a user task
@@ -19,13 +19,14 @@ func (c cli) usage() {
   doctor --repo <path>                  refresh and summarize drift status
   doctor model --repo <path>            check OpenCode provider/model/key setup
   doctor opencode --repo <path> [--timeout 60s]
-                                        check Desktop/CLI swarm readiness
+                                        check Desktop/CLI RunWeaver readiness
   doctor runtime --repo <path> [--runtime all]
                                         discover OpenCode/Codex/Claude configs and metadata
   doctor adoption --repo <path> [--runtime all]
                                         verify RunWeaver auto-start contract for runtimes
   doctor processes [--summary]          show Codex/OpenCode runtime, VS Code debugger, and duplicate MCP processes
   eval adoption --repo <path>           run local adoption/start smoke checks
+  smoke codex [--live]                  create a disposable repo and verify Codex adoption
   init --repo <path> [--runtime opencode] [--force]
                                         smart index, plan intelligence workflow, bootstrap metadata
   bootstrap --repo <path> [--runtime opencode]

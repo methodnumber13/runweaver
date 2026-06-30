@@ -291,11 +291,11 @@ func adoptionStartupContractCheck(root, runtimeID string) AdoptionCheck {
 func startupContractInstructionPaths(runtimeID string) []string {
 	switch runtimeID {
 	case RuntimeOpenCode:
-		return []string{".opencode/agents/swarm.md"}
+		return []string{".opencode/agents/" + OpenCodePrimaryAgentName + ".md"}
 	case RuntimeCodex:
-		return []string{"AGENTS.md", ".codex/agents/swarm.toml"}
+		return []string{"AGENTS.md", ".codex/agents/" + RunWeaverPrimaryAgentName + ".toml"}
 	case RuntimeClaude:
-		return []string{"CLAUDE.md", ".claude/agents/swarm.md"}
+		return []string{"CLAUDE.md", ".claude/agents/" + RunWeaverPrimaryAgentName + ".md"}
 	default:
 		return []string{statepath.RootDir}
 	}
@@ -330,11 +330,11 @@ func mcpConfigPaths(runtimeID string) []string {
 func permissionHintPaths(runtimeID string) []string {
 	switch runtimeID {
 	case RuntimeOpenCode:
-		return []string{".opencode/agents/swarm.md", "opencode.json", "opencode.jsonc"}
+		return []string{".opencode/agents/" + OpenCodePrimaryAgentName + ".md", "opencode.json", "opencode.jsonc"}
 	case RuntimeCodex:
 		return []string{".codex/config.toml", "AGENTS.md"}
 	case RuntimeClaude:
-		return []string{".claude/settings.json", "CLAUDE.md", ".claude/agents/swarm.md"}
+		return []string{".claude/settings.json", "CLAUDE.md", ".claude/agents/" + RunWeaverPrimaryAgentName + ".md"}
 	default:
 		return nil
 	}

@@ -1,6 +1,10 @@
 package aitools
 
-import "testing"
+import (
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
 func TestStartWorkflowCreatesWorkflowAndRecordsParticipants(t *testing.T) {
 	root := t.TempDir()
@@ -60,9 +64,52 @@ func TestStartWorkflowResumesMatchingActiveWorkflow(t *testing.T) {
 	}
 }
 
+func TestStartWorkflowResumeKeepsParticipantContractConsistent(t *testing.T) {
+	root := t.TempDir()
+	writeStartFixtures(t, root)
+	first, err := StartWorkflow(root, StartOptions{
+		Task:    "Fix public route auth guard regression",
+		Runtime: RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeTestFile(t, root, ".opencode/swarm/profile.json", `{
+  "workspace": {"name": "api", "repos": ["."]},
+  "repos": [{
+    "dir": ".",
+    "agents": [
+      {"name": "billing-agent", "description": "Owns billing changes", "focusFiles": ["src/billing/billing.service.ts"]}
+    ]
+  }]
+}`)
+
+	second, err := StartWorkflow(root, StartOptions{
+		Task:    "continue fixing public route auth guard regression",
+		Runtime: RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.Action != "resumed" {
+		t.Fatalf("action = %q, want resumed", second.Action)
+	}
+	if !sameStrings(second.ExecutionContract.Participants, first.ExecutionContract.Participants) {
+		t.Fatalf("contract participants = %#v, want preserved %#v", second.ExecutionContract.Participants, first.ExecutionContract.Participants)
+	}
+	if !sameStrings(assignmentNames(second.ExecutionContract.Assignments), second.ExecutionContract.Participants) {
+		t.Fatalf("contract assignments = %#v, want same actor names as participants %#v", second.ExecutionContract.Assignments, second.ExecutionContract.Participants)
+	}
+	if !sameStrings(second.Participants.Participants, second.ExecutionContract.Participants) {
+		t.Fatalf("top-level participants = %#v, want contract participants %#v", second.Participants.Participants, second.ExecutionContract.Participants)
+	}
+}
+
 func TestStartWorkflowAutoRuntimeUsesAvailableProfile(t *testing.T) {
 	root := t.TempDir()
 	writeWorkflowSelectionFixtures(t, root)
+	t.Setenv("PATH", t.TempDir())
+	writeRuntimeShimOnPath(t, "codex")
 	writeTestFile(t, root, ".codex/runweaver/profile.json", `{
   "workspace": {"name": "api", "repos": ["."]},
   "repos": [{
@@ -83,7 +130,7 @@ func TestStartWorkflowAutoRuntimeUsesAvailableProfile(t *testing.T) {
 	if result.Runtime != RuntimeCodex {
 		t.Fatalf("runtime = %q, want codex", result.Runtime)
 	}
-	if result.RuntimeResolution.Source != "profile" {
+	if !strings.Contains(result.RuntimeResolution.Source, "profile") {
 		t.Fatalf("runtime resolution = %#v, want profile source", result.RuntimeResolution)
 	}
 	if result.ExecutionContract.TaskTier.Tier != "trivial" {
@@ -92,6 +139,60 @@ func TestStartWorkflowAutoRuntimeUsesAvailableProfile(t *testing.T) {
 	if result.Participants.Cap != 1 {
 		t.Fatalf("participant cap = %d, want trivial cap 1", result.Participants.Cap)
 	}
+}
+
+func TestStartWorkflowRefreshesIndexWithSelectedRuntime(t *testing.T) {
+	root := t.TempDir()
+	writeWorkflowSelectionFixtures(t, root)
+	writeTestFile(t, root, "go.mod", "module example.com/api\n")
+	writeTestFile(t, root, "cmd/api/main.go", "package main\nfunc main() {}\n")
+	writeTestFile(t, root, ".codex/runweaver/profile.json", `{
+  "workspace": {"name": "api", "repos": ["."]},
+  "repos": [{
+    "dir": ".",
+    "agents": [
+      {"name": "codex-go-agent", "description": "Owns Go entrypoints", "focusFiles": ["cmd/api/main.go"]}
+    ]
+  }]
+}`)
+
+	result, err := StartWorkflow(root, StartOptions{
+		Task:    "Fix Go API smoke bug",
+		Runtime: RuntimeCodex,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.IndexRefreshed {
+		t.Fatalf("indexRefreshed = false, want true")
+	}
+	var index RepoIndex
+	if err := ReadJSON(filepath.Join(root, ".runweaver/tmp/index/repo-index.json"), &index); err != nil {
+		t.Fatal(err)
+	}
+	if index.ClassifierRun == nil || index.ClassifierRun.Runtime != RuntimeCodex {
+		t.Fatalf("classifierRun = %#v, want codex runtime", index.ClassifierRun)
+	}
+}
+
+func assignmentNames(assignments []ParticipantAssignment) []string {
+	names := make([]string, 0, len(assignments))
+	for _, assignment := range assignments {
+		names = append(names, assignment.Name)
+	}
+	return names
+}
+
+func sameStrings(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestStartWorkflowIncludesTaskScopedContext(t *testing.T) {
@@ -112,6 +213,27 @@ func TestStartWorkflowIncludesTaskScopedContext(t *testing.T) {
 	}
 	if len(result.ExecutionContract.Context.Tests) == 0 {
 		t.Fatalf("context = %#v, want related tests", result.ExecutionContract.Context)
+	}
+}
+
+func TestStartWorkflowReturnsTerminalCompletionContract(t *testing.T) {
+	root := t.TempDir()
+	writeStartFixtures(t, root)
+
+	result, err := StartWorkflow(root, StartOptions{
+		Task:    "Implement product card accessibility and verify",
+		Runtime: RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(result.ExecutionContract.PhaseCompletion, "--complete-phase") {
+		t.Fatalf("phase completion = %q, want --complete-phase command", result.ExecutionContract.PhaseCompletion)
+	}
+	for _, want := range []string{"in_progress", "complete all workflow phases", "--blocker", "nextVerification"} {
+		if !strings.Contains(result.ExecutionContract.TerminalRule, want) {
+			t.Fatalf("terminal rule = %q, want %q", result.ExecutionContract.TerminalRule, want)
+		}
 	}
 }
 

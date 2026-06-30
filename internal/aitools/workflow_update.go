@@ -35,7 +35,12 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		checkpoint.Status = "in_progress"
 	}
 	if len(opts.Participants) > 0 {
-		checkpoint.Participants = Unique(append(checkpoint.Participants, compactStrings(opts.Participants)...))
+		participants := compactStrings(opts.Participants)
+		if opts.ReplaceParticipants {
+			checkpoint.Participants = Unique(participants)
+		} else {
+			checkpoint.Participants = Unique(append(checkpoint.Participants, participants...))
+		}
 	}
 	if len(opts.ParticipantRationale) > 0 {
 		checkpoint.ParticipantRationale = Unique(append(checkpoint.ParticipantRationale, compactStrings(opts.ParticipantRationale)...))

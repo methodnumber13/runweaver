@@ -70,8 +70,11 @@ func TestExecuteWorkflowRunsCodexCommandWithoutOpenCodePreflight(t *testing.T) {
 	if !strings.Contains(args, "-a never exec") || !strings.Contains(args, "--json") {
 		t.Fatalf("args = %q, want codex exec JSON command", args)
 	}
-	if len(capturedEnv) != 0 {
-		t.Fatalf("env = %#v, want no OpenCode env mutation", capturedEnv)
+	if envValue(capturedEnv, "RUNWEAVER_BIN") == "" {
+		t.Fatalf("env = %#v, want RUNWEAVER_BIN", capturedEnv)
+	}
+	if envValue(capturedEnv, "RUNWEAVER_MODEL_API_KEY") != "" {
+		t.Fatalf("env = %#v, want no OpenCode model env mutation", capturedEnv)
 	}
 	if !result.Executed || result.Status != "success" {
 		t.Fatalf("result = %#v, want codex executed success", result)
@@ -144,8 +147,8 @@ func TestExecuteWorkflowRunsConfiguredCommand(t *testing.T) {
 		t.Fatalf("name = %q, want opencode-test", capturedName)
 	}
 	args := strings.Join(capturedArgs, " ")
-	if !strings.Contains(args, "--model openai-compatible/coder-model") || !strings.Contains(args, "--agent swarm") {
-		t.Fatalf("args = %q, want model and swarm agent", args)
+	if !strings.Contains(args, "--model openai-compatible/coder-model") || !strings.Contains(args, "--agent runweaver-swarm") {
+		t.Fatalf("args = %q, want model and RunWeaver OpenCode agent", args)
 	}
 	if !strings.Contains(runtimeenv.EnvValue(capturedEnv, "NO_PROXY"), "llm-provider.example.com") {
 		t.Fatalf("NO_PROXY = %q, want OpenAI-compatible host", runtimeenv.EnvValue(capturedEnv, "NO_PROXY"))

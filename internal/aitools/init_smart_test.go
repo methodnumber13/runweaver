@@ -38,7 +38,7 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 		".runweaver/workflows/repo-intelligence-swarm.json",
 		".runweaver/tmp/index/repo-index.json",
 		".opencode/swarm/profile.json",
-		".opencode/agents/swarm.md",
+		".opencode/agents/runweaver-swarm.md",
 		".opencode/skills/context-discipline/SKILL.md",
 		".opencode/agents/state-flow-reviewer.md",
 		".opencode/agents/api-client-contract-reviewer.md",
@@ -49,12 +49,12 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 			t.Fatalf("expected smart init artifact %s", path)
 		}
 	}
-	data, err := os.ReadFile(filepath.Join(root, ".opencode/agents/swarm.md"))
+	data, err := os.ReadFile(filepath.Join(root, ".opencode/agents/runweaver-swarm.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(data), "edit: allow") || !strings.Contains(string(data), "task: allow") || !strings.Contains(string(data), "todowrite: allow") {
-		t.Fatalf("swarm agent missing edit/task/todowrite permissions:\n%s", string(data))
+		t.Fatalf("runweaver-swarm agent missing edit/task/todowrite permissions:\n%s", string(data))
 	}
 	for _, want := range []string{
 		`"runweaver workflow run *": allow`,
@@ -69,7 +69,7 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 		`"pwd": allow`,
 	} {
 		if !strings.Contains(string(data), want) {
-			t.Fatalf("swarm agent missing bash permission %q:\n%s", want, string(data))
+			t.Fatalf("runweaver-swarm agent missing bash permission %q:\n%s", want, string(data))
 		}
 	}
 	for _, want := range []string{
@@ -88,14 +88,14 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 		"filesChanged",
 		"workflow verify",
 		"--complete-phase",
-		"resume is automatic via swarm",
+		"resume is automatic via RunWeaver",
 	} {
 		if !strings.Contains(string(data), want) {
-			t.Fatalf("swarm agent missing shell safety guidance %q:\n%s", want, string(data))
+			t.Fatalf("runweaver-swarm agent missing shell safety guidance %q:\n%s", want, string(data))
 		}
 	}
 	if !strings.Contains(string(data), "runweaver workflow run") || !strings.Contains(string(data), "repo-context.md") {
-		t.Fatalf("swarm agent missing workflow/index guidance:\n%s", string(data))
+		t.Fatalf("runweaver-swarm agent missing workflow/index guidance:\n%s", string(data))
 	}
 	opencodeData, err := os.ReadFile(filepath.Join(root, "opencode.json"))
 	if err != nil {
@@ -225,7 +225,7 @@ func TestInitSmartMergesExistingOpenCodeConfigAndKeepsBackup(t *testing.T) {
 	}
 	value := string(data)
 	for _, want := range []string{
-		`"default_agent": "swarm"`,
+		`"default_agent": "custom-agent"`,
 		`"CUSTOM.md"`,
 		`"AGENTS.md"`,
 		`"custom-plugin"`,
@@ -233,6 +233,7 @@ func TestInitSmartMergesExistingOpenCodeConfigAndKeepsBackup(t *testing.T) {
 		`"mcp"`,
 		`"custom-tool *": "allow"`,
 		`"runweaver *": "allow"`,
+		`"runweaver-swarm"`,
 		`"custom/**"`,
 		`".runweaver/tmp/**"`,
 	} {
@@ -280,7 +281,7 @@ func TestInitSmartMergesExistingOpenCodeJSONCInsteadOfCreatingCompetingConfig(t 
 	}
 	value := string(data)
 	for _, want := range []string{
-		`"default_agent": "swarm"`,
+		`"default_agent": "runweaver-swarm"`,
 		`"model": "custom-provider/custom-model"`,
 		`"custom-provider"`,
 		`"runweaver *": "allow"`,
@@ -350,9 +351,9 @@ func TestInitSmartWritesRunWeaverStartupProtocolForAllRuntimes(t *testing.T) {
 	for _, path := range []string{
 		"AGENTS.md",
 		"CLAUDE.md",
-		".opencode/agents/swarm.md",
-		".codex/agents/swarm.toml",
-		".claude/agents/swarm.md",
+		".opencode/agents/runweaver-swarm.md",
+		".codex/agents/runweaver-swarm.toml",
+		".claude/agents/runweaver-swarm.md",
 	} {
 		data, err := os.ReadFile(filepath.Join(root, path))
 		if err != nil {

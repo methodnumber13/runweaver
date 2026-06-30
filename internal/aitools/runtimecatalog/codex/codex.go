@@ -42,5 +42,5 @@ func (Adapter) Capabilities() map[string]catalog.Flag {
 
 // DelegationGuidance returns orchestration guidance for Codex prompts.
 func (Adapter) DelegationGuidance() string {
-	return "Use Codex subagents when explicitly available, otherwise emulate selected roles explicitly and record that in participants."
+	return "For unattended codex exec, emulate selected roles in the primary agent and record that in participants. Do not call child-agent spawn/wait unless the user explicitly asks for live Codex subagents and you can continue without blocking."
 }

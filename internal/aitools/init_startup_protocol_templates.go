@@ -10,7 +10,8 @@ For any non-trivial coding, bugfix, refactor, test, review, onboarding, or metad
 4. Keep ` + "`checkpoint.json`" + `, ` + "`todo.md`" + `, and ` + "`current.md`" + ` current with ` + "`runweaver workflow update`" + ` after each phase. Include ` + "`lastResult`" + `, ` + "`filesChanged`" + `, ` + "`rejectedPaths`" + `, ` + "`nextAction`" + `, and ` + "`nextVerification`" + ` whenever they explain why the next move is safe.
 5. Use the participants returned by ` + "`runweaver start`" + `. Spawn/delegate to named agents when the runtime supports it; otherwise emulate the selected participant roles explicitly and record them in the checkpoint.
 6. Continue until implementation and verification are complete, unless the user explicitly asks for planning-only work.
-7. Before final response, run ` + "`runweaver workflow verify --repo . --resume latest`" + ` when feasible and record blockers plus the next verification step when it is not.
+7. Mark every finished phase with ` + "`runweaver workflow update --repo . --resume latest --phase <phase> --complete-phase --verification \"<command/result>\"`" + `. Do not send a final response while the checkpoint status is ` + "`in_progress`" + ` after successful verification; either complete all workflow phases or record a concrete blocker with ` + "`--blocker`" + ` and ` + "`--next-verification`" + `.
+8. Before final response, run ` + "`runweaver workflow verify --repo . --resume latest`" + ` when feasible and record blockers plus the next verification step when it is not.
 
 Use ` + "`runweaver status --repo .`" + ` and ` + "`runweaver workflow run --resume latest --status`" + ` only as diagnostics when ` + "`runweaver start`" + ` is unavailable or blocked by permissions. Do not ask the user to run start, resume, status, update, or verify commands manually unless RunWeaver itself is unavailable.
 `

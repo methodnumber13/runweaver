@@ -52,11 +52,13 @@ func executeWorkflow(repoPath string, opts WorkflowExecuteOptions, runner comman
 	if err != nil {
 		return WorkflowExecutionResult{}, err
 	}
-	prompt := executionPrompt(plan, opts.Runtime)
+	runweaverCommand := runweaverCommandForExecution()
+	prompt := executionPrompt(plan, opts.Runtime, runweaverCommand)
 	spec, err := prepareRuntimeExecutionSpec(root, opts, plan, prompt)
 	if err != nil {
 		return WorkflowExecutionResult{}, err
 	}
+	spec.Env = withRunWeaverCommandEnv(spec.Env, runweaverCommand)
 	if err := os.WriteFile(spec.PromptPath, []byte(prompt), 0o644); err != nil {
 		return WorkflowExecutionResult{}, fmt.Errorf("write %s execution prompt: %w", spec.DisplayName, err)
 	}
@@ -130,7 +132,7 @@ func normalizeExecuteOptions(opts WorkflowExecuteOptions) (WorkflowExecuteOption
 		opts.ClaudeBin = "claude"
 	}
 	if opts.Agent == "" {
-		opts.Agent = "swarm"
+		opts.Agent = OpenCodePrimaryAgentName
 	}
 	if opts.Format == "" {
 		opts.Format = "json"

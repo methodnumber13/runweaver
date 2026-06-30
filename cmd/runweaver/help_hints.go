@@ -24,6 +24,8 @@ func commandHint(command string) string {
 		return "runweaver doctor runtime --repo <path> [--runtime all]"
 	case "doctor processes":
 		return "runweaver doctor processes [--summary]"
+	case "smoke codex":
+		return "runweaver smoke codex [--live] [--keep]"
 	case "init":
 		return "runweaver init --repo <path> [--runtime opencode|codex|claude|all] [--force] [--require-model] [--classification auto|ai|deterministic]"
 	case "mcp serve":

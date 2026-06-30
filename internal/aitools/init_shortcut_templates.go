@@ -21,6 +21,10 @@ Use this skill when a user asks for coding, bugfix, refactor, test, review, onbo
 
 First run:
 
+` + "`${RUNWEAVER_BIN:-runweaver} start --repo . --runtime codex --task \"<user task>\"`" + `
+
+If the runtime execution prompt sets ` + "`RUNWEAVER_BIN`" + `, use that exact binary instead of a global ` + "`runweaver`" + `. Fallback command for normal interactive sessions:
+
 ` + "`runweaver start --repo . --runtime codex --task \"<user task>\"`" + `
 
 Then follow the returned ` + "`executionContract`" + `, selected participants, task tier, task-scoped context, and next verification step. Keep ` + "`checkpoint.json`" + ` current with ` + "`runweaver workflow update`" + ` after each phase.
@@ -35,6 +39,10 @@ compatibility: claude
 Use this skill when a user asks for coding, bugfix, refactor, test, review, onboarding, or metadata work.
 
 First run:
+
+` + "`${RUNWEAVER_BIN:-runweaver} start --repo . --runtime claude --task \"<user task>\"`" + `
+
+If the runtime execution prompt sets ` + "`RUNWEAVER_BIN`" + `, use that exact binary instead of a global ` + "`runweaver`" + `. Fallback command for normal interactive sessions:
 
 ` + "`runweaver start --repo . --runtime claude --task \"<user task>\"`" + `
 

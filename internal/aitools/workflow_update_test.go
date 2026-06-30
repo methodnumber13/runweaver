@@ -191,6 +191,46 @@ func TestUpdateWorkflowCompletePhaseSynchronizesTodo(t *testing.T) {
 	}
 }
 
+func TestUpdateWorkflowCanReplaceParticipants(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
+  "id": "test-swarm",
+  "name": "Test Swarm",
+  "maxParticipants": 2,
+  "phases": [
+    {"id": "verify", "name": "Verify", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-test-quality-reviewer"], "prompt": "verify"}
+  ]
+}`)
+	if _, err := PlanWorkflow(root, ".runweaver/workflows/test-swarm.json", "verify participants"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:       "latest",
+		Phase:        "verify",
+		Participants: []string{"repo-test-quality-reviewer", "repo-quality-gates", "stale-fallback"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	status, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:              "latest",
+		Phase:               "verify",
+		Participants:        []string{"repo-test-quality-reviewer", "repo-quality-gates"},
+		ReplaceParticipants: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	participants, _ := status["participants"].([]any)
+	if got := len(participants); got != 2 {
+		t.Fatalf("participants = %#v, want 2 after replace", participants)
+	}
+	for _, unexpected := range participants {
+		if unexpected == "stale-fallback" {
+			t.Fatalf("participants = %#v, stale fallback should have been replaced", participants)
+		}
+	}
+}
+
 func TestUpdateWorkflowCompletePhaseRequiresReadablePlan(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{

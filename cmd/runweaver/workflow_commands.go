@@ -33,7 +33,7 @@ func (c cli) workflowCmd(args []string) error {
 	opencodeBin := fs.String("opencode-bin", "opencode", "OpenCode executable path")
 	codexBin := fs.String("codex-bin", "codex", "Codex executable path")
 	claudeBin := fs.String("claude-bin", "claude", "Claude Code executable path")
-	agent := fs.String("agent", "swarm", "OpenCode primary agent for execution")
+	agent := fs.String("agent", aitools.OpenCodePrimaryAgentName, "OpenCode primary agent for execution")
 	provider := fs.String("provider", "", "OpenCode provider id for model preflight; defaults to the provider prefix in the configured model")
 	model := fs.String("model", "", "optional runtime model override")
 	attach := fs.String("attach", "", "optional opencode serve URL to attach to")
@@ -174,6 +174,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	phase := fs.String("phase", "", "current workflow phase")
 	status := fs.String("status", "", "checkpoint status, for example in_progress or complete")
 	participants := fs.String("participants", "", "comma-separated participant names")
+	replaceParticipants := fs.Bool("replace-participants", false, "replace checkpoint participants instead of appending")
 	lastResult := fs.String("last-result", "", "last command, agent, or phase result that explains why the workflow is moving or pausing")
 	nextAction := fs.String("next-action", "", "next action to persist in checkpoint")
 	nextVerification := fs.String("next-verification", "", "next verification step that should be run before continuing or finishing")
@@ -209,6 +210,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 		Phase:                *phase,
 		Status:               *status,
 		Participants:         splitCSV(*participants),
+		ReplaceParticipants:  *replaceParticipants,
 		ParticipantRationale: participantRationale.Values(),
 		Findings:             findings.Values(),
 		Decisions:            decisions.Values(),

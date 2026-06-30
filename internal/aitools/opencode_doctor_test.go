@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-func TestDoctorOpenCodeReportsReadyWhenSwarmIsResolved(t *testing.T) {
+func TestDoctorOpenCodeReportsReadyWhenRunWeaverAgentIsResolved(t *testing.T) {
 	root := t.TempDir()
 	makeFakeRunWeaver(t)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 
 	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
@@ -20,26 +20,27 @@ func TestDoctorOpenCodeReportsReadyWhenSwarmIsResolved(t *testing.T) {
 		switch command {
 		case "debug config":
 			return []byte(`{
-  "default_agent": "swarm",
+  "default_agent": "runweaver-swarm",
   "permission": {
     "task": "allow",
     "todowrite": "allow"
   },
   "agent": {
-    "swarm": {}
+    "runweaver-swarm": {}
   }
 }`), nil
-		case "debug agent swarm":
+		case "debug agent runweaver-swarm":
 			return []byte(`{
-  "name": "swarm",
+  "name": "runweaver-swarm",
   "mode": "primary",
+  "prompt": "You are the workflow-aware primary RunWeaver OpenCode agent. RunWeaver Startup Protocol. runweaver start --repo .",
   "tools": {
     "task": true,
     "todowrite": true
   }
 }`), nil
 		case "agent list":
-			return []byte("swarm\nrepo-surface-indexer\n"), nil
+			return []byte("runweaver-swarm\nrepo-surface-indexer\n"), nil
 		default:
 			t.Fatalf("unexpected command: %s", command)
 		}
@@ -54,12 +55,58 @@ func TestDoctorOpenCodeReportsReadyWhenSwarmIsResolved(t *testing.T) {
 	if !hasDoctorCheck(result, "resolved-agent-tools", "ok") || !hasDoctorCheck(result, "default-agent", "ok") {
 		t.Fatalf("checks = %#v, want default-agent and resolved-agent-tools ok", result.Checks)
 	}
+	if !hasDoctorCheck(result, "resolved-agent-marker", "ok") {
+		t.Fatalf("checks = %#v, want resolved-agent-marker ok", result.Checks)
+	}
+}
+
+func TestDoctorOpenCodeReportsCollisionWhenResolvedPromptIsNotRunWeaver(t *testing.T) {
+	root := t.TempDir()
+	makeFakeRunWeaver(t)
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\nYou are the workflow-aware primary RunWeaver OpenCode agent.\n")
+	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
+
+	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
+		command := strings.Join(args, " ")
+		switch command {
+		case "debug config":
+			return []byte(`{
+  "default_agent": "runweaver-swarm",
+  "permission": {"task": "allow", "todowrite": "allow"},
+  "agent": {"runweaver-swarm": {}}
+}`), nil
+		case "debug agent runweaver-swarm":
+			return []byte(`{
+  "name": "runweaver-swarm",
+  "mode": "primary",
+  "prompt": "Plugin supplied generic agent prompt without RunWeaver protocol",
+  "tools": {"task": true, "todowrite": true}
+}`), nil
+		case "agent list":
+			return []byte("runweaver-swarm\n"), nil
+		default:
+			t.Fatalf("unexpected command: %s", command)
+		}
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Ready || result.Status != "error" {
+		t.Fatalf("result = %#v, want not ready error", result)
+	}
+	if !hasDoctorCheck(result, "resolved-agent-marker", "error") {
+		t.Fatalf("checks = %#v, want resolved-agent-marker collision error", result.Checks)
+	}
+	if !hasDoctorRecommendation(result, "agent name collision") || !hasDoctorRecommendation(result, "runweaver-coordinator") {
+		t.Fatalf("recommendations = %#v, want collision and fallback reserved name guidance", result.Recommendations)
+	}
 }
 
 func TestDoctorOpenCodeWarnsWhenDefaultAgentOrToolsAreWrong(t *testing.T) {
 	root := t.TempDir()
 	makeFakeRunWeaver(t)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 
 	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
@@ -73,10 +120,11 @@ func TestDoctorOpenCodeWarnsWhenDefaultAgentOrToolsAreWrong(t *testing.T) {
   },
   "agent": {}
 }`), nil
-		case "debug agent swarm":
+		case "debug agent runweaver-swarm":
 			return []byte(`{
-  "name": "swarm",
+  "name": "runweaver-swarm",
   "mode": "primary",
+  "prompt": "You are the workflow-aware primary RunWeaver OpenCode agent. RunWeaver Startup Protocol. runweaver start --repo .",
   "tools": {
     "task": true
   }
@@ -102,7 +150,7 @@ func TestDoctorOpenCodeWarnsWhenDefaultAgentOrToolsAreWrong(t *testing.T) {
 func TestDoctorOpenCodeDoesNotFailReadinessForMissingTopLevelToolPermissionsWhenAgentAllowsTools(t *testing.T) {
 	root := t.TempDir()
 	makeFakeRunWeaver(t)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 
 	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
@@ -110,23 +158,24 @@ func TestDoctorOpenCodeDoesNotFailReadinessForMissingTopLevelToolPermissionsWhen
 		switch command {
 		case "debug config":
 			return []byte(`{
-  "default_agent": "swarm",
+  "default_agent": "runweaver-swarm",
   "permission": {},
   "agent": {
-    "swarm": {}
+    "runweaver-swarm": {}
   }
 }`), nil
-		case "debug agent swarm":
+		case "debug agent runweaver-swarm":
 			return []byte(`{
-  "name": "swarm",
+  "name": "runweaver-swarm",
   "mode": "primary",
+  "prompt": "You are the workflow-aware primary RunWeaver OpenCode agent. RunWeaver Startup Protocol. runweaver start --repo .",
   "tools": {
     "task": true,
     "todowrite": true
   }
 }`), nil
 		case "agent list":
-			return []byte("swarm\n"), nil
+			return []byte("runweaver-swarm\n"), nil
 		default:
 			t.Fatalf("unexpected command: %s", command)
 		}
@@ -146,7 +195,7 @@ func TestDoctorOpenCodeDoesNotFailReadinessForMissingTopLevelToolPermissionsWhen
 func TestDoctorOpenCodeUsesFreshTimeoutForEachOpenCodeCommand(t *testing.T) {
 	root := t.TempDir()
 	makeFakeRunWeaver(t)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 
 	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true, Timeout: 30 * time.Millisecond}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
@@ -155,13 +204,14 @@ func TestDoctorOpenCodeUsesFreshTimeoutForEachOpenCodeCommand(t *testing.T) {
 		case "debug config":
 			<-ctx.Done()
 			return nil, ctx.Err()
-		case "debug agent swarm":
+		case "debug agent runweaver-swarm":
 			if ctx.Err() != nil {
 				t.Fatalf("debug agent received an already-expired context")
 			}
 			return []byte(`{
-  "name": "swarm",
+  "name": "runweaver-swarm",
   "mode": "primary",
+  "prompt": "You are the workflow-aware primary RunWeaver OpenCode agent. RunWeaver Startup Protocol. runweaver start --repo .",
   "tools": {
     "task": true,
     "todowrite": true
@@ -171,7 +221,7 @@ func TestDoctorOpenCodeUsesFreshTimeoutForEachOpenCodeCommand(t *testing.T) {
 			if ctx.Err() != nil {
 				t.Fatalf("agent list received an already-expired context")
 			}
-			return []byte("swarm\n"), nil
+			return []byte("runweaver-swarm\n"), nil
 		default:
 			t.Fatalf("unexpected command: %s", command)
 		}
@@ -191,6 +241,15 @@ func TestDoctorOpenCodeUsesFreshTimeoutForEachOpenCodeCommand(t *testing.T) {
 func hasDoctorCheck(result OpenCodeDoctorResult, name, status string) bool {
 	for _, check := range result.Checks {
 		if check.Name == name && check.Status == status {
+			return true
+		}
+	}
+	return false
+}
+
+func hasDoctorRecommendation(result OpenCodeDoctorResult, fragment string) bool {
+	for _, recommendation := range result.Recommendations {
+		if strings.Contains(recommendation, fragment) {
 			return true
 		}
 	}

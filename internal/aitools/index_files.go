@@ -21,7 +21,7 @@ func repoFiles(root string) ([]string, []string, error) {
 			return nil
 		}
 		if entry.IsDir() {
-			if path != root && shouldSkipDir(entry.Name()) {
+			if path != root && shouldSkipWalkDir(root, path, entry.Name()) {
 				return filepath.SkipDir
 			}
 			return nil

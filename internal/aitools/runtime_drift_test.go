@@ -29,9 +29,9 @@ func TestValidateRuntimeMetadataFindsNoCrossRuntimeDriftAfterInitAll(t *testing.
 
 func TestValidateRuntimeMetadataReportsForeignRuntimePaths(t *testing.T) {
 	root := t.TempDir()
-	writeTestFile(t, root, ".codex/agents/swarm.toml", `name = "swarm"
+	writeTestFile(t, root, ".codex/agents/runweaver-swarm.toml", `name = "runweaver-swarm"
 description = "bad"
-developer_instructions = "Use .opencode/agents/swarm.md and opencode run"
+developer_instructions = "Use .opencode/agents/runweaver-swarm.md and opencode run"
 `)
 	writeTestFile(t, root, ".agents/skills/context-discipline/SKILL.md", "---\nname: context-discipline\n---\n")
 	writeTestFile(t, root, ".codex/runweaver/profile.json", "{}\n")
@@ -56,22 +56,22 @@ func TestValidateRuntimeMetadataReportsForeignRuntimeMarkersForEachRuntime(t *te
 		{
 			name:       "opencode_contains_codex_marker",
 			runtimeID:  RuntimeOpenCode,
-			file:       ".opencode/agents/swarm.md",
-			content:    "Delegate through .codex/agents/swarm.toml with codex exec\n",
+			file:       ".opencode/agents/runweaver-swarm.md",
+			content:    "Delegate through .codex/agents/runweaver-swarm.toml with codex exec\n",
 			wantMarker: ".codex/",
 		},
 		{
 			name:       "opencode_contains_claude_marker",
 			runtimeID:  RuntimeOpenCode,
 			file:       ".opencode/skills/context-discipline/SKILL.md",
-			content:    "Use .claude/agents/swarm.md and claude --print\n",
+			content:    "Use .claude/agents/runweaver-swarm.md and claude --print\n",
 			wantMarker: ".claude/",
 		},
 		{
 			name:       "codex_contains_opencode_marker",
 			runtimeID:  RuntimeCodex,
-			file:       ".codex/agents/swarm.toml",
-			content:    "developer_instructions = \"Use .opencode/agents/swarm.md and opencode run\"\n",
+			file:       ".codex/agents/runweaver-swarm.toml",
+			content:    "developer_instructions = \"Use .opencode/agents/runweaver-swarm.md and opencode run\"\n",
 			wantMarker: ".opencode/",
 		},
 		{
@@ -84,15 +84,15 @@ func TestValidateRuntimeMetadataReportsForeignRuntimeMarkersForEachRuntime(t *te
 		{
 			name:       "claude_contains_opencode_marker",
 			runtimeID:  RuntimeClaude,
-			file:       ".claude/agents/swarm.md",
-			content:    "Use .opencode/agents/swarm.md and opencode run\n",
+			file:       ".claude/agents/runweaver-swarm.md",
+			content:    "Use .opencode/agents/runweaver-swarm.md and opencode run\n",
 			wantMarker: ".opencode/",
 		},
 		{
 			name:       "claude_contains_codex_marker",
 			runtimeID:  RuntimeClaude,
 			file:       ".claude/skills/context-discipline/SKILL.md",
-			content:    "Use .codex/agents/swarm.toml and codex exec\n",
+			content:    "Use .codex/agents/runweaver-swarm.toml and codex exec\n",
 			wantMarker: ".codex/",
 		},
 	} {
@@ -138,17 +138,17 @@ func writeMinimalRuntimeMetadata(t *testing.T, root, runtimeID string) {
 	switch runtimeID {
 	case RuntimeOpenCode:
 		writeTestFile(t, root, "opencode.json", "{}\n")
-		writeTestFile(t, root, ".opencode/agents/swarm.md", "---\ndescription: swarm\n---\n")
+		writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\ndescription: runweaver-swarm\n---\n")
 		writeTestFile(t, root, ".opencode/skills/context-discipline/SKILL.md", "---\nname: context-discipline\n---\n")
 		writeTestFile(t, root, ".opencode/swarm/profile.json", "{}\n")
 	case RuntimeCodex:
 		writeTestFile(t, root, "AGENTS.md", "# Rules\n")
-		writeTestFile(t, root, ".codex/agents/swarm.toml", "name = \"swarm\"\n")
+		writeTestFile(t, root, ".codex/agents/runweaver-swarm.toml", "name = \"runweaver-swarm\"\n")
 		writeTestFile(t, root, ".agents/skills/context-discipline/SKILL.md", "---\nname: context-discipline\n---\n")
 		writeTestFile(t, root, ".codex/runweaver/profile.json", "{}\n")
 	case RuntimeClaude:
 		writeTestFile(t, root, "CLAUDE.md", "# Rules\n")
-		writeTestFile(t, root, ".claude/agents/swarm.md", "---\nname: swarm\n---\n")
+		writeTestFile(t, root, ".claude/agents/runweaver-swarm.md", "---\nname: runweaver-swarm\n---\n")
 		writeTestFile(t, root, ".claude/skills/context-discipline/SKILL.md", "---\nname: context-discipline\n---\n")
 		writeTestFile(t, root, ".claude/runweaver/profile.json", "{}\n")
 	default:

@@ -68,23 +68,23 @@ func TestCLIDoctorModelCommandInfersProviderFromModelPrefix(t *testing.T) {
 func TestCLIDoctorOpenCodeCommandWithFakeOpenCode(t *testing.T) {
 	root := t.TempDir()
 	binDir := t.TempDir()
-	writeCLIFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeCLIFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeCLIFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 	writeExecutable(t, filepath.Join(binDir, "runweaver"), "#!/bin/sh\nexit 0\n")
 	writeExecutable(t, filepath.Join(binDir, "opencode"), `#!/bin/sh
 case "$1 $2 $3" in
   "debug config ")
     cat <<'JSON'
-{"default_agent":"swarm","permission":{"task":"allow","todowrite":"allow"},"agent":{"swarm":{}}}
+{"default_agent":"runweaver-swarm","permission":{"task":"allow","todowrite":"allow"},"agent":{"runweaver-swarm":{}}}
 JSON
     ;;
-  "debug agent swarm")
+  "debug agent runweaver-swarm")
     cat <<'JSON'
-{"name":"swarm","mode":"primary","tools":{"task":true,"todowrite":true}}
+{"name":"runweaver-swarm","mode":"primary","prompt":"You are the workflow-aware primary RunWeaver OpenCode agent. RunWeaver Startup Protocol. runweaver start --repo .","tools":{"task":true,"todowrite":true}}
 JSON
     ;;
   "agent list ")
-    echo "swarm"
+    echo "runweaver-swarm"
     ;;
   *)
     echo "unexpected $*" >&2
@@ -101,7 +101,7 @@ esac
 	if code != 0 {
 		t.Fatalf("doctor opencode exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
 	}
-	if !strings.Contains(stdout.String(), `"ready": true`) || !strings.Contains(stdout.String(), `"resolved-agent-tools"`) {
+	if !strings.Contains(stdout.String(), `"ready": true`) || !strings.Contains(stdout.String(), `"resolved-agent-tools"`) || !strings.Contains(stdout.String(), `"resolved-agent-marker"`) {
 		t.Fatalf("stdout = %q, want ready OpenCode doctor result", stdout.String())
 	}
 }
@@ -109,7 +109,7 @@ esac
 func TestCLIDoctorRuntimeCommand(t *testing.T) {
 	root := t.TempDir()
 	writeCLIFile(t, root, ".codex/config.toml", "[features]\nmulti_agent = true\n")
-	writeCLIFile(t, root, ".codex/agents/swarm.toml", "name = \"swarm\"\n")
+	writeCLIFile(t, root, ".codex/agents/runweaver-swarm.toml", "name = \"runweaver-swarm\"\n")
 	writeCLIFile(t, root, ".agents/skills/context-discipline/SKILL.md", "---\nname: context-discipline\n---\n")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

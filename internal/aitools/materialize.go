@@ -35,7 +35,7 @@ func materializeOpenCodeProfile(root string, profile Profile, force bool) error 
 	desiredSkills := map[string]bool{}
 	keepRuntimeBaselineFiles(root, desiredAgents, desiredSkills,
 		[]string{
-			".opencode/agents/swarm.md",
+			".opencode/agents/" + OpenCodePrimaryAgentName + ".md",
 			".opencode/agents/repo-classifier.md",
 			".opencode/agents/repo-surface-indexer.md",
 			".opencode/agents/agent-skill-drift-reviewer.md",
@@ -90,7 +90,7 @@ func materializeCodexProfile(root string, profile Profile, force bool) error {
 	desiredSkills := map[string]bool{}
 	keepRuntimeBaselineFiles(root, desiredAgents, desiredSkills,
 		[]string{
-			".codex/agents/swarm.toml",
+			".codex/agents/" + RunWeaverPrimaryAgentName + ".toml",
 		},
 		[]string{
 			".agents/skills/context-discipline/SKILL.md",
@@ -141,7 +141,7 @@ func materializeClaudeProfile(root string, profile Profile, force bool) error {
 	desiredSkills := map[string]bool{}
 	keepRuntimeBaselineFiles(root, desiredAgents, desiredSkills,
 		[]string{
-			".claude/agents/swarm.md",
+			".claude/agents/" + RunWeaverPrimaryAgentName + ".md",
 		},
 		[]string{
 			".claude/skills/context-discipline/SKILL.md",

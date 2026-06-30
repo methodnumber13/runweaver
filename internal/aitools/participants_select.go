@@ -41,8 +41,8 @@ func SelectParticipants(repoPath string, opts ParticipantSelectOptions) (Partici
 		taskTier = ClassifyTaskTier(task).Tier
 	}
 	cap = applyTaskTierCap(cap, taskTier)
-	candidates := participantCandidates(profile, profileLoaded, workflow)
-	contextEvidence := loadParticipantContextEvidence(root, task)
+	candidates := participantCandidates(root, profile, profileLoaded, workflow)
+	contextEvidence, warnings := loadParticipantContextEvidence(root, task)
 	scoreParticipantCandidates(candidates, task, workflow, contextEvidence)
 	sort.SliceStable(candidates, func(i, j int) bool {
 		if candidates[i].Score == candidates[j].Score {
@@ -54,6 +54,7 @@ func SelectParticipants(repoPath string, opts ParticipantSelectOptions) (Partici
 		return candidates[i].Score > candidates[j].Score
 	})
 	selected := selectParticipantCandidates(candidates, cap)
+	assignments := participantAssignments(selected)
 	names := make([]string, 0, len(selected))
 	rationale := make([]string, 0, len(selected))
 	selectedSet := map[string]bool{}
@@ -78,8 +79,10 @@ func SelectParticipants(repoPath string, opts ParticipantSelectOptions) (Partici
 		ProfilePath:  relOrEmpty(root, profilePath),
 		Cap:          cap,
 		Participants: names,
+		Assignments:  assignments,
 		Rationale:    rationale,
 		Candidates:   candidates,
+		Warnings:     warnings,
 	}, nil
 }
 
@@ -145,7 +148,7 @@ func participantProfilePaths(runtimeID string) []string {
 	return runtimeProfilePaths([]string{RuntimeOpenCode, RuntimeCodex, RuntimeClaude})
 }
 
-func participantCandidates(profile Profile, profileLoaded bool, workflow WorkflowSpec) []ParticipantSelectionCandidate {
+func participantCandidates(root string, profile Profile, profileLoaded bool, workflow WorkflowSpec) []ParticipantSelectionCandidate {
 	seen := map[string]bool{}
 	var out []ParticipantSelectionCandidate
 	add := func(name, kind, source string, score int, rationale ...string) {
@@ -163,7 +166,7 @@ func participantCandidates(profile Profile, profileLoaded bool, workflow Workflo
 		})
 	}
 	if profileLoaded {
-		for _, repo := range profile.Repos {
+		for _, repo := range participantReposForRoot(root, profile.Repos) {
 			for _, agent := range repo.Agents {
 				add(agent.Name, "agent", "repo", 0, participantEvidence(agent.Description, agent.FocusFiles, agent.Workflow, agent.Verification)...)
 			}
@@ -183,6 +186,55 @@ func participantCandidates(profile Profile, profileLoaded bool, workflow Workflo
 	return out
 }
 
+func participantReposForRoot(root string, repos []RepoProfile) []RepoProfile {
+	if len(repos) <= 1 {
+		return repos
+	}
+	out := make([]RepoProfile, 0, len(repos))
+	for _, repo := range repos {
+		if repoProfileDirMatchesRoot(root, repo.Dir) {
+			out = append(out, repo)
+		}
+	}
+	return out
+}
+
+func repoProfileDirMatchesRoot(root, dir string) bool {
+	dir = strings.TrimSpace(dir)
+	if dir == "" || dir == "." || dir == "./" {
+		return true
+	}
+	cleanDir := filepath.Clean(dir)
+	if filepath.IsAbs(cleanDir) {
+		return filepath.Clean(root) == cleanDir
+	}
+	normalizedDir := strings.TrimPrefix(filepath.ToSlash(cleanDir), "./")
+	return repoPathHasSuffix(filepath.ToSlash(filepath.Clean(root)), normalizedDir)
+}
+
+func repoPathHasSuffix(rootPath, repoDir string) bool {
+	rootParts := splitCleanPath(rootPath)
+	repoParts := splitCleanPath(repoDir)
+	if len(repoParts) == 0 || len(repoParts) > len(rootParts) {
+		return false
+	}
+	offset := len(rootParts) - len(repoParts)
+	for index := range repoParts {
+		if rootParts[offset+index] != repoParts[index] {
+			return false
+		}
+	}
+	return true
+}
+
+func splitCleanPath(value string) []string {
+	value = strings.Trim(filepath.ToSlash(filepath.Clean(value)), "/")
+	if value == "" || value == "." {
+		return nil
+	}
+	return strings.Split(value, "/")
+}
+
 func participantEvidence(description string, focusFiles, workflow, verification []string) []string {
 	var evidence []string
 	if strings.TrimSpace(description) != "" {
@@ -198,6 +250,50 @@ func participantEvidence(description string, focusFiles, workflow, verification 
 		evidence = append(evidence, "verification: "+command)
 	}
 	return evidence
+}
+
+func participantAssignments(selected []ParticipantSelectionCandidate) []ParticipantAssignment {
+	assignments := make([]ParticipantAssignment, 0, len(selected))
+	ownerAssigned := false
+	for _, candidate := range selected {
+		role := participantRole(candidate, ownerAssigned)
+		if role == "owner" {
+			ownerAssigned = true
+		}
+		assignments = append(assignments, ParticipantAssignment{
+			Name:      candidate.Name,
+			Kind:      candidate.Kind,
+			Role:      role,
+			Source:    candidate.Source,
+			Score:     candidate.Score,
+			Rationale: candidate.Rationale,
+		})
+	}
+	return assignments
+}
+
+func participantRole(candidate ParticipantSelectionCandidate, ownerAssigned bool) string {
+	text := strings.ToLower(candidate.Name + " " + strings.Join(candidate.Rationale, " "))
+	if candidate.Kind == "skill" {
+		name := strings.ToLower(candidate.Name)
+		if strings.Contains(name, "test") || strings.Contains(name, "verify") || strings.Contains(name, "quality") {
+			return "verifier"
+		}
+		return "specialist"
+	}
+	if !ownerAssigned && candidate.Source == "repo" {
+		return "owner"
+	}
+	if strings.Contains(text, "test") || strings.Contains(text, "verify") || strings.Contains(text, "quality") {
+		return "verifier"
+	}
+	if strings.Contains(text, "review") || strings.Contains(text, "security") {
+		return "reviewer"
+	}
+	if !ownerAssigned {
+		return "owner"
+	}
+	return "reviewer"
 }
 
 func scoreParticipantCandidates(candidates []ParticipantSelectionCandidate, task string, workflow WorkflowSpec, context participantContextEvidence) {
@@ -241,15 +337,22 @@ type participantContextEvidence struct {
 	weakPaths   map[string]string
 }
 
-func loadParticipantContextEvidence(root, task string) participantContextEvidence {
+func loadParticipantContextEvidence(root, task string) (participantContextEvidence, []string) {
 	context, err := QueryContext(root, ContextQueryOptions{
 		Task:  task,
 		Limit: 12,
 	})
-	if err != nil || context.Status != "success" {
-		return participantContextEvidence{}
+	if err != nil {
+		return participantContextEvidence{}, []string{"task context unavailable: " + err.Error()}
 	}
-	return newParticipantContextEvidence(context)
+	if context.Status != "success" {
+		warnings := context.Warnings
+		if len(warnings) == 0 {
+			warnings = []string{"task context unavailable: context query did not succeed"}
+		}
+		return participantContextEvidence{}, warnings
+	}
+	return newParticipantContextEvidence(context), nil
 }
 
 func newParticipantContextEvidence(context ContextQueryResult) participantContextEvidence {

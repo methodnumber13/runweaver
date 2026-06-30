@@ -195,7 +195,7 @@ func workflowSelectionRules() []workflowSelectionRule {
 			"refactor", "cleanup", "clean", "split", "extract", "rename", "dry", "solid", "architecture", "restructure",
 		}},
 		{WorkflowID: "metadata-refresh-swarm", Weight: 11, Reason: "metadata refresh signal", Keywords: []string{
-			"metadata", "agent", "agents", "skill", "skills", "stale", "anchor", "anchors", "refresh", "index", "profile", "workflow",
+			"metadata", "agent", "agents", "skill", "skills", "stale", "anchor", "anchors", "refresh", "index", "profile",
 		}},
 		{WorkflowID: "repo-onboarding-swarm", Weight: 10, Reason: "onboarding signal", Keywords: []string{
 			"onboard", "onboarding", "explore", "study", "analyze", "analyse", "map", "audit", "review", "understand", "overview",
@@ -230,8 +230,17 @@ func tokenizeSelectionText(value string) map[string]bool {
 
 func addSelectionToken(tokens map[string]bool, token string) {
 	token = strings.TrimSpace(token)
-	if len(token) < 2 {
+	if len(token) < 2 || selectionStopword(token) {
 		return
 	}
 	tokens[token] = true
+}
+
+func selectionStopword(token string) bool {
+	switch token {
+	case "a", "an", "and", "are", "as", "at", "be", "by", "did", "do", "does", "for", "from", "in", "into", "is", "it", "its", "not", "of", "on", "only", "or", "please", "that", "the", "then", "these", "this", "those", "to", "with", "you", "your":
+		return true
+	default:
+		return false
+	}
 }

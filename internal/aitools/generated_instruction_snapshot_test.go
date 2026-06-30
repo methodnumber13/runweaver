@@ -31,6 +31,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"lastResult",
 		"rejectedPaths",
 		"nextVerification",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"runweaver workflow verify --repo . --resume latest",
 		"Do not ask the user to run start, resume, status, update, or verify commands manually",
 	})
@@ -46,11 +48,13 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		".runweaver/workflows",
 		"Agents should call `runweaver start` for non-trivial tasks",
 	})
-	assertGeneratedInstructionSnapshot(t, root, ".opencode/agents/swarm.md", []string{
-		"Primary OpenCode swarm agent",
+	assertGeneratedInstructionSnapshot(t, root, ".opencode/agents/runweaver-swarm.md", []string{
+		"Primary RunWeaver OpenCode agent",
 		"Assume the user may only type a task into OpenCode",
 		"## RunWeaver Startup Protocol",
 		"runweaver start --repo . --task",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"## Planning And Execution Mode",
 		"For normal coding, bugfix, refactor, or test tasks, the plan is only the durable checkpoint",
 		"## Default Task Flow",
@@ -59,16 +63,21 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"--last-result",
 		"--rejected-path",
 		"--next-verification",
+		"--complete-phase",
 		"runweaver workflow verify --repo . --resume latest",
-		"resume is automatic via swarm",
+		"resume is automatic via RunWeaver",
 	})
-	assertGeneratedInstructionSnapshot(t, root, ".codex/agents/swarm.toml", []string{
+	assertGeneratedInstructionSnapshot(t, root, ".codex/agents/runweaver-swarm.toml", []string{
+		`name = "runweaver-swarm"`,
 		`description = "Primary RunWeaver workflow coordinator for Codex"`,
 		"Read AGENTS.md, .codex/runweaver/profile.json",
 		"runweaver start --repo . --runtime codex",
 		"## RunWeaver Startup Protocol",
 		"executionContract",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"Use repo-specific agents from .codex/agents",
+		"do not block on child-agent wait",
 		"lastResult",
 		"rejectedPaths",
 		"nextVerification",
@@ -78,14 +87,19 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"## RunWeaver Startup Protocol",
 		"runweaver start --repo . --task",
 		"executionContract",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"runweaver start --repo . --runtime claude",
 	})
-	assertGeneratedInstructionSnapshot(t, root, ".claude/agents/swarm.md", []string{
+	assertGeneratedInstructionSnapshot(t, root, ".claude/agents/runweaver-swarm.md", []string{
+		"name: runweaver-swarm",
 		"description: Primary RunWeaver workflow coordinator for Claude Code",
 		"Read CLAUDE.md, .claude/runweaver/profile.json",
 		"runweaver start --repo . --runtime claude",
 		"## RunWeaver Startup Protocol",
 		"executionContract",
+		"--complete-phase",
+		"Do not send a final response while the checkpoint status is `in_progress`",
 		"Use repo-specific agents from .claude/agents",
 		"lastResult",
 		"rejectedPaths",
@@ -106,19 +120,19 @@ func TestGeneratedInstructionSnapshotsKeepRuntimeBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertGeneratedInstructionExcludes(t, root, ".codex/agents/swarm.toml", []string{
+	assertGeneratedInstructionExcludes(t, root, ".codex/agents/runweaver-swarm.toml", []string{
 		".opencode/",
 		"opencode run",
 		".claude/",
 		"claude --print",
 	})
-	assertGeneratedInstructionExcludes(t, root, ".claude/agents/swarm.md", []string{
+	assertGeneratedInstructionExcludes(t, root, ".claude/agents/runweaver-swarm.md", []string{
 		".opencode/",
 		"opencode run",
 		".codex/",
 		"codex exec",
 	})
-	assertGeneratedInstructionExcludes(t, root, ".opencode/agents/swarm.md", []string{
+	assertGeneratedInstructionExcludes(t, root, ".opencode/agents/runweaver-swarm.md", []string{
 		"codex exec",
 		"claude --print",
 	})

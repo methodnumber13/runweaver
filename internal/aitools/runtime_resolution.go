@@ -66,12 +66,25 @@ func runtimeResolutionCandidates(root string) []RuntimeResolutionCandidate {
 			score = 100
 			source = "profile"
 		}
+		discovery := discoverRuntime(root, provider)
+		if discovery.Ready {
+			score += 100
+			source += "+ready"
+		} else if discovery.BinaryFound {
+			score += 20
+			source += "+binary"
+		} else {
+			score = -1
+			source += "+unavailable"
+		}
 		candidates = append(candidates, RuntimeResolutionCandidate{
-			ID:        provider.ID,
-			Score:     score,
-			Source:    source,
-			Profile:   profile,
-			Generated: generated,
+			ID:          provider.ID,
+			Score:       score,
+			Source:      source,
+			Profile:     profile,
+			Generated:   generated,
+			Ready:       discovery.Ready,
+			BinaryFound: discovery.BinaryFound,
 		})
 	}
 	return candidates

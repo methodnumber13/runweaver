@@ -1,6 +1,7 @@
 package aitools
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -35,6 +36,12 @@ func TestSelectParticipantsPrefersDomainAgentAndRelevantSkill(t *testing.T) {
 	if len(result.Rationale) == 0 {
 		t.Fatalf("rationale is empty: %#v", result)
 	}
+	if !participantAssignmentHasRole(result.Assignments, "auth-access-agent", "owner") {
+		t.Fatalf("assignments = %#v, want auth-access-agent owner role", result.Assignments)
+	}
+	if !participantAssignmentHasRole(result.Assignments, "security-middleware", "specialist") {
+		t.Fatalf("assignments = %#v, want security-middleware specialist role", result.Assignments)
+	}
 }
 
 func TestSelectParticipantsFallsBackToWorkflowAgents(t *testing.T) {
@@ -51,6 +58,9 @@ func TestSelectParticipantsFallsBackToWorkflowAgents(t *testing.T) {
 	}
 	if !containsString(result.Participants, "agent-skill-drift-reviewer") {
 		t.Fatalf("participants = %#v, want workflow fallback agent", result.Participants)
+	}
+	if !stringsContain(result.Warnings, "task context unavailable") {
+		t.Fatalf("warnings = %#v, want context degradation warning", result.Warnings)
 	}
 }
 
@@ -131,6 +141,100 @@ func TestSelectParticipantsKeepsExecutableAgentWhenSkillsOutscore(t *testing.T) 
 	}
 }
 
+func TestSelectParticipantsIgnoresSiblingRepoProfiles(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/bugfix-swarm.json", `{
+  "id": "bugfix-swarm",
+  "name": "Bugfix Swarm",
+  "description": "Fix bugs and regressions",
+  "maxParticipants": 1,
+  "phases": [
+    {"id": "fix", "name": "Fix", "scope": "repo", "mode": "parallel", "writeMode": "write", "agents": [], "prompt": "fix bug"}
+  ]
+}`)
+	writeTestFile(t, root, ".opencode/swarm/profile.json", `{
+  "workspace": {"name": "workspace", "repos": [".", "sibling-api"]},
+  "repos": [
+    {
+      "dir": ".",
+      "agents": [
+        {"name": "current-repo-agent", "description": "Current repository owner", "focusFiles": ["src/current/current.go"]}
+      ]
+    },
+    {
+      "dir": "sibling-api",
+      "agents": [
+        {"name": "sibling-auth-agent", "description": "Fix auth route regression public guard token validation", "focusFiles": ["src/auth/auth.guard.ts"]}
+      ],
+      "customSkills": [
+        {"name": "sibling-auth-skill", "description": "Fix auth route regression public guard token validation", "focusFiles": ["src/auth/auth.guard.ts"]}
+      ]
+    }
+  ]
+}`)
+
+	result, err := SelectParticipants(root, ParticipantSelectOptions{
+		Task:     "Fix auth route regression in public guard token validation",
+		Workflow: ".runweaver/workflows/bugfix-swarm.json",
+		Runtime:  RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := result.Participants; len(got) != 1 || got[0] != "current-repo-agent" {
+		t.Fatalf("participants = %#v, want current repo agent only", got)
+	}
+	if participantCandidateNamed(result.Candidates, "sibling-auth-agent") || participantCandidateNamed(result.Candidates, "sibling-auth-skill") {
+		t.Fatalf("candidates = %#v, want sibling repo participants filtered out", result.Candidates)
+	}
+}
+
+func TestSelectParticipantsDoesNotMatchSiblingWithSameBasename(t *testing.T) {
+	workspace := t.TempDir()
+	root := filepath.Join(workspace, "services", "api")
+	writeTestFile(t, root, ".runweaver/workflows/bugfix-swarm.json", `{
+  "id": "bugfix-swarm",
+  "name": "Bugfix Swarm",
+  "description": "Fix bugs and regressions",
+  "maxParticipants": 1,
+  "phases": [
+    {"id": "fix", "name": "Fix", "scope": "repo", "mode": "parallel", "writeMode": "write", "agents": [], "prompt": "fix bug"}
+  ]
+}`)
+	writeTestFile(t, root, ".opencode/swarm/profile.json", `{
+  "workspace": {"name": "workspace", "repos": ["services/api", "clients/api"]},
+  "repos": [
+    {
+      "dir": "services/api",
+      "agents": [
+        {"name": "service-api-agent", "description": "Current service API owner", "focusFiles": ["src/service/api.go"]}
+      ]
+    },
+    {
+      "dir": "clients/api",
+      "agents": [
+        {"name": "client-api-agent", "description": "Fix auth route regression public guard token validation", "focusFiles": ["src/client/auth.go"]}
+      ]
+    }
+  ]
+}`)
+
+	result, err := SelectParticipants(root, ParticipantSelectOptions{
+		Task:     "Fix auth route regression in public guard token validation",
+		Workflow: ".runweaver/workflows/bugfix-swarm.json",
+		Runtime:  RuntimeOpenCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := result.Participants; len(got) != 1 || got[0] != "service-api-agent" {
+		t.Fatalf("participants = %#v, want service-api-agent only", got)
+	}
+	if participantCandidateNamed(result.Candidates, "client-api-agent") {
+		t.Fatalf("candidates = %#v, want same-basename sibling filtered out", result.Candidates)
+	}
+}
+
 func writeParticipantSelectionFixtures(t *testing.T, root string) {
 	t.Helper()
 	writeTestFile(t, root, ".runweaver/workflows/bugfix-swarm.json", `{
@@ -191,6 +295,24 @@ func writeParticipantSelectionFixtures(t *testing.T, root string) {
 func stringsContain(values []string, needle string) bool {
 	for _, value := range values {
 		if strings.Contains(value, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+func participantCandidateNamed(candidates []ParticipantSelectionCandidate, name string) bool {
+	for _, candidate := range candidates {
+		if candidate.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func participantAssignmentHasRole(assignments []ParticipantAssignment, name, role string) bool {
+	for _, assignment := range assignments {
+		if assignment.Name == name && assignment.Role == role {
 			return true
 		}
 	}

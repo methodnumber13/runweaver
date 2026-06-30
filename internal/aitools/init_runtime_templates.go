@@ -48,8 +48,11 @@ Agents should call ` + "`runweaver start`" + ` for non-trivial tasks, resume mat
 
 const opencodeJSON = `{
   "$schema": "https://opencode.ai/config.json",
-  "default_agent": "swarm",
+  "default_agent": "` + OpenCodePrimaryAgentName + `",
   "instructions": ["AGENTS.md"],
+  "agent": {
+    "` + OpenCodePrimaryAgentName + `": {}
+  },
   "permission": {
     "edit": "allow",
     "bash": {

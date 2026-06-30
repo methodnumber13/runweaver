@@ -83,10 +83,15 @@ func mergeOpenCodeConfig(existing, generated map[string]any) map[string]any {
 		switch key {
 		case "instructions":
 			merged[key] = mergeStringArrays(asStringArray(existing[key]), asStringArray(generatedValue))
-		case "permission", "watcher":
+		case "permission", "watcher", "agent":
 			merged[key] = deepMergeMaps(asMap(existing[key]), asMap(generatedValue))
+		case "default_agent":
+			existingDefault := firstString(existing, "default_agent", "defaultAgent")
+			if existingDefault == "" || existingDefault == openCodeLegacyPrimaryAgentName {
+				merged[key] = generatedValue
+			}
 		default:
-			if _, ok := existing[key]; ok && key != "default_agent" {
+			if _, ok := existing[key]; ok {
 				continue
 			}
 			merged[key] = generatedValue

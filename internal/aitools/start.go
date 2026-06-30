@@ -28,7 +28,7 @@ func StartWorkflow(repoPath string, opts StartOptions) (StartResult, error) {
 			ChangedOnly:    true,
 			Prune:          true,
 			MaxCacheMB:     256,
-			Classification: ClassifyOptions{Mode: ClassificationDeterministic},
+			Classification: ClassifyOptions{Mode: ClassificationDeterministic, Runtime: runtimeID},
 		}); err != nil {
 			return StartResult{}, fmt.Errorf("refresh index before start: %w", err)
 		}
@@ -87,7 +87,7 @@ func StartWorkflow(repoPath string, opts StartOptions) (StartResult, error) {
 		WorkflowSelection: workflowSelection,
 		Workflow:          workflow,
 		Participants:      participants,
-		ExecutionContract: startExecutionContract(status, participants.Participants, taskTier, context),
+		ExecutionContract: startExecutionContract(status, participants.Participants, participants.Assignments, taskTier, context),
 		Recommendations:   []string{"continue phase by phase; update checkpoint after each phase", "run runweaver workflow verify --repo . --resume latest before final response"},
 	}, nil
 }
@@ -107,16 +107,6 @@ func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResol
 	if workflowPath == "" {
 		workflowPath = workflowPathForID(root, status.Workflow)
 	}
-	participants, err := SelectParticipants(root, ParticipantSelectOptions{
-		Task:        task,
-		Workflow:    workflowPath,
-		Runtime:     runtimeID,
-		ProfilePath: opts.ProfilePath,
-		TaskTier:    taskTier.Tier,
-	})
-	if err != nil {
-		return StartResult{}, false, err
-	}
 	workflow := WorkflowRunSummary{
 		Workflow:       status.Workflow,
 		Task:           status.Task,
@@ -124,6 +114,10 @@ func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResol
 		CheckpointPath: status.CheckpointPath,
 		TodoPath:       status.TodoPath,
 		Status:         status.WorkflowStatus,
+	}
+	participants, err := resumeParticipantsFromCheckpoint(root, task, runtimeID, taskTier.Tier, workflow, workflowPath, status)
+	if err != nil {
+		return StartResult{}, false, err
 	}
 	if len(status.Participants) == 0 && len(participants.Participants) > 0 {
 		if _, err := persistStartSelection(root, workflow, participants, "resumed"); err != nil {
@@ -155,9 +149,51 @@ func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResol
 			"nextPhase":        status.NextPhase,
 			"nextAction":       status.NextAction,
 			"nextVerification": status.NextVerification,
-		}, participantNamesOrExisting(participants.Participants, status.Participants), taskTier, context),
+		}, participants.Participants, participants.Assignments, taskTier, context),
 		Recommendations: []string{"resume automatically from checkpoint; do not ask the user to run resume manually"},
 	}, true, nil
+}
+
+func resumeParticipantsFromCheckpoint(root, task, runtimeID, taskTier string, workflow WorkflowRunSummary, workflowPath string, status RunWeaverStatusResult) (ParticipantSelectResult, error) {
+	if len(status.Participants) > 0 {
+		return ParticipantSelectResult{
+			Status:       "success",
+			RepoRoot:     root,
+			Task:         task,
+			Runtime:      runtimeID,
+			TaskTier:     taskTier,
+			Workflow:     workflow.Workflow,
+			WorkflowPath: workflowPath,
+			Participants: status.Participants,
+			Assignments:  checkpointParticipantAssignments(status.Participants),
+			Rationale:    []string{"preserved participants from active workflow checkpoint"},
+			Warnings:     []string{"participant selection was preserved from checkpoint during resume"},
+		}, nil
+	}
+	return SelectParticipants(root, ParticipantSelectOptions{
+		Task:     task,
+		Workflow: workflowPath,
+		Runtime:  runtimeID,
+		TaskTier: taskTier,
+	})
+}
+
+func checkpointParticipantAssignments(participants []string) []ParticipantAssignment {
+	assignments := make([]ParticipantAssignment, 0, len(participants))
+	for index, name := range participants {
+		role := "reviewer"
+		if index == 0 {
+			role = "owner"
+		}
+		assignments = append(assignments, ParticipantAssignment{
+			Name:      name,
+			Kind:      "agent",
+			Role:      role,
+			Source:    "checkpoint",
+			Rationale: []string{"preserved from active workflow checkpoint"},
+		})
+	}
+	return assignments
 }
 
 func persistStartSelection(root string, workflow WorkflowRunSummary, participants ParticipantSelectResult, action string) (map[string]any, error) {
@@ -205,7 +241,7 @@ func contextForStart(root, task string) ContextQueryResult {
 	}
 }
 
-func startExecutionContract(status map[string]any, participants []string, taskTier TaskTierResult, context ContextQueryResult) StartExecutionContract {
+func startExecutionContract(status map[string]any, participants []string, assignments []ParticipantAssignment, taskTier TaskTierResult, context ContextQueryResult) StartExecutionContract {
 	return StartExecutionContract{
 		RunDir:           stringValue(status["runDir"]),
 		CheckpointPath:   stringValue(status["checkpointPath"]),
@@ -215,8 +251,11 @@ func startExecutionContract(status map[string]any, participants []string, taskTi
 		TaskTier:         taskTier,
 		Context:          context,
 		Participants:     participants,
+		Assignments:      assignments,
 		NextAction:       fallbackString(stringValue(status["nextAction"]), "execute the next workflow phase and update checkpoint.json"),
 		NextVerification: fallbackString(stringValue(status["nextVerification"]), "run runweaver workflow verify --repo . --resume latest before final response"),
+		PhaseCompletion:  "after each finished phase run: runweaver workflow update --repo . --resume latest --phase <phase> --complete-phase --verification \"<command/result>\"",
+		TerminalRule:     "do not send a final response while checkpoint status is in_progress after successful verification; complete all workflow phases with --complete-phase or record a blocker with --blocker and nextVerification",
 		ResumeStrategy:   "automatic via runweaver start; use runweaver workflow run --resume latest --status only as a diagnostic",
 	}
 }
@@ -249,13 +288,6 @@ func firstPhaseID(values []string) string {
 		}
 	}
 	return ""
-}
-
-func participantNamesOrExisting(selected, existing []string) []string {
-	if len(existing) > 0 {
-		return existing
-	}
-	return selected
 }
 
 func stringValue(value any) string {

@@ -129,7 +129,7 @@ Flags:
 Flags:
   --repo path            repository path (default ".")
   --opencode-bin path    OpenCode executable path (default opencode)
-  --agent name           primary agent name (default swarm)
+  --agent name           primary agent name (default runweaver-swarm)
   --provider id          OpenCode provider id for model preflight; inferred from configured model when omitted
   --skip-model-check     skip OpenCode model preflight
   --timeout duration     per OpenCode debug command timeout (default 45s)
@@ -162,10 +162,30 @@ Flags:
   runweaver eval adoption --repo <path> [--runtime opencode|codex|claude|all]
 
 Flags:
-  --repo path       repository path (default ".")
-  --runtime id      runtime provider: opencode, codex, claude, or all
-  --task text       smoke task for runweaver start
-  --skip-index      skip automatic index refresh during start smoke
+  --repo path              repository path (default ".")
+  --runtime id             runtime provider: opencode, codex, claude, or all
+  --task text              smoke task for runweaver start
+  --skip-index             skip automatic index refresh during start smoke
+  --live                   launch the selected runtime instead of preparing a dry-run command
+  --timeout duration       live runtime execution timeout; 0 disables the timeout
+  --model model            optional runtime model override for live execution
+  --opencode-bin path      OpenCode executable path for live execution
+  --codex-bin path         Codex executable path for live execution
+  --claude-bin path        Claude Code executable path for live execution
+  --skip-git-repo-check    allow Codex live execution outside a Git repository
+`
+	case "smoke codex":
+		return `Usage:
+  runweaver smoke codex [--live] [--repo empty-dir]
+
+Flags:
+  --repo path          empty repository path to create/use; defaults to a temporary disposable repo
+  --force             allow an existing non-empty repo path and overwrite smoke fixture/RunWeaver metadata
+  --keep              keep the generated temporary repo after the smoke run
+  --live              launch Codex instead of preparing a dry-run execution command
+  --timeout duration  live Codex execution timeout (default 4m)
+  --model model       optional Codex model override
+  --codex-bin path    Codex executable path (default codex)
 `
 	case "init":
 		return `Usage:
@@ -229,7 +249,7 @@ Flags:
   --opencode-bin path      OpenCode executable path (default opencode)
   --codex-bin path         Codex executable path (default codex)
   --claude-bin path        Claude Code executable path (default claude)
-  --agent name             OpenCode primary agent for execution (default swarm)
+  --agent name             OpenCode primary agent for execution (default runweaver-swarm)
   --provider id            OpenCode provider id for model preflight; inferred from configured model when omitted
   --model model            optional runtime model override
   --attach url             optional opencode serve URL to attach to
