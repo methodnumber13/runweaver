@@ -147,8 +147,8 @@ func TestExecuteWorkflowRunsConfiguredCommand(t *testing.T) {
 		t.Fatalf("name = %q, want opencode-test", capturedName)
 	}
 	args := strings.Join(capturedArgs, " ")
-	if !strings.Contains(args, "--model openai-compatible/coder-model") || !strings.Contains(args, "--agent swarm") {
-		t.Fatalf("args = %q, want model and swarm agent", args)
+	if !strings.Contains(args, "--model openai-compatible/coder-model") || !strings.Contains(args, "--agent runweaver-swarm") {
+		t.Fatalf("args = %q, want model and RunWeaver OpenCode agent", args)
 	}
 	if !strings.Contains(runtimeenv.EnvValue(capturedEnv, "NO_PROXY"), "llm-provider.example.com") {
 		t.Fatalf("NO_PROXY = %q, want OpenAI-compatible host", runtimeenv.EnvValue(capturedEnv, "NO_PROXY"))

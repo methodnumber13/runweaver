@@ -68,23 +68,23 @@ func TestCLIDoctorModelCommandInfersProviderFromModelPrefix(t *testing.T) {
 func TestCLIDoctorOpenCodeCommandWithFakeOpenCode(t *testing.T) {
 	root := t.TempDir()
 	binDir := t.TempDir()
-	writeCLIFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeCLIFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeCLIFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 	writeExecutable(t, filepath.Join(binDir, "runweaver"), "#!/bin/sh\nexit 0\n")
 	writeExecutable(t, filepath.Join(binDir, "opencode"), `#!/bin/sh
 case "$1 $2 $3" in
   "debug config ")
     cat <<'JSON'
-{"default_agent":"swarm","permission":{"task":"allow","todowrite":"allow"},"agent":{"swarm":{}}}
+{"default_agent":"runweaver-swarm","permission":{"task":"allow","todowrite":"allow"},"agent":{"runweaver-swarm":{}}}
 JSON
     ;;
-  "debug agent swarm")
+  "debug agent runweaver-swarm")
     cat <<'JSON'
-{"name":"swarm","mode":"primary","tools":{"task":true,"todowrite":true}}
+{"name":"runweaver-swarm","mode":"primary","tools":{"task":true,"todowrite":true}}
 JSON
     ;;
   "agent list ")
-    echo "swarm"
+    echo "runweaver-swarm"
     ;;
   *)
     echo "unexpected $*" >&2

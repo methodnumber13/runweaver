@@ -188,7 +188,7 @@ func TestInitSmartCanBootstrapCodexRuntimeWithoutOpenCodeMetadata(t *testing.T) 
 	}
 	for _, path := range []string{
 		"opencode.json",
-		".opencode/agents/swarm.md",
+		".opencode/agents/runweaver-swarm.md",
 	} {
 		if Exists(filepath.Join(root, path)) {
 			t.Fatalf("unexpected OpenCode runtime artifact for codex-only init: %s", path)

@@ -18,9 +18,9 @@ func checkRunWeaverAvailability(result *OpenCodeDoctorResult) {
 func checkLocalMetadata(root, agent string, result *OpenCodeDoctorResult) {
 	agentPath := filepath.Join(root, ".opencode", "agents", agent+".md")
 	if Exists(agentPath) {
-		addDoctorCheck(result, "local-agent-file", "ok", "Project swarm agent file exists", []string{rel(root, agentPath)}, nil)
+		addDoctorCheck(result, "local-agent-file", "ok", "Project RunWeaver OpenCode agent file exists", []string{rel(root, agentPath)}, nil)
 	} else {
-		addDoctorCheck(result, "local-agent-file", "error", "Project swarm agent file is missing", []string{rel(root, agentPath)}, []string{"Run runweaver init --repo . --force."})
+		addDoctorCheck(result, "local-agent-file", "error", "Project RunWeaver OpenCode agent file is missing", []string{rel(root, agentPath)}, []string{"Run runweaver init --repo . --force."})
 	}
 	skillCount := countSkillFiles(filepath.Join(root, ".opencode", "skills"))
 	if skillCount == 0 {
@@ -35,14 +35,14 @@ func checkResolvedConfig(config map[string]any, agent string, result *OpenCodeDo
 	if defaultAgent == "" {
 		addDoctorCheck(result, "default-agent", "warning", "Resolved OpenCode config has no default_agent", nil, []string{"Set default_agent to " + agent + " in project opencode.json."})
 	} else if defaultAgent != agent {
-		addDoctorCheck(result, "default-agent", "warning", "Resolved OpenCode default_agent is not the swarm agent", []string{"default_agent=" + defaultAgent}, []string{"Set default_agent to " + agent + " in project opencode.json or active OpenCode config."})
+		addDoctorCheck(result, "default-agent", "warning", "Resolved OpenCode default_agent is not the RunWeaver OpenCode agent", []string{"default_agent=" + defaultAgent}, []string{"Set default_agent to " + agent + " in project opencode.json or use the generated OpenCode runweaver-start command."})
 	} else {
-		addDoctorCheck(result, "default-agent", "ok", "Resolved OpenCode default_agent points to swarm", []string{"default_agent=" + defaultAgent}, nil)
+		addDoctorCheck(result, "default-agent", "ok", "Resolved OpenCode default_agent points to the RunWeaver OpenCode agent", []string{"default_agent=" + defaultAgent}, nil)
 	}
 	if agentExistsInConfig(config, agent) {
-		addDoctorCheck(result, "resolved-agent-config", "ok", "Resolved OpenCode config includes the swarm agent", []string{agent}, nil)
+		addDoctorCheck(result, "resolved-agent-config", "ok", "Resolved OpenCode config includes the RunWeaver OpenCode agent", []string{agent}, nil)
 	} else {
-		addDoctorCheck(result, "resolved-agent-config", "warning", "Resolved OpenCode config does not expose the swarm agent in the agent map", []string{agent}, []string{"This may be acceptable if opencode debug agent " + agent + " succeeds; otherwise run runweaver init --repo . --force."})
+		addDoctorCheck(result, "resolved-agent-config", "warning", "Resolved OpenCode config does not expose the RunWeaver OpenCode agent in the agent map", []string{agent}, []string{"This may be acceptable if opencode debug agent " + agent + " succeeds; otherwise run runweaver init --repo . --force."})
 	}
 	if permissionsAllowTools(config, "task", "todowrite") {
 		addDoctorCheck(result, "resolved-permissions", "ok", "Resolved OpenCode permissions allow task and todowrite", []string{"task", "todowrite"}, nil)
@@ -56,18 +56,18 @@ func checkResolvedAgent(agentConfig map[string]any, agent string, result *OpenCo
 	if name != "" && name != agent {
 		addDoctorCheck(result, "resolved-agent-name", "warning", "OpenCode resolved a different agent name", []string{name}, []string{"Check .opencode/agents/" + agent + ".md."})
 	} else {
-		addDoctorCheck(result, "resolved-agent-name", "ok", "OpenCode resolves the swarm agent", []string{agent}, nil)
+		addDoctorCheck(result, "resolved-agent-name", "ok", "OpenCode resolves the RunWeaver OpenCode agent", []string{agent}, nil)
 	}
 	mode := firstString(agentConfig, "mode")
 	if mode != "" && mode != "primary" {
-		addDoctorCheck(result, "resolved-agent-mode", "warning", "Swarm agent is not primary mode", []string{"mode=" + mode}, []string{"Set mode: primary in .opencode/agents/" + agent + ".md."})
+		addDoctorCheck(result, "resolved-agent-mode", "warning", "RunWeaver OpenCode agent is not primary mode", []string{"mode=" + mode}, []string{"Set mode: primary in .opencode/agents/" + agent + ".md."})
 	} else {
-		addDoctorCheck(result, "resolved-agent-mode", "ok", "Swarm agent is primary", []string{"mode=" + firstNonEmpty(mode, "primary")}, nil)
+		addDoctorCheck(result, "resolved-agent-mode", "ok", "RunWeaver OpenCode agent is primary", []string{"mode=" + firstNonEmpty(mode, "primary")}, nil)
 	}
 	if agentToolEnabled(agentConfig, "task") && agentToolEnabled(agentConfig, "todowrite") {
-		addDoctorCheck(result, "resolved-agent-tools", "ok", "Swarm agent can use task and todowrite", []string{"task", "todowrite"}, nil)
+		addDoctorCheck(result, "resolved-agent-tools", "ok", "RunWeaver OpenCode agent can use task and todowrite", []string{"task", "todowrite"}, nil)
 	} else {
-		addDoctorCheck(result, "resolved-agent-tools", "error", "Swarm agent is missing task or todowrite", []string{"task", "todowrite"}, []string{"Regenerate .opencode/agents/swarm.md and opencode.json with runweaver init --repo . --force."})
+		addDoctorCheck(result, "resolved-agent-tools", "error", "RunWeaver OpenCode agent is missing task or todowrite", []string{"task", "todowrite"}, []string{"Regenerate .opencode/agents/" + agent + ".md and opencode.json with runweaver init --repo . --force."})
 	}
 }
 

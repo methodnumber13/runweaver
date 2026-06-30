@@ -33,7 +33,7 @@ func (c cli) workflowCmd(args []string) error {
 	opencodeBin := fs.String("opencode-bin", "opencode", "OpenCode executable path")
 	codexBin := fs.String("codex-bin", "codex", "Codex executable path")
 	claudeBin := fs.String("claude-bin", "claude", "Claude Code executable path")
-	agent := fs.String("agent", "swarm", "OpenCode primary agent for execution")
+	agent := fs.String("agent", aitools.OpenCodePrimaryAgentName, "OpenCode primary agent for execution")
 	provider := fs.String("provider", "", "OpenCode provider id for model preflight; defaults to the provider prefix in the configured model")
 	model := fs.String("model", "", "optional runtime model override")
 	attach := fs.String("attach", "", "optional opencode serve URL to attach to")

@@ -129,7 +129,7 @@ Flags:
 Flags:
   --repo path            repository path (default ".")
   --opencode-bin path    OpenCode executable path (default opencode)
-  --agent name           primary agent name (default swarm)
+  --agent name           primary agent name (default runweaver-swarm)
   --provider id          OpenCode provider id for model preflight; inferred from configured model when omitted
   --skip-model-check     skip OpenCode model preflight
   --timeout duration     per OpenCode debug command timeout (default 45s)
@@ -249,7 +249,7 @@ Flags:
   --opencode-bin path      OpenCode executable path (default opencode)
   --codex-bin path         Codex executable path (default codex)
   --claude-bin path        Claude Code executable path (default claude)
-  --agent name             OpenCode primary agent for execution (default swarm)
+  --agent name             OpenCode primary agent for execution (default runweaver-swarm)
   --provider id            OpenCode provider id for model preflight; inferred from configured model when omitted
   --model model            optional runtime model override
   --attach url             optional opencode serve URL to attach to

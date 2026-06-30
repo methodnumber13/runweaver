@@ -60,7 +60,7 @@ func TestExecuteWorkflowDryRunWritesPromptAndCommand(t *testing.T) {
 		t.Fatalf("result = %#v, want planned test-swarm", result)
 	}
 	command := strings.Join(result.Command, " ")
-	for _, want := range []string{"opencode run", "--agent swarm", "--dir " + root, "--format json"} {
+	for _, want := range []string{"opencode run", "--agent runweaver-swarm", "--dir " + root, "--format json"} {
 		if !strings.Contains(command, want) {
 			t.Fatalf("command = %q, want %q", command, want)
 		}

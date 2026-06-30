@@ -132,7 +132,7 @@ func normalizeExecuteOptions(opts WorkflowExecuteOptions) (WorkflowExecuteOption
 		opts.ClaudeBin = "claude"
 	}
 	if opts.Agent == "" {
-		opts.Agent = "swarm"
+		opts.Agent = OpenCodePrimaryAgentName
 	}
 	if opts.Format == "" {
 		opts.Format = "json"

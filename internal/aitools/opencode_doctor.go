@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// DoctorOpenCode validates whether OpenCode can run the generated swarm metadata.
+// DoctorOpenCode validates whether OpenCode can run the generated RunWeaver metadata.
 func DoctorOpenCode(repoPath string, opts OpenCodeDoctorOptions) (OpenCodeDoctorResult, error) {
 	return doctorOpenCode(repoPath, opts, runCommandOutputWithEnv)
 }
@@ -44,7 +44,7 @@ func doctorOpenCode(repoPath string, opts OpenCodeDoctorOptions, runner outputRu
 
 	agentRaw, err := runOpenCodeDoctorCommand(root, opts, runner, "debug", "agent", opts.Agent)
 	if err != nil {
-		addDoctorCheck(&result, "opencode-debug-agent", "error", "OpenCode cannot resolve the swarm agent", []string{err.Error()}, []string{"Run runweaver init --repo . --force, then check opencode debug agent " + opts.Agent + "."})
+		addDoctorCheck(&result, "opencode-debug-agent", "error", "OpenCode cannot resolve the RunWeaver OpenCode agent", []string{err.Error()}, []string{"Run runweaver init --repo . --force, then check opencode debug agent " + opts.Agent + "."})
 	} else {
 		agent, parseErr := parseJSONObject(agentRaw)
 		if parseErr != nil {
@@ -87,7 +87,7 @@ func normalizeOpenCodeDoctorOptions(opts OpenCodeDoctorOptions) OpenCodeDoctorOp
 		opts.OpencodeBin = "opencode"
 	}
 	if opts.Agent == "" {
-		opts.Agent = "swarm"
+		opts.Agent = OpenCodePrimaryAgentName
 	}
 	if opts.Timeout == 0 {
 		opts.Timeout = 45 * time.Second

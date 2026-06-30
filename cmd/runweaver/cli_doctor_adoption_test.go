@@ -10,7 +10,7 @@ func TestCLIDoctorAdoptionReportsRuntimeContract(t *testing.T) {
 	root := t.TempDir()
 	writeCLIFile(t, root, ".runweaver/workflows/feature-delivery-swarm.json", `{"id":"feature-delivery-swarm","name":"Feature","phases":[]}`)
 	writeCLIFile(t, root, ".opencode/swarm/profile.json", `{"workspace":{"name":"repo"},"repos":[{"dir":"."}]}`)
-	writeCLIFile(t, root, ".opencode/agents/swarm.md", "Run `runweaver start --repo . --task \"<task>\"` first.\n")
+	writeCLIFile(t, root, ".opencode/agents/runweaver-swarm.md", "Run `runweaver start --repo . --task \"<task>\"` first.\n")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

@@ -46,8 +46,8 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		".runweaver/workflows",
 		"Agents should call `runweaver start` for non-trivial tasks",
 	})
-	assertGeneratedInstructionSnapshot(t, root, ".opencode/agents/swarm.md", []string{
-		"Primary OpenCode swarm agent",
+	assertGeneratedInstructionSnapshot(t, root, ".opencode/agents/runweaver-swarm.md", []string{
+		"Primary RunWeaver OpenCode agent",
 		"Assume the user may only type a task into OpenCode",
 		"## RunWeaver Startup Protocol",
 		"runweaver start --repo . --task",
@@ -60,7 +60,7 @@ func TestGeneratedRuntimeInstructionsKeepStartupProtocolSnapshot(t *testing.T) {
 		"--rejected-path",
 		"--next-verification",
 		"runweaver workflow verify --repo . --resume latest",
-		"resume is automatic via swarm",
+		"resume is automatic via RunWeaver",
 	})
 	assertGeneratedInstructionSnapshot(t, root, ".codex/agents/swarm.toml", []string{
 		`description = "Primary RunWeaver workflow coordinator for Codex"`,
@@ -119,7 +119,7 @@ func TestGeneratedInstructionSnapshotsKeepRuntimeBoundaries(t *testing.T) {
 		".codex/",
 		"codex exec",
 	})
-	assertGeneratedInstructionExcludes(t, root, ".opencode/agents/swarm.md", []string{
+	assertGeneratedInstructionExcludes(t, root, ".opencode/agents/runweaver-swarm.md", []string{
 		"codex exec",
 		"claude --print",
 	})

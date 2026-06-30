@@ -56,7 +56,7 @@ func TestValidateRuntimeMetadataReportsForeignRuntimeMarkersForEachRuntime(t *te
 		{
 			name:       "opencode_contains_codex_marker",
 			runtimeID:  RuntimeOpenCode,
-			file:       ".opencode/agents/swarm.md",
+			file:       ".opencode/agents/runweaver-swarm.md",
 			content:    "Delegate through .codex/agents/swarm.toml with codex exec\n",
 			wantMarker: ".codex/",
 		},
@@ -138,7 +138,7 @@ func writeMinimalRuntimeMetadata(t *testing.T, root, runtimeID string) {
 	switch runtimeID {
 	case RuntimeOpenCode:
 		writeTestFile(t, root, "opencode.json", "{}\n")
-		writeTestFile(t, root, ".opencode/agents/swarm.md", "---\ndescription: swarm\n---\n")
+		writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\ndescription: runweaver-swarm\n---\n")
 		writeTestFile(t, root, ".opencode/skills/context-discipline/SKILL.md", "---\nname: context-discipline\n---\n")
 		writeTestFile(t, root, ".opencode/swarm/profile.json", "{}\n")
 	case RuntimeCodex:

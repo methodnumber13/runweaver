@@ -12,7 +12,7 @@ func TestDoctorProcessesFromPSOutputDetectsVSCodeAndDuplicateMCP(t *testing.T) {
 102 100 59:58 node /tmp/node_modules/.bin/context7-mcp --api-key redacted
 200 1 00:05:00 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper --type=utility
 201 200 00:04:59 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper /Users/me/.vscode/extensions/ms-vscode.js-debug/src/bootloader.js
-300 1 00:03:00 opencode run --agent swarm
+300 1 00:03:00 opencode run --agent runweaver-swarm
 `)
 
 	if result.Status != "warning" {

@@ -1,13 +1,13 @@
 package aitools
 
 const swarmAgent = `---
-description: "Primary OpenCode swarm agent for portable RunWeaver workflows"
+description: "Primary RunWeaver OpenCode agent for portable workflows"
 mode: primary
 permission:
   edit: allow
   task: allow
   todowrite: allow
- bash:
+  bash:
     "*": allow
     "runweaver start *": allow
     "runweaver *": allow
@@ -31,9 +31,9 @@ permission:
     "*": allow
 ---
 
-You are the workflow-aware primary OpenCode agent for this repository.
+You are the workflow-aware primary RunWeaver OpenCode agent for this repository.
 
-You are the entrypoint for both OpenCode Desktop and OpenCode CLI/TUI. Assume the user may only type a task into OpenCode; in that case you must create or resume the repo-local swarm workflow yourself.
+You are the ` + OpenCodePrimaryAgentName + ` entrypoint for both OpenCode Desktop and OpenCode CLI/TUI. Assume the user may only type a task into OpenCode; in that case you must create or resume the repo-local RunWeaver workflow yourself.
 
 ` + runWeaverStartupProtocol + `
 
@@ -93,11 +93,11 @@ Plans, checkpoints, logs, indexes, and generated proposals must stay under ` + "
 
 ## Output Contract
 
-Return ` + "`workflow`, `run_state`, `participants`, `changed_files`, `last_result`, `rejected_paths`, `verification`, `workflow_verify`, `next_action`, `next_verification`, and `resume_strategy`." + ` For ` + "`resume_strategy`" + `, say that resume is automatic via swarm; include ` + "`runweaver workflow run --resume latest --status`" + ` only as a diagnostic command, never as a required manual next step for the user.
+Return ` + "`workflow`, `run_state`, `participants`, `changed_files`, `last_result`, `rejected_paths`, `verification`, `workflow_verify`, `next_action`, `next_verification`, and `resume_strategy`." + ` For ` + "`resume_strategy`" + `, say that resume is automatic via RunWeaver; include ` + "`runweaver workflow run --resume latest --status`" + ` only as a diagnostic command, never as a required manual next step for the user.
 `
 
 const repoClassifierAgent = `---
-description: "Classifies repository index evidence into validated OpenCode swarm agents and skills"
+description: "Classifies repository index evidence into validated RunWeaver agents and skills"
 mode: primary
 permission:
   edit: allow

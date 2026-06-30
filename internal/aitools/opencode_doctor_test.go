@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-func TestDoctorOpenCodeReportsReadyWhenSwarmIsResolved(t *testing.T) {
+func TestDoctorOpenCodeReportsReadyWhenRunWeaverAgentIsResolved(t *testing.T) {
 	root := t.TempDir()
 	makeFakeRunWeaver(t)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 
 	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
@@ -20,18 +20,18 @@ func TestDoctorOpenCodeReportsReadyWhenSwarmIsResolved(t *testing.T) {
 		switch command {
 		case "debug config":
 			return []byte(`{
-  "default_agent": "swarm",
+  "default_agent": "runweaver-swarm",
   "permission": {
     "task": "allow",
     "todowrite": "allow"
   },
   "agent": {
-    "swarm": {}
+    "runweaver-swarm": {}
   }
 }`), nil
-		case "debug agent swarm":
+		case "debug agent runweaver-swarm":
 			return []byte(`{
-  "name": "swarm",
+  "name": "runweaver-swarm",
   "mode": "primary",
   "tools": {
     "task": true,
@@ -39,7 +39,7 @@ func TestDoctorOpenCodeReportsReadyWhenSwarmIsResolved(t *testing.T) {
   }
 }`), nil
 		case "agent list":
-			return []byte("swarm\nrepo-surface-indexer\n"), nil
+			return []byte("runweaver-swarm\nrepo-surface-indexer\n"), nil
 		default:
 			t.Fatalf("unexpected command: %s", command)
 		}
@@ -59,7 +59,7 @@ func TestDoctorOpenCodeReportsReadyWhenSwarmIsResolved(t *testing.T) {
 func TestDoctorOpenCodeWarnsWhenDefaultAgentOrToolsAreWrong(t *testing.T) {
 	root := t.TempDir()
 	makeFakeRunWeaver(t)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 
 	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
@@ -73,9 +73,9 @@ func TestDoctorOpenCodeWarnsWhenDefaultAgentOrToolsAreWrong(t *testing.T) {
   },
   "agent": {}
 }`), nil
-		case "debug agent swarm":
+		case "debug agent runweaver-swarm":
 			return []byte(`{
-  "name": "swarm",
+  "name": "runweaver-swarm",
   "mode": "primary",
   "tools": {
     "task": true
@@ -102,7 +102,7 @@ func TestDoctorOpenCodeWarnsWhenDefaultAgentOrToolsAreWrong(t *testing.T) {
 func TestDoctorOpenCodeDoesNotFailReadinessForMissingTopLevelToolPermissionsWhenAgentAllowsTools(t *testing.T) {
 	root := t.TempDir()
 	makeFakeRunWeaver(t)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 
 	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
@@ -110,15 +110,15 @@ func TestDoctorOpenCodeDoesNotFailReadinessForMissingTopLevelToolPermissionsWhen
 		switch command {
 		case "debug config":
 			return []byte(`{
-  "default_agent": "swarm",
+  "default_agent": "runweaver-swarm",
   "permission": {},
   "agent": {
-    "swarm": {}
+    "runweaver-swarm": {}
   }
 }`), nil
-		case "debug agent swarm":
+		case "debug agent runweaver-swarm":
 			return []byte(`{
-  "name": "swarm",
+  "name": "runweaver-swarm",
   "mode": "primary",
   "tools": {
     "task": true,
@@ -126,7 +126,7 @@ func TestDoctorOpenCodeDoesNotFailReadinessForMissingTopLevelToolPermissionsWhen
   }
 }`), nil
 		case "agent list":
-			return []byte("swarm\n"), nil
+			return []byte("runweaver-swarm\n"), nil
 		default:
 			t.Fatalf("unexpected command: %s", command)
 		}
@@ -146,7 +146,7 @@ func TestDoctorOpenCodeDoesNotFailReadinessForMissingTopLevelToolPermissionsWhen
 func TestDoctorOpenCodeUsesFreshTimeoutForEachOpenCodeCommand(t *testing.T) {
 	root := t.TempDir()
 	makeFakeRunWeaver(t)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "---\nmode: primary\n---\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "---\nmode: primary\n---\n")
 	writeTestFile(t, root, ".opencode/skills/repo-onboarding/SKILL.md", "# skill\n")
 
 	result, err := doctorOpenCode(root, OpenCodeDoctorOptions{SkipModelCheck: true, Timeout: 30 * time.Millisecond}, func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
@@ -155,12 +155,12 @@ func TestDoctorOpenCodeUsesFreshTimeoutForEachOpenCodeCommand(t *testing.T) {
 		case "debug config":
 			<-ctx.Done()
 			return nil, ctx.Err()
-		case "debug agent swarm":
+		case "debug agent runweaver-swarm":
 			if ctx.Err() != nil {
 				t.Fatalf("debug agent received an already-expired context")
 			}
 			return []byte(`{
-  "name": "swarm",
+  "name": "runweaver-swarm",
   "mode": "primary",
   "tools": {
     "task": true,
@@ -171,7 +171,7 @@ func TestDoctorOpenCodeUsesFreshTimeoutForEachOpenCodeCommand(t *testing.T) {
 			if ctx.Err() != nil {
 				t.Fatalf("agent list received an already-expired context")
 			}
-			return []byte("swarm\n"), nil
+			return []byte("runweaver-swarm\n"), nil
 		default:
 			t.Fatalf("unexpected command: %s", command)
 		}

@@ -61,7 +61,7 @@ func writeAdoptionFixtures(t *testing.T, root string) {
 	writeTestFile(t, root, ".opencode/swarm/profile.json", profile)
 	writeTestFile(t, root, ".codex/runweaver/profile.json", profile)
 	writeTestFile(t, root, ".claude/runweaver/profile.json", profile)
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "Run `runweaver start --repo . --task \"<task>\"` before coding.\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "Run `runweaver start --repo . --task \"<task>\"` before coding.\n")
 	writeTestFile(t, root, "AGENTS.md", "Run `runweaver start --repo . --task \"<task>\"` before coding.\n")
 	writeTestFile(t, root, ".codex/agents/swarm.toml", "name = \"swarm\"\ndescription = \"Run runweaver start --repo . before coding.\"\ndeveloper_instructions = \"Run runweaver start --repo .\"\n")
 	writeTestFile(t, root, "CLAUDE.md", "Run `runweaver start --repo . --task \"<task>\"` before coding.\n")
@@ -69,7 +69,7 @@ func writeAdoptionFixtures(t *testing.T, root string) {
 	writeTestFile(t, root, ".opencode/commands/runweaver-start.md", "---\ndescription: Start RunWeaver\n---\nrunweaver start --repo . --runtime opencode --task \"$ARGUMENTS\"\n")
 	writeTestFile(t, root, ".agents/skills/runweaver-start/SKILL.md", "---\nname: runweaver-start\ndescription: Start RunWeaver task intake\n---\nRun runweaver start --repo . --runtime codex --task \"<user task>\".\n")
 	writeTestFile(t, root, ".claude/skills/runweaver-start/SKILL.md", "---\nname: runweaver-start\ndescription: Start RunWeaver task intake\n---\nRun runweaver start --repo . --runtime claude --task \"<user task>\".\n")
-	writeTestFile(t, root, ".opencode/agents/swarm.md", "permission:\n  bash:\n    \"runweaver start *\": allow\nRun `runweaver start --repo . --task \"<task>\"` before coding.\n")
+	writeTestFile(t, root, ".opencode/agents/runweaver-swarm.md", "permission:\n  bash:\n    \"runweaver start *\": allow\nRun `runweaver start --repo . --task \"<task>\"` before coding.\n")
 	writeTestFile(t, root, ".codex/config.toml", "sandbox_mode = \"workspace-write\"\n")
 	writeTestFile(t, root, ".claude/settings.json", `{"permissions":{"allow":["Bash(runweaver start:*)"]}}`)
 }

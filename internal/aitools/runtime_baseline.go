@@ -105,7 +105,7 @@ func runtimeBaselineFiles(runtimeIDs []string) map[string]string {
 		files["AGENTS.md"] = agentsMD
 		files["opencode.json"] = opencodeJSON
 		files[".opencode/.gitignore"] = "tmp/\nswarm/profile.generated.json\nnode_modules/\npackage.json\npackage-lock.json\n"
-		files[".opencode/agents/swarm.md"] = swarmAgent
+		files[".opencode/agents/"+OpenCodePrimaryAgentName+".md"] = swarmAgent
 		files[".opencode/agents/repo-classifier.md"] = repoClassifierAgent
 		files[".opencode/agents/repo-surface-indexer.md"] = repoSurfaceIndexerAgent
 		files[".opencode/agents/agent-skill-drift-reviewer.md"] = driftReviewerAgent

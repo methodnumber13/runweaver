@@ -76,7 +76,7 @@ func runtimeMetadataRules(runtimeID string) (runtimeMetadataValidationRules, boo
 		return runtimeMetadataValidationRules{
 			required: []string{
 				"opencode.json",
-				".opencode/agents/swarm.md",
+				".opencode/agents/" + OpenCodePrimaryAgentName + ".md",
 				".opencode/skills/context-discipline/SKILL.md",
 				".opencode/swarm/profile.json",
 			},

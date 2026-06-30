@@ -175,7 +175,7 @@ func (c cli) doctorOpenCodeCmd(args []string) error {
 	fs := newFlagSet("doctor opencode")
 	repo := fs.String("repo", ".", "repository path")
 	opencodeBin := fs.String("opencode-bin", "opencode", "OpenCode executable path")
-	agent := fs.String("agent", "swarm", "OpenCode primary agent name")
+	agent := fs.String("agent", aitools.OpenCodePrimaryAgentName, "OpenCode primary agent name")
 	provider := fs.String("provider", "", "OpenCode provider id for model preflight; defaults to the provider prefix in the configured model")
 	skipModelCheck := fs.Bool("skip-model-check", false, "skip OpenCode model preflight")
 	timeout := fs.Duration("timeout", 45*time.Second, "per OpenCode command timeout, for example 60s or 2m")
@@ -199,9 +199,9 @@ func (c cli) doctorOpenCodeCmd(args []string) error {
 		return err
 	}
 	if result.Ready {
-		c.printStatus("success", "OpenCode swarm readiness check passed")
+		c.printStatus("success", "OpenCode RunWeaver readiness check passed")
 	} else {
-		c.printStatus("warning", "OpenCode swarm readiness has issues; see JSON checks")
+		c.printStatus("warning", "OpenCode RunWeaver readiness has issues; see JSON checks")
 	}
 	return nil
 }
