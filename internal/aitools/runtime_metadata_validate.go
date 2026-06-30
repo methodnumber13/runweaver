@@ -87,7 +87,7 @@ func runtimeMetadataRules(runtimeID string) (runtimeMetadataValidationRules, boo
 		return runtimeMetadataValidationRules{
 			required: []string{
 				"AGENTS.md",
-				".codex/agents/swarm.toml",
+				".codex/agents/" + RunWeaverPrimaryAgentName + ".toml",
 				".agents/skills/context-discipline/SKILL.md",
 				".codex/runweaver/profile.json",
 			},
@@ -98,7 +98,7 @@ func runtimeMetadataRules(runtimeID string) (runtimeMetadataValidationRules, boo
 		return runtimeMetadataValidationRules{
 			required: []string{
 				"CLAUDE.md",
-				".claude/agents/swarm.md",
+				".claude/agents/" + RunWeaverPrimaryAgentName + ".md",
 				".claude/skills/context-discipline/SKILL.md",
 				".claude/runweaver/profile.json",
 			},

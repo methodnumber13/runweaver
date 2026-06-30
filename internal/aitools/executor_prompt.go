@@ -15,7 +15,7 @@ func executionPrompt(plan WorkflowRunSummary, runtimeID string, runweaverCommand
 	runweaverCommand = fallbackString(strings.TrimSpace(runweaverCommand), "runweaver")
 	return strings.TrimSpace(fmt.Sprintf(`# RunWeaver Swarm Execution
 
-You are the repository primary swarm agent running through %s.
+You are the repository RunWeaver coordinator running through %s.
 RunWeaver command for this execution: $RUNWEAVER_BIN (%s). Use $RUNWEAVER_BIN for every RunWeaver CLI call; do not use a different global runweaver binary.
 
 Task:

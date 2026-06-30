@@ -1,10 +1,14 @@
 package aitools
 
 const (
-	// OpenCodePrimaryAgentName is the repo-local RunWeaver OpenCode entrypoint.
-	// It is intentionally not "swarm" because global plugins may define that
-	// generic agent name and shadow project-local RunWeaver metadata.
-	OpenCodePrimaryAgentName = "runweaver-swarm"
+	// RunWeaverPrimaryAgentName is the repo-local coordinator entrypoint.
+	// It is intentionally not "swarm" because runtime plugins or global
+	// configs may define that generic agent name and shadow project metadata.
+	RunWeaverPrimaryAgentName = "runweaver-swarm"
+
+	// OpenCodePrimaryAgentName is kept as the OpenCode-facing alias for callers
+	// and tests that refer to the OpenCode runtime explicitly.
+	OpenCodePrimaryAgentName = RunWeaverPrimaryAgentName
 
 	openCodeLegacyPrimaryAgentName = "swarm"
 )

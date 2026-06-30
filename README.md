@@ -439,9 +439,9 @@ Workflow resume state:
 - `blockers`
 - `nextAction`
 
-Generated workflows include `maxParticipants`. The swarm prompt tells the agent to prefer one domain owner plus up to two reviewers/skills, and only exceed that when the workflow explicitly allows it.
+Generated workflows include `maxParticipants`. The RunWeaver coordinator prompt tells the agent to prefer one domain owner plus up to two reviewers/skills, and only exceed that when the workflow explicitly allows it.
 
-`workflow run --resume latest --status` is for inspection. `workflow update` is mostly for manual debugging and external automation; the generated swarm agent should update checkpoints itself while executing phases. Resume paths are intentionally confined to `.runweaver/tmp/swarm-runs`.
+`workflow run --resume latest --status` is for inspection. `workflow update` is mostly for manual debugging and external automation; the generated RunWeaver coordinator should update checkpoints itself while executing phases. Resume paths are intentionally confined to `.runweaver/tmp/swarm-runs`.
 
 Example checkpoint update:
 

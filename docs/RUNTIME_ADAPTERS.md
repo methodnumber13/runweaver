@@ -195,7 +195,7 @@ AGENTS.md
 .agents/skills/metadata-refresh/SKILL.md
 .agents/skills/repo-onboarding/SKILL.md
 .agents/skills/<repo-specific-skill>/SKILL.md
-.codex/agents/swarm.toml
+.codex/agents/runweaver-swarm.toml
 .codex/agents/<repo-specific-agent>.toml
 .codex/runweaver/profile.json
 ```
@@ -246,7 +246,7 @@ Claude Code static provider metadata is implemented by `runtimecatalog/claude`. 
 ```text
 CLAUDE.md
 .claude/workflows/*.md
-.claude/agents/swarm.md
+.claude/agents/runweaver-swarm.md
 .claude/agents/<repo-specific-agent>.md
 .claude/skills/context-discipline/SKILL.md
 .claude/skills/metadata-refresh/SKILL.md

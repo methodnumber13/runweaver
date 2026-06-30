@@ -293,9 +293,9 @@ func startupContractInstructionPaths(runtimeID string) []string {
 	case RuntimeOpenCode:
 		return []string{".opencode/agents/" + OpenCodePrimaryAgentName + ".md"}
 	case RuntimeCodex:
-		return []string{"AGENTS.md", ".codex/agents/swarm.toml"}
+		return []string{"AGENTS.md", ".codex/agents/" + RunWeaverPrimaryAgentName + ".toml"}
 	case RuntimeClaude:
-		return []string{"CLAUDE.md", ".claude/agents/swarm.md"}
+		return []string{"CLAUDE.md", ".claude/agents/" + RunWeaverPrimaryAgentName + ".md"}
 	default:
 		return []string{statepath.RootDir}
 	}
@@ -334,7 +334,7 @@ func permissionHintPaths(runtimeID string) []string {
 	case RuntimeCodex:
 		return []string{".codex/config.toml", "AGENTS.md"}
 	case RuntimeClaude:
-		return []string{".claude/settings.json", "CLAUDE.md", ".claude/agents/swarm.md"}
+		return []string{".claude/settings.json", "CLAUDE.md", ".claude/agents/" + RunWeaverPrimaryAgentName + ".md"}
 	default:
 		return nil
 	}
