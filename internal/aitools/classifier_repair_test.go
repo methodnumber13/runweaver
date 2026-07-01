@@ -11,7 +11,7 @@ func TestAIClassifierRejectsClassificationWithoutAgentsAndSkills(t *testing.T) {
 	writeClassifierFixture(t, root)
 	runner := func(ctx context.Context, dir string, name string, args []string, env []string) ([]byte, error) {
 		return []byte(`{
-  "summary": "AI-classified NestJS checkout BFF surface.",
+  "summary": "AI-classified checkout API surface.",
   "domains": [
     {
       "name": "checkout",
@@ -43,7 +43,7 @@ func TestAIClassifierRepairsMissingMandatoryCoverage(t *testing.T) {
 		calls++
 		if calls == 1 {
 			return []byte(`{
-  "summary": "AI-classified NestJS checkout BFF surface.",
+  "summary": "AI-classified checkout API surface.",
   "domains": [{"name":"checkout","description":"Checkout API","files":["src/checkout/checkout.controller.ts"]}],
   "agents": [{"name":"checkout-contract-agent","description":"Maintains checkout API","focusFiles":["src/checkout/checkout.controller.ts"],"workflow":["Trace controller"],"verification":["npm test"]}],
   "skills": [{"name":"checkout-contract-surface","description":"Checkout contract procedure","focusFiles":["src/checkout/checkout.controller.ts"],"workflow":["Read DTOs"],"verification":["npm test"]}],
@@ -51,7 +51,7 @@ func TestAIClassifierRepairsMissingMandatoryCoverage(t *testing.T) {
 }`), nil
 		}
 		return []byte(`{
-  "summary": "AI-classified NestJS checkout BFF surface.",
+  "summary": "AI-classified checkout API surface.",
   "domains": [{"name":"checkout","description":"Checkout API","files":["src/checkout/checkout.controller.ts","src/main.ts"]}],
   "agents": [{"name":"checkout-contract-agent","description":"Maintains checkout API","focusFiles":["src/checkout/checkout.controller.ts","src/main.ts"],"workflow":["Trace controller"],"verification":["npm test"]}],
   "skills": [{"name":"checkout-contract-surface","description":"Checkout contract procedure","focusFiles":["src/checkout/checkout.controller.ts","src/main.ts","package.json","opencode.json"],"workflow":["Read DTOs"],"verification":["npm test"]}],
@@ -89,7 +89,7 @@ func TestAIClassifierKeepsInitialAIClassificationWhenRepairFails(t *testing.T) {
 		calls++
 		if calls == 1 {
 			return []byte(`{
-  "summary": "AI-classified NestJS checkout BFF surface.",
+  "summary": "AI-classified checkout API surface.",
   "domains": [{"name":"checkout","description":"Checkout API","files":["src/checkout/checkout.controller.ts"]}],
   "agents": [{"name":"checkout-contract-agent","description":"Maintains checkout API","focusFiles":["src/checkout/checkout.controller.ts"],"workflow":["Trace controller"],"verification":["npm test"]}],
   "skills": [{"name":"checkout-contract-surface","description":"Checkout contract procedure","focusFiles":["src/checkout/checkout.controller.ts"],"workflow":["Read DTOs"],"verification":["npm test"]}],
@@ -142,7 +142,7 @@ func TestAIClassifierRepairsInvalidJSONBeforeValidation(t *testing.T) {
   "summary": "AI-classified checkout",
   "domains": [{"name":"checkout","description":"Checkout API","files":["src/checkout/checkout.controller.ts","src/checkout/checkout.service.ts","src/main.ts"]}],
   "agents": [{"name":"checkout-agent","description":"Maintains checkout API","focusFiles":["src/checkout/checkout.controller.ts","src/main.ts"],"workflow":["Trace controller"],"verification":["npm test"]}],
-  "skills": [{"name":"checkout-surface","description":"Checkout workflow","focusFiles":["src/checkout/checkout.controller.ts","src/main.ts","package.json","opencode.json","test/jest-unit.json"],"workflow":["Read tests"],"verification":["npm test"]}],
+  "skills": [{"name":"checkout-surface","description":"Checkout workflow","focusFiles":["src/checkout/checkout.controller.ts","src/main.ts","package.json","opencode.json","test/unit.json"],"workflow":["Read tests"],"verification":["npm test"]}],
   "verification": ["npm test"]
 }`), nil
 	}

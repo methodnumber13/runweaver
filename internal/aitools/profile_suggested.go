@@ -2,8 +2,10 @@ package aitools
 
 func runtimeFor(index SurfaceIndex) string {
 	switch index.Stack.Kind {
-	case "frontend-react":
-		return "React/TypeScript/JavaScript, " + index.Stack.PackageManager
+	case "multi-surface":
+		return "Multi-surface repository, " + index.Stack.PackageManager
+	case "frontend-app":
+		return "Frontend application, " + index.Stack.PackageManager
 	case "node-api":
 		return "Node API, " + index.Stack.PackageManager
 	case "go-service":
@@ -19,10 +21,16 @@ func runtimeFor(index SurfaceIndex) string {
 
 func suggestedAgents(index SurfaceIndex) []AgentProfile {
 	switch index.Stack.Kind {
-	case "frontend-react":
+	case "multi-surface":
 		return []AgentProfile{
-			{Name: "frontend-surface-engineer", Description: "Works on React components, pages, routing, and user-facing state"},
-			{Name: "frontend-api-contract-reviewer", Description: "Checks frontend API clients against backend contracts"},
+			{Name: "repo-surface-engineer", Description: "Works on task-selected source surfaces without crossing forbidden boundaries"},
+			{Name: "ui-surface-reviewer", Description: "Reviews user-facing pages, components, state, and visible behavior when selected by task scope"},
+			{Name: "api-boundary-reviewer", Description: "Reviews route/API contracts, validation, and persistence boundaries when selected by task scope"},
+		}
+	case "frontend-app":
+		return []AgentProfile{
+			{Name: "frontend-surface-engineer", Description: "Works on frontend components, pages, routing, and user-facing state"},
+			{Name: "frontend-api-contract-reviewer", Description: "Checks frontend API clients against server/API contracts"},
 			{Name: "frontend-test-quality-reviewer", Description: "Finds and updates relevant frontend tests, fixtures, and mocks"},
 		}
 	case "node-api":
@@ -62,9 +70,9 @@ func suggestedSkills(index SurfaceIndex) []SkillProfile {
 			Workflow: []string{
 				"Trace route registration before editing handlers.",
 				"Keep request validation, response shape, status codes, and tests aligned.",
-				"Update runtime metadata after route moves or additions.",
+				"Record metadata drift after route moves or additions; run full metadata refresh only when explicitly requested.",
 			},
-			Verification: index.BuildCommands,
+			Verification: taskScopedVerificationGuidance(),
 		})
 	}
 	if len(index.Pages) > 0 {
@@ -75,9 +83,9 @@ func suggestedSkills(index SurfaceIndex) []SkillProfile {
 			Workflow: []string{
 				"Trace component ownership, state flow, API calls, and visible states before editing.",
 				"Check loading, error, empty, disabled, and success states.",
-				"Update tests and metadata after page/component moves.",
+				"Update tests and record metadata drift after page/component moves; run full metadata refresh only when explicitly requested.",
 			},
-			Verification: index.BuildCommands,
+			Verification: verificationForSurface(index.BuildCommands, surfaceScope{Frontend: true}, index.Stack.Kind),
 		})
 	}
 	skills = append(skills, SkillProfile{
@@ -86,10 +94,10 @@ func suggestedSkills(index SurfaceIndex) []SkillProfile {
 		FocusFiles:  index.ConfigFiles,
 		Workflow: []string{
 			"Use detected package/build commands only.",
-			"Run focused checks first and broaden only for shared contracts.",
+			"Use runweaver start/context query to select task-scoped checks first and broaden only for shared contracts.",
 			"Record any command that cannot run with the exact blocker.",
 		},
-		Verification: index.BuildCommands,
+		Verification: taskScopedVerificationGuidance(),
 	})
 	return skills
 }

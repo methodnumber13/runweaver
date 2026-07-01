@@ -35,6 +35,7 @@ func GenerateProfile(index SurfaceIndex) Profile {
 			{Name: "repo-surface-engineer", Description: "Generic implementer role used by portable workflows when a stack-specific engineer is not selected", Mode: "subagent"},
 			{Name: "repo-contract-reviewer", Description: "Generic contract and boundary reviewer used by portable workflows", Mode: "subagent"},
 			{Name: "repo-test-quality-reviewer", Description: "Generic test and verification reviewer used by portable workflows", Mode: "subagent"},
+			{Name: "post-implementation-reviewer", Description: "Reviews completed implementation for behavioral correctness, stale async/race outcomes, allowed-state semantics, scoped changes, and unnecessary test scaffolding", Mode: "subagent"},
 		},
 		Repos: []RepoProfile{{
 			Dir:      ".",
@@ -46,7 +47,7 @@ func GenerateProfile(index SurfaceIndex) Profile {
 			Risks: []string{
 				"Generated profile must be reviewed before committing.",
 				"Do not store secrets in OpenCode agents, skills, profiles, or run artifacts.",
-				"Regenerate metadata after moving routes, pages, services, tests, or build configs.",
+				"Refresh the deterministic index after moving routes, pages, services, tests, or build configs; run full metadata refresh only when explicitly requested.",
 			},
 			Agents:       suggestedAgents(index),
 			CustomSkills: suggestedSkills(index),
@@ -88,7 +89,9 @@ func isModelBackedClassification(classification RepoClassification) bool {
 
 func domainFor(index SurfaceIndex) string {
 	switch index.Stack.Kind {
-	case "frontend-react":
+	case "multi-surface":
+		return "repository UI, API, service, config, and test surfaces"
+	case "frontend-app":
 		return "frontend routes, components, state, API clients, and tests"
 	case "node-api":
 		return "Node API routes, middleware, contracts, persistence, and tests"

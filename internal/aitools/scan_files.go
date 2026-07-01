@@ -12,9 +12,8 @@ func configFiles(files []string) []string {
 		"build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts", "pom.xml",
 		"pyproject.toml", "requirements.txt", "Dockerfile", "Jenkinsfile", "Makefile", "README.md",
 		"docker-compose.yml", "docker-compose.yaml", "helm/values.yaml", "sonar-project.properties",
-		"tsconfig.json", "tsconfig.build.json", "nest-cli.json", "jest.config.js", "jest.config.ts",
-		"test/jest-unit.json", "test/jest-e2e.json", ".eslintrc.js", "eslint.config.ts", ".prettierrc", ".gitignore",
-		"prisma/schema.prisma",
+		"tsconfig.json", "tsconfig.build.json",
+		".gitignore",
 	}
 	for _, name := range names {
 		if containsExact(files, name) {
@@ -51,7 +50,7 @@ func entryPoints(files []string, stack StackInfo) []string {
 	}
 	for _, file := range files {
 		base := filepath.Base(file)
-		if base == "main.go" || base == "index.tsx" || base == "app.tsx" || base == "server.ts" || base == "Application.kt" || base == "Application.java" {
+		if base == "main.go" || base == "server.ts" || base == "Application.kt" || base == "Application.java" {
 			out = append(out, file)
 		}
 		if stack.Kind != "node-api" && (base == "index.ts" || base == "index.js") {

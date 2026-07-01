@@ -17,29 +17,28 @@ func detectStack(root string, files []string) StackInfo {
 		return false
 	}
 
-	if has("package.json") {
+	manifests := packageJSONManifestPaths(files)
+	if len(manifests) > 0 {
 		stack.Languages = append(stack.Languages, "typescript/javascript")
-		stack.PackageManager = packageManager(files)
-		pkg := readPackage(filepath.Join(root, "package.json"))
-		deps := map[string]bool{}
-		for key := range pkg.Dependencies {
-			deps[key] = true
+		stack.PackageManager = packageManagerForDir(files, ".")
+		if stack.PackageManager == "" {
+			stack.PackageManager = packageManagerForDir(files, filepath.Dir(manifests[0]))
 		}
-		for key := range pkg.DevDependencies {
-			deps[key] = true
-		}
-		if deps["react"] {
-			stack.Frameworks = append(stack.Frameworks, "react")
-			stack.Kind = "frontend-react"
-		}
-		if deps["express"] || deps["@nestjs/core"] || deps["koa"] || deps["fastify"] {
+		hasUISurface := hasAnyUISurface(files)
+		hasAPISurface := hasAnyAPISurface(files)
+		switch {
+		case hasUISurface && !hasAPISurface:
+			stack.Kind = "frontend-app"
+			stack.Frameworks = append(stack.Frameworks, "frontend-app")
+		case hasAPISurface && !hasUISurface:
+			stack.Kind = "node-api"
 			stack.Frameworks = append(stack.Frameworks, "node-api")
-			if stack.Kind == "generic" {
-				stack.Kind = "node-api"
-			}
-		}
-		if deps["redux"] || deps["@reduxjs/toolkit"] {
-			stack.Frameworks = append(stack.Frameworks, "redux")
+		case hasUISurface && hasAPISurface:
+			stack.Kind = "multi-surface"
+			stack.Frameworks = append(stack.Frameworks, "frontend-app", "node-api")
+		case hasPackageScripts(root, manifests, "build") && stack.Kind == "generic":
+			stack.Kind = "frontend-app"
+			stack.Frameworks = append(stack.Frameworks, "frontend-app")
 		}
 	}
 	if has("go.mod") {
@@ -72,6 +71,40 @@ func detectStack(root string, files []string) StackInfo {
 	return stack
 }
 
+func hasAnyUISurface(files []string) bool {
+	for _, file := range files {
+		if categoryFor(file) == "ui" || pathLooksFrontendSurface(file) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAnyAPISurface(files []string) bool {
+	for _, file := range files {
+		if isRouteSurfacePath(file) || categoryFor(file) == "route" {
+			return true
+		}
+		base := filepath.Base(filepath.ToSlash(file))
+		if base == "server.ts" || base == "server.js" || base == "main.go" {
+			return true
+		}
+	}
+	return false
+}
+
+func hasPackageScripts(root string, manifests []string, scripts ...string) bool {
+	for _, manifest := range manifests {
+		pkg := readPackage(filepath.Join(root, manifest))
+		for _, script := range scripts {
+			if _, ok := pkg.Scripts[script]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func readPackage(path string) packageJSON {
 	var pkg packageJSON
 	data, err := os.ReadFile(path)
@@ -83,15 +116,27 @@ func readPackage(path string) packageJSON {
 }
 
 func packageManager(files []string) string {
+	return packageManagerForDir(files, ".")
+}
+
+func packageManagerForDir(files []string, dir string) string {
+	dir = filepath.ToSlash(filepath.Clean(dir))
+	if dir == "." || dir == "" {
+		dir = ""
+	} else {
+		dir += "/"
+	}
 	switch {
-	case containsExact(files, "pnpm-lock.yaml"):
+	case containsExact(files, dir+"pnpm-lock.yaml"):
 		return "pnpm"
-	case containsExact(files, "yarn.lock"):
+	case containsExact(files, dir+"yarn.lock"):
 		return "yarn"
-	case containsExact(files, "bun.lockb") || containsExact(files, "bun.lock"):
+	case containsExact(files, dir+"bun.lockb") || containsExact(files, dir+"bun.lock"):
 		return "bun"
-	case containsExact(files, "package-lock.json"):
+	case containsExact(files, dir+"package-lock.json"):
 		return "npm"
+	case dir != "":
+		return packageManagerForDir(files, ".")
 	default:
 		return "npm"
 	}

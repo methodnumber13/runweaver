@@ -43,7 +43,7 @@ func (c cli) refreshCmd(args []string) error {
 	repo := fs.String("repo", ".", "repository path")
 	apply := fs.Bool("apply", false, "write generated profile to selected runtime metadata instead of .runweaver/tmp/profile.generated.json")
 	runtimeProvider := fs.String("runtime", aitools.RuntimeOpenCode, "runtime provider to materialize when --apply is set: opencode, codex, claude, all, or comma-separated list")
-	classification := addClassificationFlags(fs, "auto")
+	classification := addClassificationFlags(fs, "deterministic")
 	if err := fs.Parse(args); err != nil {
 		return usageError{command: "refresh", err: err}
 	}

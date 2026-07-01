@@ -276,6 +276,7 @@ func TestCLISubcommandHelpPrintsUsageWithoutError(t *testing.T) {
 		{name: "doctor-runtime", args: []string{"doctor", "runtime", "--help"}, want: "runweaver doctor runtime"},
 		{name: "doctor-processes", args: []string{"doctor", "processes", "--help"}, want: "runweaver doctor processes [--summary]"},
 		{name: "workflow-run", args: []string{"workflow", "run", "--help"}, want: "--execute"},
+		{name: "workflow-update", args: []string{"workflow", "update", "--help"}, want: "--replace-participants"},
 		{name: "workflow-verify", args: []string{"workflow", "verify", "--help"}, want: "runweaver workflow verify"},
 		{name: "version", args: []string{"version", "--help"}, want: "runweaver version"},
 	} {

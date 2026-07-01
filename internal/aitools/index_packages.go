@@ -18,13 +18,14 @@ func DetectPackages(root string, files []string) []PackageInsight {
 func DetectPackagesWithWarnings(root string, files []string) ([]PackageInsight, []string) {
 	var out []PackageInsight
 	var warnings []string
-	if containsExact(files, "package.json") {
-		pkg := readPackage(filepath.Join(root, "package.json"))
+	for _, manifest := range packageJSONManifestPaths(files) {
+		pkg := readPackage(filepath.Join(root, manifest))
+		scopePrefix := packageScopePrefix(manifest)
 		for name, version := range pkg.Dependencies {
-			out = append(out, packageInsight("npm", name, version, "dependencies"))
+			out = append(out, packageInsight("npm", name, version, scopePrefix+"dependencies"))
 		}
 		for name, version := range pkg.DevDependencies {
-			out = append(out, packageInsight("npm", name, version, "devDependencies"))
+			out = append(out, packageInsight("npm", name, version, scopePrefix+"devDependencies"))
 		}
 	}
 	if containsExact(files, "go.mod") {
@@ -45,28 +46,48 @@ func DetectPackagesWithWarnings(root string, files []string) ([]PackageInsight, 
 	return sortPackages(UniquePackages(out)), warnings
 }
 
+func packageJSONManifestPaths(files []string) []string {
+	var manifests []string
+	for _, file := range files {
+		if filepath.Base(filepath.ToSlash(file)) == "package.json" {
+			manifests = append(manifests, filepath.ToSlash(file))
+		}
+	}
+	return Unique(manifests)
+}
+
+func packageScopePrefix(manifest string) string {
+	dir := filepath.ToSlash(filepath.Dir(manifest))
+	if dir == "." || dir == "" {
+		return ""
+	}
+	return dir + ":"
+}
+
 // BuildToolchain derives tooling metadata from stack signals and dependencies.
 func BuildToolchain(stack StackInfo, packages []PackageInsight, commands []string) ToolchainInfo {
 	tools := ToolchainInfo{
-		Languages:           stack.Languages,
-		Frameworks:          stack.Frameworks,
-		RecommendedCommands: commands,
+		Languages:                    stack.Languages,
+		Frameworks:                   stack.Frameworks,
+		RecommendedCommands:          commands,
+		RecommendedCommandsBySurface: commandsBySurface(commands),
 	}
 	if stack.PackageManager != "" {
 		tools.PackageManagers = []string{stack.PackageManager}
 	}
+	tools = addCommandDerivedTooling(tools, commands)
 	for _, pkg := range packages {
 		switch pkg.Role {
 		case "test-tool":
-			tools.TestTools = append(tools.TestTools, pkg.Name)
+			tools.TestTools = append(tools.TestTools, "package-level test dependency")
 		case "linter":
-			tools.Linters = append(tools.Linters, pkg.Name)
+			tools.Linters = append(tools.Linters, "package-level lint dependency")
 		case "formatter":
-			tools.Formatters = append(tools.Formatters, pkg.Name)
+			tools.Formatters = append(tools.Formatters, "package-level format dependency")
 		case "build-tool":
-			tools.BuildTools = append(tools.BuildTools, pkg.Name)
-		case "frontend-framework", "api-framework", "state-management", "orm", "validation":
-			tools.Frameworks = append(tools.Frameworks, pkg.Name)
+			tools.BuildTools = append(tools.BuildTools, "package-level build dependency")
+		case "frontend-framework", "api-framework", "state-management", "orm", "validation", "api-client", "rpc-framework":
+			tools.Frameworks = append(tools.Frameworks, pkg.Role)
 		}
 	}
 	tools.Languages = Unique(tools.Languages)
@@ -77,7 +98,88 @@ func BuildToolchain(stack StackInfo, packages []PackageInsight, commands []strin
 	tools.Formatters = Unique(tools.Formatters)
 	tools.BuildTools = Unique(tools.BuildTools)
 	tools.RecommendedCommands = Unique(tools.RecommendedCommands)
+	tools.RecommendedCommandsBySurface = uniqueCommandSurfaceMap(tools.RecommendedCommandsBySurface)
 	return tools
+}
+
+func addCommandDerivedTooling(tools ToolchainInfo, commands []string) ToolchainInfo {
+	for _, command := range commands {
+		lower := strings.ToLower(command)
+		switch {
+		case strings.Contains(lower, " test") || strings.Contains(lower, "run test"):
+			tools.TestTools = append(tools.TestTools, "repository test command")
+		case strings.Contains(lower, " lint") || strings.Contains(lower, "run lint"):
+			tools.Linters = append(tools.Linters, "repository lint command")
+		case strings.Contains(lower, " format") || strings.Contains(lower, "run format"):
+			tools.Formatters = append(tools.Formatters, "repository format command")
+		}
+		if strings.Contains(lower, " build") ||
+			strings.Contains(lower, "run build") ||
+			strings.Contains(lower, " typecheck") ||
+			strings.Contains(lower, "run typecheck") {
+			tools.BuildTools = append(tools.BuildTools, "repository build/typecheck command")
+		}
+	}
+	return tools
+}
+
+func commandsBySurface(commands []string) map[string][]string {
+	out := map[string][]string{}
+	for _, command := range commands {
+		surface := commandSurface(command)
+		out[surface] = append(out[surface], command)
+	}
+	return out
+}
+
+func commandSurface(command string) string {
+	fields := strings.Fields(command)
+	for index, field := range fields {
+		clean := trimCommandToken(field)
+		switch {
+		case clean == "cd" && index+1 < len(fields):
+			return normalizeCommandSurface(fields[index+1])
+		case clean == "--prefix" && index+1 < len(fields):
+			return normalizeCommandSurface(fields[index+1])
+		case strings.HasPrefix(clean, "--prefix="):
+			return normalizeCommandSurface(strings.TrimPrefix(clean, "--prefix="))
+		case clean == "--cwd" && index+1 < len(fields):
+			return normalizeCommandSurface(fields[index+1])
+		case strings.HasPrefix(clean, "--cwd="):
+			return normalizeCommandSurface(strings.TrimPrefix(clean, "--cwd="))
+		}
+	}
+	return "root"
+}
+
+func normalizeCommandSurface(value string) string {
+	value = trimCommandToken(value)
+	if value == "" || value == "." || strings.HasPrefix(value, "-") {
+		return "root"
+	}
+	clean := filepath.ToSlash(filepath.Clean(value))
+	if clean == "." || strings.HasPrefix(clean, "../") || clean == ".." {
+		return "root"
+	}
+	return clean
+}
+
+func trimCommandToken(value string) string {
+	return strings.Trim(strings.TrimSpace(value), `"'`)
+}
+
+func uniqueCommandSurfaceMap(commands map[string][]string) map[string][]string {
+	if len(commands) == 0 {
+		return nil
+	}
+	out := map[string][]string{}
+	for surface, values := range commands {
+		unique := Unique(values)
+		if len(unique) > 0 {
+			out[surface] = unique
+		}
+	}
+	return out
 }
 
 func packageInsight(ecosystem, name, version, scope string) PackageInsight {
@@ -88,37 +190,38 @@ func packageInsight(ecosystem, name, version, scope string) PackageInsight {
 func packageRoleAction(ecosystem, name string) (string, string) {
 	key := strings.ToLower(name)
 	switch {
-	case key == "react" || key == "next" || key == "vue" || key == "svelte":
-		return "frontend-framework", "Create frontend agents for pages, components, state, API clients, accessibility, and visual regression."
-	case key == "express" || key == "fastify" || key == "koa" || key == "@nestjs/core" || strings.Contains(key, "spring-boot"):
-		return "api-framework", "Create API route/controller agents for validation, auth, contracts, and integration tests."
-	case key == "redux" || key == "@reduxjs/toolkit" || strings.Contains(key, "zustand"):
+	case packageNameContainsAny(key, "state", "store"):
 		return "state-management", "Create state-flow skills covering selectors, async actions, cache invalidation, and UI states."
-	case key == "jest" || key == "vitest" || key == "mocha" || key == "junit" || key == "kotest" || key == "pytest" || key == "testify":
+	case packageNameContainsAny(key, "test", "spec", "mock", "assert"):
 		return "test-tool", "Use repository-native test commands and create test-quality reviewer skills."
-	case key == "playwright" || key == "cypress":
-		return "test-tool", "Create E2E workflow guidance and browser-state verification skills."
-	case key == "eslint" || key == "ruff" || key == "golangci-lint":
+	case packageNameContainsAny(key, "lint"):
 		return "linter", "Use configured lint rules as hard constraints for generated agents."
-	case key == "prettier" || key == "black" || key == "gofmt":
+	case packageNameContainsAny(key, "format", "fmt"):
 		return "formatter", "Use configured formatter before final verification."
-	case key == "typescript" || key == "vite" || key == "webpack" || key == "rollup" || key == "gradle" || key == "maven":
+	case packageNameContainsAny(key, "build", "bundle", "compiler", "typecheck"):
 		return "build-tool", "Use build/typecheck outputs as quality gates."
-	case key == "zod" || key == "yup" || strings.Contains(key, "validator"):
+	case packageNameContainsAny(key, "schema", "valid"):
 		return "validation", "Create validation contract checks for request/response or form schemas."
-	case key == "axios" || key == "graphql" || strings.Contains(key, "apollo"):
+	case packageNameContainsAny(key, "client", "http", "request", "fetch", "graphql"):
 		return "api-client", "Create client-contract skills linking callers to API/server contracts."
-	case key == "prisma" || key == "typeorm" || key == "sequelize" || key == "mongoose" || key == "gorm":
+	case packageNameContainsAny(key, "orm", "sql", "mongo", "database", "persistence"):
 		return "orm", "Create persistence boundary skills covering migrations, queries, and data contracts."
-	case key == "gin-gonic/gin" || key == "go-chi/chi" || key == "labstack/echo":
-		return "api-framework", "Create Go HTTP route and middleware agents."
-	case strings.Contains(key, "grpc"):
+	case packageNameContainsAny(key, "grpc", "rpc"):
 		return "rpc-framework", "Create RPC contract and protobuf/schema review agents."
-	case key == "cobra" || key == "viper":
+	case packageNameContainsAny(key, "cli", "config"):
 		return "cli-config", "Create CLI/config boundary skills."
 	default:
 		return "library", "Record package as context; create specific agents only if source usage proves it is task-relevant."
 	}
+}
+
+func packageNameContainsAny(name string, needles ...string) bool {
+	for _, needle := range needles {
+		if strings.Contains(name, needle) {
+			return true
+		}
+	}
+	return false
 }
 
 func goModPackages(path string) []PackageInsight {
@@ -154,10 +257,14 @@ func gradlePackages(path string) []PackageInsight {
 	}
 	text := strings.ToLower(string(data))
 	var out []PackageInsight
-	for _, name := range []string{"org.springframework.boot", "kotlin", "junit", "kotest", "mockk", "gradle"} {
-		if strings.Contains(text, strings.ToLower(name)) {
-			out = append(out, packageInsight("gradle", name, "", "build"))
-		}
+	if strings.Contains(text, "dependencies") {
+		out = append(out, PackageInsight{
+			Ecosystem: "gradle",
+			Name:      "gradle-dependencies",
+			Scope:     "build",
+			Role:      "library",
+			Action:    "Record Gradle dependencies as context; create specific agents only if source usage proves them task-relevant.",
+		})
 	}
 	return out
 }

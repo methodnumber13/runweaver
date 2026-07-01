@@ -26,7 +26,7 @@ func TestIndexUsesAIClassifierWhenJSONIsValid(t *testing.T) {
 		writeTestFile(t, root, ".opencode/package-lock.json", `{"name":".opencode"}`)
 		writeTestFile(t, root, ".opencode/node_modules/@opencode-ai/plugin/package.json", `{"name":"@opencode-ai/plugin"}`)
 		return []byte(`{
-  "summary": "AI-classified NestJS checkout BFF surface.",
+  "summary": "AI-classified checkout API surface.",
   "domains": [
     {
       "name": "checkout",
@@ -97,13 +97,13 @@ func TestIndexUsesAIClassifierWhenJSONIsValid(t *testing.T) {
 	if len(repo.Agents) != 2 || repo.Agents[0].Name != "checkout-domain-agent" || !profileHasAgent(repo, "checkout-contract-agent") {
 		t.Fatalf("profile agents = %#v, want AI domain agent before AI-provided checkout support agent", repo.Agents)
 	}
-	if profileHasAgent(repo, "api-route-engineer") || profileHasAgent(repo, "validation-contract-reviewer") || profileHasAgent(repo, "nestjs-route-contract-engineer") {
+	if profileHasAgent(repo, "api-route-engineer") || profileHasAgent(repo, "validation-contract-reviewer") || profileHasAgent(repo, "api-route-contract-engineer") {
 		t.Fatalf("profile agents = %#v, want no deterministic/package agent merge", repo.Agents)
 	}
 	if len(repo.CustomSkills) != 1 || !profileHasSkill(repo, "checkout-contract-surface") {
 		t.Fatalf("profile skills = %#v, want only AI-provided checkout skill", repo.CustomSkills)
 	}
-	if profileHasSkill(repo, "repo-test-tooling") || profileHasSkill(repo, "repo-quality-gates") || profileHasSkill(repo, "nestjs-test-harness") {
+	if profileHasSkill(repo, "repo-test-tooling") || profileHasSkill(repo, "repo-quality-gates") || profileHasSkill(repo, "repo-test-harness") {
 		t.Fatalf("profile skills = %#v, want no deterministic/package skill merge", repo.CustomSkills)
 	}
 	args := strings.Join(capturedArgs, " ")
@@ -136,7 +136,7 @@ func TestAIClassifierPreservesPreexistingOpenCodeDependencyArtifacts(t *testing.
   "summary": "AI-classified checkout",
   "domains": [{"name":"checkout","description":"Checkout API","files":["src/checkout/checkout.controller.ts","src/checkout/checkout.service.ts","src/main.ts"]}],
   "agents": [{"name":"checkout-agent","description":"Maintains checkout API","focusFiles":["src/checkout/checkout.controller.ts","src/main.ts"],"workflow":["Trace controller"],"verification":["npm test"]}],
-  "skills": [{"name":"checkout-surface","description":"Checkout workflow","focusFiles":["src/checkout/checkout.controller.ts","src/main.ts","package.json","opencode.json","test/jest-unit.json"],"workflow":["Read tests"],"verification":["npm test"]}],
+  "skills": [{"name":"checkout-surface","description":"Checkout workflow","focusFiles":["src/checkout/checkout.controller.ts","src/main.ts","package.json","opencode.json","test/unit.json"],"workflow":["Read tests"],"verification":["npm test"]}],
   "verification": ["npm test"]
 }`), nil
 	}

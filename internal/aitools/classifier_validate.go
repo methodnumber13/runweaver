@@ -114,7 +114,7 @@ func isGeneratedRuntimeMetadataPath(value string) bool {
 
 func isReservedGeneratedAgentName(name string) bool {
 	switch name {
-	case OpenCodePrimaryAgentName, "swarm", "repo-classifier", "repo-surface-indexer", "agent-skill-drift-reviewer", "profile-regenerator", "stale-anchor-fixer", "repo-surface-engineer", "repo-contract-reviewer", "repo-test-quality-reviewer":
+	case OpenCodePrimaryAgentName, "swarm", "repo-classifier", "repo-surface-indexer", "agent-skill-drift-reviewer", "profile-regenerator", "stale-anchor-fixer", "repo-surface-engineer", "repo-contract-reviewer", "repo-test-quality-reviewer", "post-implementation-reviewer":
 		return true
 	default:
 		return false
@@ -123,7 +123,7 @@ func isReservedGeneratedAgentName(name string) bool {
 
 func isReservedGeneratedSkillName(name string) bool {
 	switch name {
-	case "metadata-refresh", "repo-onboarding":
+	case "metadata-refresh", "post-implementation-review", "repo-onboarding", "workflow-system-master":
 		return true
 	default:
 		return false

@@ -108,6 +108,9 @@ func InitSmartWithOptions(repoPath string, opts InitOptions) (InitResult, error)
 			return InitResult{}, err
 		}
 	}
+	if _, err := writeRunWeaverCommandShim(root); err != nil {
+		return InitResult{}, fmt.Errorf("write RunWeaver command shim: %w", err)
+	}
 	files := runtimeBaselineFiles(runtimeIDs)
 	reportInitProgress(opts, 4, "write-baseline", "Writing RunWeaver core workflows and selected runtime provider metadata")
 	for name, content := range files {

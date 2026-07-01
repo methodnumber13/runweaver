@@ -72,7 +72,6 @@ func mandatoryCoverageForClassifier(index RepoIndex) []string {
 		}
 		files = append(files, file)
 	}
-	files = append(files, filterFiles(index, "test/jest-")...)
 	return Limit(Unique(files), 48)
 }
 

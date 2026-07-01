@@ -11,7 +11,7 @@ func TestRefreshWritesArtifactsAndDetectsStaleAnchors(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "test": "vitest run"
+    "test": "mocha"
   },
   "dependencies": {
     "express": "latest"
@@ -51,7 +51,7 @@ func TestRefreshApplyMaterializesRepoSpecificAgentsAndSkills(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "test": "vitest run"
+    "test": "mocha"
   },
   "dependencies": {
     "express": "latest"
@@ -84,7 +84,7 @@ func TestRefreshApplySelectedRuntimeDoesNotCreateOpenCodeMetadata(t *testing.T) 
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "test": "vitest run"
+    "test": "mocha"
   },
   "dependencies": {
     "express": "latest"
@@ -124,41 +124,38 @@ func TestRefreshApplySelectedRuntimeDoesNotCreateOpenCodeMetadata(t *testing.T) 
 	}
 }
 
-func TestRefreshApplyMaterializesNestJSBFFSemanticAgentsAndSkills(t *testing.T) {
+func TestRefreshApplyMaterializesGenericAPISemanticAgentsAndSkills(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "build": "nest build",
-    "lint": "eslint \"{src,test}/**/*.ts\"",
-    "test": "jest --config ./test/jest-unit.json --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
+    "build": "repo-build",
+    "lint": "repo-lint \"{src,test}/**/*.ts\"",
+    "test": "repo-test --unit-config ./test/unit.json",
+    "test:e2e": "repo-test --e2e-config ./test/e2e.json"
   },
   "dependencies": {
-    "@nestjs/common": "^10.0.0",
-    "@nestjs/core": "^10.0.0",
-    "@prisma/client": "6.0.0",
-    "class-validator": "0.14.0",
-    "prisma": "6.0.0"
+    "route-decorator-lib": "^1.0.0",
+    "schema-validator-lib": "1.0.0"
   },
   "devDependencies": {
-    "eslint": "^8.0.0",
-    "jest": "29.0.0",
-    "prettier": "^3.0.0",
-    "typescript": "^5.0.0"
+    "lint-helper": "^1.0.0",
+    "test-runner-lib": "1.0.0",
+    "format-helper": "^1.0.0",
+    "build-compiler-lib": "^1.0.0"
   }
 }`)
 	writeTestFile(t, root, "src/main.ts", "NestFactory.create(AppModule)\napp.listen(3000)\n")
 	writeTestFile(t, root, "src/app.module.ts", "@Module({ imports: [] })\nexport class AppModule {}\n")
 	writeTestFile(t, root, "src/auth/auth.controller.ts", "@Controller('auth')\nexport class AuthController {}\n")
 	writeTestFile(t, root, "src/auth/identity.service.ts", "export class IdentityProviderService {}\n")
-	writeTestFile(t, root, "src/scm/scm.service.ts", "export class SourceControlService {}\n")
-	writeTestFile(t, root, "src/kubernetes/kubernetes.controller.ts", "@Controller('kubernetes')\nexport class KubernetesController {}\n")
-	writeTestFile(t, root, "src/templates/templates.service.ts", "export class TemplatesService {}\n")
-	writeTestFile(t, root, "src/templates/templates.repository.ts", "export class TemplatesRepository {}\n")
-	writeTestFile(t, root, "src/object-storage/object-storage.service.ts", "export class ObjectStorageService {}\n")
-	writeTestFile(t, root, "prisma/schema.prisma", "model TemplateTrigger { id Int @id }\n")
-	writeTestFile(t, root, "test/jest-unit.json", "{}\n")
-	writeTestFile(t, root, "test/jest-e2e.json", "{}\n")
+	writeTestFile(t, root, "src/orders/orders.service.ts", "export class OrdersService {}\n")
+	writeTestFile(t, root, "src/inventory/inventory.controller.ts", "@Controller('inventory')\nexport class InventoryController {}\n")
+	writeTestFile(t, root, "src/analytics/analytics.service.ts", "export class AnalyticsService {}\n")
+	writeTestFile(t, root, "src/analytics/analytics.repository.ts", "export class AnalyticsRepository {}\n")
+	writeTestFile(t, root, "src/assets/assets.service.ts", "export class AssetsService {}\n")
+	writeTestFile(t, root, "db/migrations/20250101000000_init/migration.sql", "select 1;\n")
+	writeTestFile(t, root, "test/unit.json", "{}\n")
+	writeTestFile(t, root, "test/e2e.json", "{}\n")
 	writeTestFile(t, root, ".env.example", "PORT=3000\n")
 
 	result, err := Refresh(root, true)
@@ -170,26 +167,26 @@ func TestRefreshApplyMaterializesNestJSBFFSemanticAgentsAndSkills(t *testing.T) 
 		t.Fatalf("profile path = %q, want applied profile", result.ProfilePath)
 	}
 	for _, name := range []string{
-		".opencode/agents/nestjs-route-contract-engineer.md",
-		".opencode/agents/nestjs-config-boundary-reviewer.md",
-		".opencode/agents/prisma-persistence-reviewer.md",
-		".opencode/agents/identity-access-agent.md",
-		".opencode/agents/scm-integration-agent.md",
-		".opencode/agents/object-storage-agent.md",
-		".opencode/skills/nestjs-bootstrap-config/SKILL.md",
-		".opencode/skills/identity-auth-surface/SKILL.md",
-		".opencode/skills/templates-prisma-surface/SKILL.md",
-		".opencode/skills/object-storage-surface/SKILL.md",
+		".opencode/agents/api-route-contract-engineer.md",
+		".opencode/agents/config-bootstrap-boundary-reviewer.md",
+		".opencode/agents/persistence-boundary-reviewer.md",
+		".opencode/agents/auth-domain-agent.md",
+		".opencode/agents/orders-domain-agent.md",
+		".opencode/agents/assets-domain-agent.md",
+		".opencode/skills/bootstrap-config-surface/SKILL.md",
+		".opencode/skills/auth-domain-surface/SKILL.md",
+		".opencode/skills/persistence-surface/SKILL.md",
+		".opencode/skills/assets-domain-surface/SKILL.md",
 	} {
 		if !Exists(filepath.Join(root, name)) {
 			t.Fatalf("expected generated metadata %s to exist", name)
 		}
 	}
-	data, err := os.ReadFile(filepath.Join(root, ".opencode/agents/identity-access-agent.md"))
+	data, err := os.ReadFile(filepath.Join(root, ".opencode/agents/auth-domain-agent.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), "src/auth/identity.service.ts") || strings.Contains(string(data), "src/scm/scm.service.ts") {
+	if !strings.Contains(string(data), "src/auth/identity.service.ts") || strings.Contains(string(data), "src/orders/orders.service.ts") {
 		t.Fatalf("auth agent focus is not domain-specific:\n%s", string(data))
 	}
 }

@@ -5,17 +5,18 @@ import (
 	"strings"
 )
 
-func buildCommands(root string, stack StackInfo) []string {
+func buildCommands(root string, files []string, stack StackInfo) []string {
 	var commands []string
-	if Exists(filepath.Join(root, "package.json")) {
-		pkg := readPackage(filepath.Join(root, "package.json"))
-		packageManager := stack.PackageManager
-		if packageManager == "" {
-			packageManager = "npm"
+	for _, manifest := range packageJSONManifestPaths(files) {
+		pkg := readPackage(filepath.Join(root, manifest))
+		dir := filepath.ToSlash(filepath.Dir(manifest))
+		packageManager := packageManagerForDir(files, dir)
+		if manifest == "package.json" && stack.PackageManager != "" {
+			packageManager = stack.PackageManager
 		}
 		for _, name := range []string{"ci:lint", "lint", "typecheck", "test", "test:e2e", "test:all", "build", "ci:build"} {
 			if _, ok := pkg.Scripts[name]; ok {
-				commands = append(commands, packageManager+" run "+name)
+				commands = append(commands, packageCommand(dir, packageManager, name))
 			}
 		}
 	}
@@ -31,6 +32,17 @@ func buildCommands(root string, stack StackInfo) []string {
 		commands = append(commands, "mvn test")
 	}
 	return Unique(commands)
+}
+
+func packageCommand(dir, packageManager, script string) string {
+	if packageManager == "" {
+		packageManager = "npm"
+	}
+	command := packageManager + " run " + script
+	if dir == "." || dir == "" {
+		return command
+	}
+	return "cd " + filepath.ToSlash(dir) + " && " + command
 }
 
 func warnings(index SurfaceIndex) []string {

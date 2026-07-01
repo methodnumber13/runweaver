@@ -86,12 +86,6 @@ func domainFirstAgentName(domain DomainClassification) string {
 	if name == "" {
 		return ""
 	}
-	if isBFFDomain(name) {
-		return domainAgentName(name)
-	}
-	if name == "prisma" {
-		return "prisma-persistence-agent"
-	}
 	switch strings.TrimSpace(domain.Kind) {
 	case "external-integration", "integration":
 		return name + "-integration-agent"

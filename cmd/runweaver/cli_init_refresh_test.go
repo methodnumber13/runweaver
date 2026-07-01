@@ -14,13 +14,13 @@ func TestCLIRefreshDoctorAndInitCommands(t *testing.T) {
 	isolateOpenCodeEnv(t)
 	writeCLIFile(t, root, "package.json", `{
   "scripts": {
-    "test": "vitest run"
+    "test": "repo-test"
   },
   "dependencies": {
-    "react": "latest"
+    "page-renderer-lib": "latest"
   },
   "devDependencies": {
-    "vitest": "latest"
+    "test-runner-lib": "latest"
   }
 }`)
 	writeCLIFile(t, root, "src/App.tsx", "export function App() { return null }\n")
@@ -46,6 +46,9 @@ func TestCLIRefreshDoctorAndInitCommands(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), `"surfaceIndexPath"`) {
 		t.Fatalf("refresh stdout = %q, want surfaceIndexPath", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"mode": "deterministic"`) {
+		t.Fatalf("refresh stdout = %q, want deterministic classifier by default", stdout.String())
 	}
 
 	stdout.Reset()
@@ -83,7 +86,7 @@ func TestCLIInitCodexRuntimeSkipsOpenCodeModelPreflight(t *testing.T) {
 func TestCLIBootstrapAliasesInit(t *testing.T) {
 	root := t.TempDir()
 	isolateOpenCodeEnv(t)
-	writeCLIFile(t, root, "package.json", `{"scripts":{"test":"jest"},"dependencies":{"@nestjs/core":"10.0.0"},"devDependencies":{"jest":"29.0.0","typescript":"5.0.0"}}`)
+	writeCLIFile(t, root, "package.json", `{"scripts":{"test":"repo-test"},"dependencies":{"route-decorator-lib":"1.0.0"},"devDependencies":{"test-runner-lib":"1.0.0","build-compiler-lib":"1.0.0"}}`)
 	writeCLIFile(t, root, "src/app.controller.ts", "export class AppController {}\n")
 
 	var stdout bytes.Buffer

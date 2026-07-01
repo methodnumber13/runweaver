@@ -11,26 +11,24 @@ func TestIndexWritesRepoLocalArtifactsAndReusesContentHashCache(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "lint": "eslint .",
-    "test": "vitest run",
-    "build": "vite build"
+    "lint": "repo-lint .",
+    "test": "repo-test",
+    "build": "repo-build"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "latest",
-    "axios": "latest",
-    "express": "latest",
-    "react": "latest",
-    "zod": "latest"
+    "state-store-lib": "latest",
+    "http-client-lib": "latest",
+    "schema-validator-lib": "latest"
   },
   "devDependencies": {
-    "eslint": "latest",
-    "prettier": "latest",
-    "typescript": "latest",
-    "vitest": "latest"
+    "lint-helper": "latest",
+    "format-helper": "latest",
+    "test-runner-lib": "latest",
+    "build-compiler-lib": "latest"
   }
 }`)
-	writeTestFile(t, root, "src/routes/orders.ts", "import { z } from 'zod'\nexport function register(router) { router.get('/orders', () => {}) }\n")
-	writeTestFile(t, root, "src/components/Orders.tsx", "import axios from 'axios'\nexport function Orders() { return null }\n")
+	writeTestFile(t, root, "src/routes/orders.ts", "import { schema } from 'schema-validator-lib'\nexport function register(router) { router.get('/orders', () => schema) }\n")
+	writeTestFile(t, root, "src/components/Orders.tsx", "import client from 'http-client-lib'\nexport function Orders() { return client }\n")
 	writeTestFile(t, root, "src/routes/orders.test.ts", "import { register } from './orders'\n")
 
 	first, err := Index(root, true)
@@ -64,11 +62,15 @@ func TestIndexWritesRepoLocalArtifactsAndReusesContentHashCache(t *testing.T) {
 	if !strings.Contains(string(contextData), "Repository Context") || !strings.Contains(string(contextData), "Package Roles") {
 		t.Fatalf("repo context is not useful:\n%s", string(contextData))
 	}
-	if !hasPackageRole(first, "frontend-framework") || !hasPackageRole(first, "api-framework") || !hasPackageRole(first, "state-management") || !hasPackageRole(first, "api-client") || !hasPackageRole(first, "validation") {
-		t.Fatalf("package roles = %#v, want framework/state/client/validation roles", first.Packages)
+	for _, role := range []string{"state-management", "api-client", "validation", "test-tool", "linter", "formatter", "build-tool"} {
+		if !hasPackageRole(first, role) {
+			t.Fatalf("package roles = %#v, want generic role %q", first.Packages, role)
+		}
 	}
-	if !containsString(first.Tools.TestTools, "vitest") || !containsString(first.Tools.Linters, "eslint") || !containsString(first.Tools.Formatters, "prettier") {
-		t.Fatalf("tools = %#v, want vitest/eslint/prettier", first.Tools)
+	if !containsString(first.Tools.TestTools, "repository test command") ||
+		!containsString(first.Tools.Linters, "repository lint command") ||
+		!containsString(first.Tools.Formatters, "package-level format dependency") {
+		t.Fatalf("tools = %#v, want generic command/package-derived tooling", first.Tools)
 	}
 	if len(first.Symbols) == 0 || len(first.Edges) == 0 {
 		t.Fatalf("symbols=%d edges=%d, want both", len(first.Symbols), len(first.Edges))

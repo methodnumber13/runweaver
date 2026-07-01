@@ -56,8 +56,7 @@ func classifyDomains(index RepoIndex) []DomainClassification {
 func classifyExternalSystems(index RepoIndex, domains []DomainClassification) []ClassifiedSurface {
 	var out []ClassifiedSurface
 	for _, domain := range domains {
-		switch domain.Name {
-		case "auth", "scm", "kubernetes", "devops", "catalog-service", "deployment-service", "messaging", "mail", "observability", "templates", "object-storage", "cache":
+		if domainLooksExternalIntegration(domain) {
 			out = append(out, ClassifiedSurface{
 				Name:       domain.Name,
 				Kind:       domainKind(domain.Name),
@@ -68,4 +67,14 @@ func classifyExternalSystems(index RepoIndex, domains []DomainClassification) []
 		}
 	}
 	return out
+}
+
+func domainLooksExternalIntegration(domain DomainClassification) bool {
+	text := strings.ToLower(domain.Name + " " + domain.Description + " " + domain.Kind)
+	for _, marker := range []string{"external", "integration", "adapter", "provider", "client", "gateway"} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
 }

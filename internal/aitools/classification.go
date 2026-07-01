@@ -24,12 +24,11 @@ func ClassifyRepo(index RepoIndex) RepoClassification {
 func classificationSummary(index RepoIndex) string {
 	switch index.Surface.Stack.Kind {
 	case "node-api":
-		if hasPackage(index, "@nestjs/core") {
-			return "NestJS BFF/API service classified from deterministic package, file, decorator, and domain evidence."
-		}
 		return "Node API service classified from deterministic package, file, and domain evidence."
-	case "frontend-react":
-		return "React frontend classified from deterministic package, file, and route/page evidence."
+	case "frontend-app":
+		return "Frontend application classified from deterministic package, file, and route/page evidence."
+	case "multi-surface":
+		return "Multi-surface repository classified from deterministic package, file, route/page, and domain evidence."
 	default:
 		return "Repository classified from deterministic package, file, and symbol evidence."
 	}
