@@ -75,7 +75,7 @@ func TestMaterializeProfileForCodexAndClaude(t *testing.T) {
 	root := t.TempDir()
 	profile := Profile{Repos: []RepoProfile{{
 		Kind:     "node-api",
-		Runtime:  "TypeScript/NestJS",
+		Runtime:  "TypeScript API",
 		Domain:   "checkout",
 		KeyFiles: []string{"src/checkout/checkout.controller.ts"},
 		Agents: []AgentProfile{{
@@ -118,7 +118,7 @@ func TestMaterializeProfileForCodexAndClaude(t *testing.T) {
 
 func TestClassifyApplyMaterializesSelectedRuntimes(t *testing.T) {
 	root := t.TempDir()
-	writeTestFile(t, root, "package.json", `{"scripts":{"test":"jest"},"dependencies":{"@nestjs/core":"10.0.0"},"devDependencies":{"jest":"29.0.0","typescript":"5.0.0"}}`)
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"repo-test"},"dependencies":{"route-decorator-lib":"1.0.0"},"devDependencies":{"test-runner-lib":"1.0.0","build-compiler-lib":"1.0.0"}}`)
 	writeTestFile(t, root, "src/app.controller.ts", "export class AppController {}\n")
 
 	result, err := ClassifyRepository(root, ClassifyOptions{
@@ -158,7 +158,7 @@ func TestClassifyApplyMaterializesSelectedRuntimes(t *testing.T) {
 
 func TestInitSmartCanBootstrapCodexRuntimeWithoutOpenCodeMetadata(t *testing.T) {
 	root := t.TempDir()
-	writeTestFile(t, root, "package.json", `{"scripts":{"test":"jest"},"dependencies":{"@nestjs/core":"10.0.0"},"devDependencies":{"jest":"29.0.0","typescript":"5.0.0"}}`)
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"repo-test"},"dependencies":{"route-decorator-lib":"1.0.0"},"devDependencies":{"test-runner-lib":"1.0.0","build-compiler-lib":"1.0.0"}}`)
 	writeTestFile(t, root, "src/app.controller.ts", "export class AppController {}\n")
 
 	result, err := InitSmartWithOptions(root, InitOptions{

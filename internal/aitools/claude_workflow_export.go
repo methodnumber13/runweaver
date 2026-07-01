@@ -41,9 +41,10 @@ func claudeWorkflowMarkdown(workflow WorkflowSpec) string {
 	b.WriteString(workflow.ID)
 	b.WriteString(".json`.\n\n")
 	b.WriteString("Start or resume this workflow with:\n\n")
-	b.WriteString("`runweaver start --repo . --runtime claude --workflow .runweaver/workflows/")
+	b.WriteString("`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" start --repo . --runtime claude --workflow .runweaver/workflows/")
 	b.WriteString(workflow.ID)
-	b.WriteString(".json --task \"<user task>\"`\n\n")
+	b.WriteString(".json --task \"<full raw user task>\"`\n\n")
+	b.WriteString("Pass the full raw user task exactly as received. Do not summarize or shorten constraints before invoking RunWeaver.\n\n")
 	if workflow.Description != "" {
 		b.WriteString("## Description\n\n")
 		b.WriteString(workflow.Description)
@@ -68,6 +69,6 @@ func claudeWorkflowMarkdown(workflow WorkflowSpec) string {
 			b.WriteString("\n")
 		}
 	}
-	b.WriteString("\nFollow `executionContract`; keep checkpoint state in `.runweaver/tmp/swarm-runs` with `runweaver workflow update`.\n")
+	b.WriteString("\nFollow `executionContract`; keep checkpoint state in `.runweaver/tmp/swarm-runs` with `$RUNWEAVER_BIN workflow update`.\n")
 	return b.String()
 }

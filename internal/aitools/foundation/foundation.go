@@ -124,6 +124,20 @@ func ShouldSkipDir(name string) bool {
 	}
 }
 
+// ShouldSkipFile reports whether a generated runtime/eval artifact should be ignored.
+func ShouldSkipFile(path string) bool {
+	lower := strings.ToLower(filepath.ToSlash(path))
+	base := filepath.Base(lower)
+	switch base {
+	case "codex-events.jsonl", "codex-stderr.log", "codex-final.md",
+		"opencode-events.jsonl", "opencode-stderr.log", "opencode-final.md",
+		"claude-events.jsonl", "claude-stderr.log", "claude-final.md":
+		return true
+	default:
+		return strings.HasPrefix(base, "runweaver-eval-") && (strings.HasSuffix(base, ".jsonl") || strings.HasSuffix(base, ".log"))
+	}
+}
+
 // ShouldSkipWalkDir reports whether a directory should be excluded while walking a repository.
 // It keeps stable RunWeaver metadata visible while excluding volatile runtime state.
 func ShouldSkipWalkDir(root, path string, name string) bool {

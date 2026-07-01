@@ -158,6 +158,15 @@ func TestExecuteWorkflowRunsConfiguredCommand(t *testing.T) {
 	}
 }
 
+func TestIsRunWeaverExecutableAcceptsVersionedDevBinary(t *testing.T) {
+	if !isRunWeaverExecutable("/tmp/runweaver-current") {
+		t.Fatal("runweaver-current should be accepted as a RunWeaver executable")
+	}
+	if isRunWeaverExecutable("/tmp/not-the-tool") {
+		t.Fatal("unrelated executable should not be accepted as RunWeaver")
+	}
+}
+
 func writeTestOpenCodeConfig(t *testing.T, root string) {
 	t.Helper()
 	writeTestFile(t, root, "opencode.json", `{

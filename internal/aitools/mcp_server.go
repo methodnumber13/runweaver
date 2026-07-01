@@ -247,6 +247,7 @@ func runWeaverMCPTools(allowWorkflowWrites bool) []mcpTool {
 				"nextVerification":     map[string]any{"type": "string", "description": "Next verification step before continuing or finishing."},
 				"verification":         stringArraySchema("Verification commands or checks."),
 				"verificationResults":  stringArraySchema("Verification results."),
+				"residualRisks":        stringArraySchema("Verification warnings or unresolved risks retained after implementation."),
 				"blockers":             stringArraySchema("Concrete blockers."),
 				"completePhase":        map[string]any{"type": "boolean", "description": "Mark current phase complete and advance nextPhase."},
 			},
@@ -391,6 +392,7 @@ func mcpWorkflowUpdateOptions(arguments map[string]any) WorkflowUpdateOptions {
 		NextVerification:     argumentString(arguments, "nextVerification", ""),
 		Verification:         argumentStringSlice(arguments, "verification"),
 		VerificationResults:  argumentStringSlice(arguments, "verificationResults"),
+		ResidualRisks:        argumentStringSlice(arguments, "residualRisks"),
 		Blockers:             argumentStringSlice(arguments, "blockers"),
 		CompletePhase:        argumentBool(arguments, "completePhase"),
 	}

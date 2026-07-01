@@ -44,11 +44,14 @@ func materializeOpenCodeProfile(root string, profile Profile, force bool) error 
 			".opencode/agents/repo-surface-engineer.md",
 			".opencode/agents/repo-contract-reviewer.md",
 			".opencode/agents/repo-test-quality-reviewer.md",
+			".opencode/agents/post-implementation-reviewer.md",
 		},
 		[]string{
 			".opencode/skills/context-discipline/SKILL.md",
 			".opencode/skills/metadata-refresh/SKILL.md",
+			".opencode/skills/post-implementation-review/SKILL.md",
 			".opencode/skills/repo-onboarding/SKILL.md",
+			".opencode/skills/workflow-system-master/SKILL.md",
 		},
 	)
 	for _, repo := range profile.Repos {
@@ -91,12 +94,15 @@ func materializeCodexProfile(root string, profile Profile, force bool) error {
 	keepRuntimeBaselineFiles(root, desiredAgents, desiredSkills,
 		[]string{
 			".codex/agents/" + RunWeaverPrimaryAgentName + ".toml",
+			".codex/agents/post-implementation-reviewer.toml",
 		},
 		[]string{
 			".agents/skills/context-discipline/SKILL.md",
 			".agents/skills/metadata-refresh/SKILL.md",
+			".agents/skills/post-implementation-review/SKILL.md",
 			".agents/skills/repo-onboarding/SKILL.md",
 			".agents/skills/runweaver-start/SKILL.md",
+			".agents/skills/workflow-system-master/SKILL.md",
 		},
 	)
 	for _, repo := range profile.Repos {
@@ -142,12 +148,15 @@ func materializeClaudeProfile(root string, profile Profile, force bool) error {
 	keepRuntimeBaselineFiles(root, desiredAgents, desiredSkills,
 		[]string{
 			".claude/agents/" + RunWeaverPrimaryAgentName + ".md",
+			".claude/agents/post-implementation-reviewer.md",
 		},
 		[]string{
 			".claude/skills/context-discipline/SKILL.md",
 			".claude/skills/metadata-refresh/SKILL.md",
+			".claude/skills/post-implementation-review/SKILL.md",
 			".claude/skills/repo-onboarding/SKILL.md",
 			".claude/skills/runweaver-start/SKILL.md",
+			".claude/skills/workflow-system-master/SKILL.md",
 		},
 	)
 	for _, repo := range profile.Repos {

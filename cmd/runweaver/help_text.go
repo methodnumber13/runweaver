@@ -181,7 +181,8 @@ Flags:
 Flags:
   --repo path          empty repository path to create/use; defaults to a temporary disposable repo
   --force             allow an existing non-empty repo path and overwrite smoke fixture/RunWeaver metadata
-  --keep              keep the generated temporary repo after the smoke run
+  --keep-temp         keep the generated temporary repo after the smoke run
+  --keep              alias for --keep-temp
   --live              launch Codex instead of preparing a dry-run execution command
   --timeout duration  live Codex execution timeout (default 4m)
   --model model       optional Codex model override
@@ -280,6 +281,7 @@ Flags:
   --phase id               current workflow phase
   --status status          checkpoint status
   --participants list      comma-separated participant names
+  --replace-participants   replace checkpoint participants instead of appending
   --participant-rationale  participant selection rationale to append; may be repeated
   --finding text           finding to append; may be repeated
   --decision text          decision to append; may be repeated

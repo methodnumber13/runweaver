@@ -34,7 +34,7 @@ func TestSafeJSONReturnsErrorInsteadOfPanicking(t *testing.T) {
 func TestGeneratedAgentAndSkillStartWithFrontmatter(t *testing.T) {
 	repo := RepoProfile{
 		Kind:    "node-api",
-		Runtime: "TypeScript/NestJS",
+		Runtime: "TypeScript API",
 		Domain:  "checkout",
 		KeyFiles: []string{
 			"src/checkout/checkout.controller.ts",
@@ -63,6 +63,14 @@ func TestGeneratedAgentAndSkillStartWithFrontmatter(t *testing.T) {
 			t.Fatalf("agent markdown missing checkpoint contract %q:\n%s", want, agent)
 		}
 	}
+	for _, want := range []string{"--file-read", "--file-changed", "--verification-result"} {
+		if !strings.Contains(agent, want) {
+			t.Fatalf("agent markdown missing checkpoint flag %q:\n%s", want, agent)
+		}
+	}
+	if strings.Contains(agent, "--files-changed") {
+		t.Fatalf("agent markdown contains unsupported plural changed-files flag:\n%s", agent)
+	}
 	for _, unwanted := range []string{`"npm run test*": allow`, `"pnpm run test*": allow`, `"yarn test*": allow`, `"bun test*": allow`} {
 		if strings.Contains(agent, unwanted) {
 			t.Fatalf("agent markdown should rely on wildcard bash allow, found package-manager permission %q:\n%s", unwanted, agent)
@@ -86,6 +94,137 @@ func TestGeneratedAgentAndSkillStartWithFrontmatter(t *testing.T) {
 		if !strings.Contains(skill, want) {
 			t.Fatalf("skill markdown missing checkpoint contract %q:\n%s", want, skill)
 		}
+	}
+	for _, want := range []string{"--file-read", "--file-changed"} {
+		if !strings.Contains(skill, want) {
+			t.Fatalf("skill markdown missing checkpoint flag %q:\n%s", want, skill)
+		}
+	}
+	if strings.Contains(skill, "--files-changed") {
+		t.Fatalf("skill markdown contains unsupported plural changed-files flag:\n%s", skill)
+	}
+}
+
+func TestRuntimeSkillMarkdownScopesFrontendSkillGuidanceAndVerification(t *testing.T) {
+	repo := RepoProfile{
+		Kind:    "node-api",
+		Runtime: "TypeScript monorepo",
+		Domain:  "mixed app",
+		Risks:   []string{"Keep generated metadata secret-free."},
+	}
+	skill := SkillProfile{
+		Name:        "ui-page-surface",
+		Description: "Work on detected frontend page/component/container surfaces",
+		FocusFiles: []string{
+			"frontend/src/components/TaskLaunches.tsx",
+			"frontend/src/pages/AccountsPage.tsx",
+		},
+		Workflow: []string{"Trace component ownership before editing."},
+		Verification: []string{
+			"cd frontend && npm run test",
+			"cd frontend && npm run build",
+			"cd mcp/sample-workspace-api && npm run test",
+			"cd mobile-shell && npm run typecheck",
+		},
+	}
+
+	text := runtimeSkillMarkdown(skill, repo, RuntimeCodex)
+
+	if !strings.Contains(text, "Use this skill for frontend UI/component work in this repository.") {
+		t.Fatalf("skill markdown = %q, want frontend-specific usage guidance", text)
+	}
+	for _, unexpected := range []string{"Use this skill for node-api work", "cd mcp/sample-workspace-api", "cd mobile-shell"} {
+		if strings.Contains(text, unexpected) {
+			t.Fatalf("skill markdown should not contain %q:\n%s", unexpected, text)
+		}
+	}
+	for _, want := range []string{"cd frontend && npm run test", "cd frontend && npm run build"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("skill markdown missing relevant frontend verification %q:\n%s", want, text)
+		}
+	}
+}
+
+func TestGeneralRepoSkillsDoNotEmbedMixedSurfaceVerificationCommands(t *testing.T) {
+	index := RepoIndex{
+		Tools: ToolchainInfo{
+			TestTools:           []string{"mocha"},
+			Linters:             []string{"eslint"},
+			Formatters:          []string{"prettier"},
+			RecommendedCommands: []string{"npm --prefix frontend test", "cd mcp/sample-workspace-api && npm run test", "cd mobile-shell && npm run build"},
+		},
+		Files: []FileInventoryItem{
+			{Path: "frontend/src/components/TaskLaunches.test.tsx", Category: "test"},
+			{Path: "frontend/eslint.config.js", Category: "config"},
+		},
+	}
+
+	skills := packageSkills(index)
+	for _, name := range []string{"repo-test-tooling", "repo-style-tooling"} {
+		skill := skillProfileByName(skills, name)
+		if skill.Name == "" {
+			t.Fatalf("skill %q was not generated: %#v", name, skills)
+		}
+		text := runtimeSkillMarkdown(skill, RepoProfile{Kind: "mixed"}, RuntimeCodex)
+		for _, unwanted := range []string{"mcp/sample-workspace-api", "cd mobile-shell"} {
+			if strings.Contains(text, unwanted) {
+				t.Fatalf("%s should not embed mixed-surface verification command %q:\n%s", name, unwanted, text)
+			}
+		}
+		if !strings.Contains(text, "runweaver start/context query") {
+			t.Fatalf("%s should point to task-scoped verification selection:\n%s", name, text)
+		}
+	}
+}
+
+func TestGeneralRepoSkillUsageLabelsStayTaskScopedInMixedRepos(t *testing.T) {
+	repo := RepoProfile{
+		Kind:    "node-api",
+		Runtime: "TypeScript monorepo",
+		Domain:  "mixed frontend/backend app",
+	}
+	for _, skill := range []SkillProfile{
+		{Name: "repo-test-tooling", Description: "Use detected repository test tooling and cache-aware index evidence"},
+		{Name: "repo-style-tooling", Description: "Respect detected lint and formatting tools"},
+		{Name: "repo-quality-gates", Description: "Select correct verification commands for this repository"},
+	} {
+		text := runtimeSkillMarkdown(skill, repo, RuntimeCodex)
+		for _, unwanted := range []string{
+			"Use this skill for node-api work in this repository.",
+			"Use this skill for backend/API work in this repository.",
+		} {
+			if strings.Contains(text, unwanted) {
+				t.Fatalf("%s should stay task-scoped instead of backend-flavored:\n%s", skill.Name, text)
+			}
+		}
+		if !strings.Contains(text, "Use this skill for task-scoped repository verification work in this repository.") {
+			t.Fatalf("%s usage label = %q, want task-scoped repository verification", skill.Name, text)
+		}
+		if !strings.Contains(text, "Before applying this skill") || !strings.Contains(text, "runweaver start") {
+			t.Fatalf("%s should include RunWeaver start gate:\n%s", skill.Name, text)
+		}
+	}
+}
+
+func TestSuggestedRepoQualityGatesAvoidMixedSurfaceVerificationCommands(t *testing.T) {
+	index := SurfaceIndex{
+		BuildCommands: []string{"npm --prefix frontend test", "cd mcp/sample-workspace-api && npm run test", "cd mobile-shell && npm run build"},
+		ConfigFiles:   []string{"package.json"},
+	}
+
+	skills := suggestedSkills(index)
+	skill := skillProfileByName(skills, "repo-quality-gates")
+	if skill.Name == "" {
+		t.Fatalf("repo-quality-gates was not generated: %#v", skills)
+	}
+	text := runtimeSkillMarkdown(skill, RepoProfile{Kind: "mixed"}, RuntimeOpenCode)
+	for _, unwanted := range []string{"mcp/sample-workspace-api", "cd mobile-shell"} {
+		if strings.Contains(text, unwanted) {
+			t.Fatalf("repo-quality-gates should not embed mixed-surface verification command %q:\n%s", unwanted, text)
+		}
+	}
+	if !strings.Contains(text, "runweaver start/context query") {
+		t.Fatalf("repo-quality-gates should point to task-scoped verification selection:\n%s", text)
 	}
 }
 
@@ -205,4 +344,13 @@ func TestMaterializeProfileForRuntimesForceDoesNotOverwriteManualRuntimeNameConf
 			t.Fatalf("manual runtime metadata %s was overwritten:\n%s", path, string(data))
 		}
 	}
+}
+
+func skillProfileByName(skills []SkillProfile, name string) SkillProfile {
+	for _, skill := range skills {
+		if skill.Name == name {
+			return skill
+		}
+	}
+	return SkillProfile{}
 }

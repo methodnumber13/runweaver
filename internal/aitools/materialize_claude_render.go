@@ -5,13 +5,7 @@ func claudeAgentMarkdown(agent AgentProfile, repo RepoProfile) string {
 	if len(focusFiles) == 0 {
 		focusFiles = repo.KeyFiles
 	}
-	verification := agent.Verification
-	if len(verification) == 0 {
-		for _, skill := range repo.CustomSkills {
-			verification = append(verification, skill.Verification...)
-		}
-		verification = Unique(verification)
-	}
+	verification := renderedAgentVerification(agent, repo)
 	return `---
 name: ` + agent.Name + `
 description: "` + yamlEscape(agent.Description) + `"
@@ -27,7 +21,7 @@ Runtime: ` + repo.Runtime + `
 Domain: ` + repo.Domain + `
 
 Start from ` + "`CLAUDE.md`" + `, ` + "`.claude/runweaver/profile.json`" + `, ` + "`.runweaver/tmp/index/repo-context.md`" + `, and ` + "`.runweaver/tmp/index/repo-index.compact.json`" + ` when they exist.
-Use ` + "`runweaver index --repo . --changed-only --prune`" + ` before relying on stale file anchors. Apply ` + "`context-discipline`" + ` and persist workflow state with ` + "`runweaver workflow update`" + `, including ` + "`lastResult`" + `, ` + "`rejectedPaths`" + `, ` + "`nextAction`" + `, and ` + "`nextVerification`" + ` when they explain the next move.
+Use ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" index --repo . --changed-only --prune`" + ` before relying on stale file anchors. Apply ` + "`context-discipline`" + ` and persist workflow state with ` + "`$RUNWEAVER_BIN workflow update`" + ` using exact flags such as ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, ` + "`--residual-risk`" + `, ` + "`--blocker`" + `, ` + "`--next-action`" + `, and ` + "`--next-verification`" + `.
 
 ## Key Files And Directories
 
