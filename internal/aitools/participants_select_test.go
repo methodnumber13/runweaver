@@ -280,6 +280,143 @@ func TestSelectParticipantsExcludesBackendApiForFrontendOnlyTaskAcrossRuntimes(t
 	}
 }
 
+func TestSelectParticipantsExcludesForbiddenBoundaryReviewersAcrossRuntimes(t *testing.T) {
+	for _, runtimeID := range []string{RuntimeOpenCode, RuntimeCodex, RuntimeClaude} {
+		t.Run(runtimeID, func(t *testing.T) {
+			root := t.TempDir()
+			writeTestFile(t, root, ".runweaver/workflows/feature-delivery-swarm.json", `{
+  "id": "feature-delivery-swarm",
+  "name": "Feature Delivery Swarm",
+  "description": "Implement new repository features and product behavior",
+  "maxParticipants": 4,
+  "phases": [
+    {"id": "implement", "name": "Implement", "scope": "repo", "mode": "parallel", "writeMode": "write", "agents": ["repo-surface-engineer"], "prompt": "implement feature"},
+    {"id": "review", "name": "Review", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["post-implementation-reviewer"], "prompt": "review implementation"}
+  ]
+}`)
+			adapter, ok := RuntimeAdapterByID(runtimeID)
+			if !ok {
+				t.Fatalf("unknown runtime %q", runtimeID)
+			}
+			writeTestFile(t, root, adapter.ProfilePath(), `{
+  "workspace": {"name": "sample", "repos": ["."]},
+  "globalAgents": [
+    {"name": "repo-surface-engineer", "description": "Generic implementation fallback"},
+    {"name": "post-implementation-reviewer", "description": "Reviews completed feature implementations"},
+    {"name": "client-contract-reviewer", "description": "Reviews API client calls, request/response contracts, and frontend/backend compatibility"},
+    {"name": "runtime-worker-reviewer", "description": "Reviews runtime workers, server jobs, and background processing files"}
+  ],
+  "repos": [{
+    "dir": ".",
+    "agents": [
+      {"name": "ui-workflow-agent", "description": "Owns frontend UI components, dialogs, cards, and page state", "focusFiles": ["frontend/src/components/LaunchDialog.tsx"]}
+    ]
+  }]
+}`)
+			index := RepoIndex{
+				SchemaVersion: 1,
+				GeneratedAt:   Now(),
+				RepoRoot:      root,
+				Files: []FileInventoryItem{
+					{Path: "frontend/src/components/LaunchDialog.tsx", Category: "ui"},
+					{Path: "server/jobs/launch_worker.go", Category: "service"},
+				},
+				Symbols: []SymbolInfo{
+					{Kind: "function", Name: "LaunchDialog", Path: "frontend/src/components/LaunchDialog.tsx", Line: 10},
+				},
+			}
+			if err := WriteJSON(filepath.Join(root, ".runweaver", "tmp", "index", "repo-index.json"), index); err != nil {
+				t.Fatal(err)
+			}
+
+			result, err := SelectParticipants(root, ParticipantSelectOptions{
+				Task:     "Implement a frontend-only launch dialog readiness summary. Do not modify API/server/runtime worker files or request/response contracts.",
+				Workflow: ".runweaver/workflows/feature-delivery-swarm.json",
+				Runtime:  runtimeID,
+				TaskTier: "large",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, forbidden := range []string{"client-contract-reviewer", "runtime-worker-reviewer"} {
+				if containsString(result.Participants, forbidden) {
+					t.Fatalf("participants = %#v, want %s excluded for forbidden boundary surface; candidates=%#v", result.Participants, forbidden, result.Candidates)
+				}
+			}
+			if !containsString(result.Participants, "ui-workflow-agent") {
+				t.Fatalf("participants = %#v, want UI owner selected", result.Participants)
+			}
+		})
+	}
+}
+
+func TestSelectParticipantsKeepsClientBoundaryReviewerWhenTaskRequestsClientContracts(t *testing.T) {
+	for _, runtimeID := range []string{RuntimeOpenCode, RuntimeCodex, RuntimeClaude} {
+		t.Run(runtimeID, func(t *testing.T) {
+			root := t.TempDir()
+			writeTestFile(t, root, ".runweaver/workflows/feature-delivery-swarm.json", `{
+  "id": "feature-delivery-swarm",
+  "name": "Feature Delivery Swarm",
+  "description": "Implement new repository features and product behavior",
+  "maxParticipants": 4,
+  "phases": [
+    {"id": "implement", "name": "Implement", "scope": "repo", "mode": "parallel", "writeMode": "write", "agents": ["repo-surface-engineer"], "prompt": "implement feature"},
+    {"id": "review", "name": "Review", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["post-implementation-reviewer"], "prompt": "review implementation"}
+  ]
+}`)
+			adapter, ok := RuntimeAdapterByID(runtimeID)
+			if !ok {
+				t.Fatalf("unknown runtime %q", runtimeID)
+			}
+			writeTestFile(t, root, adapter.ProfilePath(), `{
+  "workspace": {"name": "sample", "repos": ["."]},
+  "globalAgents": [
+    {"name": "repo-surface-engineer", "description": "Generic implementation fallback"},
+    {"name": "post-implementation-reviewer", "description": "Reviews completed feature implementations"},
+    {"name": "client-contract-reviewer", "description": "Reviews API client request/response contracts and client compatibility"},
+    {"name": "runtime-worker-reviewer", "description": "Reviews runtime workers, server jobs, and background processing files"}
+  ],
+  "repos": [{
+    "dir": ".",
+    "agents": [
+      {"name": "ui-workflow-agent", "description": "Owns frontend UI components, dialogs, cards, and page state", "focusFiles": ["frontend/src/components/LaunchDialog.tsx"]}
+    ]
+  }]
+}`)
+			index := RepoIndex{
+				SchemaVersion: 1,
+				GeneratedAt:   Now(),
+				RepoRoot:      root,
+				Files: []FileInventoryItem{
+					{Path: "frontend/src/components/LaunchDialog.tsx", Category: "ui"},
+				},
+				Symbols: []SymbolInfo{
+					{Kind: "function", Name: "LaunchDialog", Path: "frontend/src/components/LaunchDialog.tsx", Line: 10},
+				},
+			}
+			if err := WriteJSON(filepath.Join(root, ".runweaver", "tmp", "index", "repo-index.json"), index); err != nil {
+				t.Fatal(err)
+			}
+
+			result, err := SelectParticipants(root, ParticipantSelectOptions{
+				Task:     "Implement a client-only launch dialog request/response mapping summary. Update client request/response mapping and compatibility checks. Do not modify backend/server/runtime worker files.",
+				Workflow: ".runweaver/workflows/feature-delivery-swarm.json",
+				Runtime:  runtimeID,
+				TaskTier: "large",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !containsString(result.Participants, "client-contract-reviewer") {
+				t.Fatalf("participants = %#v, want client-contract-reviewer for explicit client boundary work; candidates=%#v", result.Participants, result.Candidates)
+			}
+			if containsString(result.Participants, "runtime-worker-reviewer") {
+				t.Fatalf("participants = %#v, want runtime worker reviewer excluded by forbidden boundary", result.Participants)
+			}
+		})
+	}
+}
+
 func TestSelectParticipantsPrefersDomainSkillForNamedDomainSurface(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, ".runweaver/workflows/feature-delivery-swarm.json", `{

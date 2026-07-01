@@ -127,14 +127,14 @@ Use this skill after source changes and before final response for feature, bugfi
 ## Review Checklist
 
 1. If workflow state is missing, call ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" start --repo . --task \"<full raw user task>\"`" + ` before reviewing. Do not summarize or shorten the user task before this call.
-2. Compare the original task, selected workflow, selected participants, and changed files.
+2. Compare the original task, selected workflow, selected participants, changed files, and every acceptanceCriteria item from checkpoint/current.md.
 3. Check for stale async/race outcomes and verify that late results cannot overwrite newer state.
 4. Check allowed/forbidden state semantics, especially when an API says an action is allowed but with warnings or constraints.
 5. Check loading, disabled, error, empty, and success states when UI behavior changed.
 6. For UI additions, prefer a cohesive small component/helper for a new summary, panel, card, dialog section, or repeated block instead of inlining more structure into an already large component.
-7. For frontend-only tasks, verify backend/API files were not changed unless the task evidence required it.
+7. For tasks that exclude a surface, verify files from that excluded surface were not changed unless task evidence required it.
 8. Prefer existing focused tests. Flag broad scaffolding, unrelated fixtures, or new harnesses that are not needed for the task.
-9. Record findings, rejected paths, verification results, blockers, and the next verification step in the RunWeaver checkpoint.
+9. Record unmet acceptance criteria as blockers or residual risks; record findings, rejected paths, verification results, blockers, and the next verification step in the RunWeaver checkpoint.
 
 ## Output Contract
 

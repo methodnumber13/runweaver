@@ -50,6 +50,51 @@ func taskNegatedBackendTargetTokens(task string) map[string]bool {
 	return out
 }
 
+func taskRequestsClientBoundaryWork(task string, taskTokens map[string]bool) bool {
+	if taskForbidsClientBoundaryChanges(task) {
+		return false
+	}
+	clientSignal := hasAnySelectionToken(taskTokens, []string{
+		"adapter", "caller", "client", "consumer",
+	})
+	boundarySignal := hasAnySelectionToken(taskTokens, []string{
+		"compatibility", "contract", "contracts", "mapping", "mappings", "request", "requests", "response", "responses",
+	})
+	return clientSignal && boundarySignal
+}
+
+func taskForbidsClientBoundaryChanges(task string) bool {
+	lower := strings.ToLower(task)
+	for _, clause := range strings.FieldsFunc(lower, taskConstraintClauseSeparator) {
+		tokens := strings.Fields(normalizeTaskConstraintText(clause))
+		for index := 0; index < len(tokens); index++ {
+			windowStart := index + 1
+			if tokens[index] == "do" && index+1 < len(tokens) && tokens[index+1] == "not" {
+				windowStart = index + 2
+			} else if tokens[index] == "don" && index+1 < len(tokens) && tokens[index+1] == "t" {
+				windowStart = index + 2
+			} else if tokens[index] == "dont" {
+				windowStart = index + 1
+			} else if !taskConstraintNegationToken(tokens[index]) {
+				continue
+			}
+			if taskConstraintWindowContainsClientBoundaryTarget(tokens, windowStart, 12) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func taskConstraintClauseSeparator(r rune) bool {
+	switch r {
+	case '.', ';', '\n', '\r':
+		return true
+	default:
+		return false
+	}
+}
+
 func taskUsesFrontendOnlyScope(lowerTask string) bool {
 	for _, phrase := range []string{
 		"frontend-only",
@@ -134,6 +179,30 @@ func taskConstraintWindowContainsBackendTarget(tokens []string, start, size int)
 	return len(taskConstraintBackendTargetsInWindow(tokens, start, size)) > 0
 }
 
+func taskConstraintWindowContainsClientBoundaryTarget(tokens []string, start, size int) bool {
+	if start < 0 {
+		start = 0
+	}
+	end := start + size
+	if end > len(tokens) {
+		end = len(tokens)
+	}
+	hasRequest := false
+	hasResponse := false
+	for _, token := range tokens[start:end] {
+		switch token {
+		case "request", "requests":
+			hasRequest = true
+		case "response", "responses":
+			hasResponse = true
+		}
+		if taskConstraintExplicitClientBoundaryTargetToken(token) {
+			return true
+		}
+	}
+	return hasRequest && hasResponse
+}
+
 func taskConstraintBackendTargetsInWindow(tokens []string, start, size int) []string {
 	if start < 0 {
 		start = 0
@@ -154,6 +223,15 @@ func taskConstraintBackendTargetsInWindow(tokens []string, start, size int) []st
 func taskConstraintBackendTargetToken(token string) bool {
 	switch token {
 	case "api", "backend", "controller", "controllers", "database", "databases", "db", "endpoint", "endpoints", "handler", "handlers", "migration", "migrations", "resolver", "resolvers", "route", "routes", "runtime", "server", "service", "services", "worker", "workers":
+		return true
+	default:
+		return false
+	}
+}
+
+func taskConstraintExplicitClientBoundaryTargetToken(token string) bool {
+	switch token {
+	case "adapter", "adapters", "caller", "callers", "client", "clients", "compatibility", "consumer", "consumers", "contract", "contracts", "mapping", "mappings":
 		return true
 	default:
 		return false

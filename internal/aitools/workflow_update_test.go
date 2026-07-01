@@ -1,6 +1,7 @@
 package aitools
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -120,6 +121,50 @@ func TestUpdateWorkflowPersistsParticipantsFindingsAndEvents(t *testing.T) {
 		if !strings.Contains(string(current), want) {
 			t.Fatalf("current.md missing %q:\n%s", want, string(current))
 		}
+	}
+}
+
+func TestUpdateWorkflowCapsParticipantRationaleAtPersistenceBoundary(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
+  "id": "test-swarm",
+  "name": "Test Swarm",
+  "phases": [
+    {"id": "plan", "name": "Plan", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-surface-indexer"], "prompt": "plan"}
+  ]
+}`)
+	if _, err := PlanWorkflow(root, ".runweaver/workflows/test-swarm.json", "check rationale caps"); err != nil {
+		t.Fatal(err)
+	}
+	oversized := "repo-surface-engineer: " + strings.Repeat("long evidence with focus files and verification commands ", 20)
+	status, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:               "latest",
+		Phase:                "plan",
+		Participants:         []string{"repo-surface-engineer"},
+		ParticipantRationale: []string{oversized},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rationale, _ := status["participantRationale"].([]any)
+	if len(rationale) != 1 || len(rationale[0].(string)) > 240 {
+		t.Fatalf("status rationale = %#v, want capped rationale", rationale)
+	}
+	latest := WorkflowLatest{}
+	if err := ReadJSON(filepath.Join(root, ".runweaver/tmp/swarm-runs/latest.json"), &latest); err != nil {
+		t.Fatal(err)
+	}
+	events, err := os.ReadFile(filepath.Join(root, latest.RunDir, "events.ndjson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(events)), "\n")
+	var event WorkflowEvent
+	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &event); err != nil {
+		t.Fatal(err)
+	}
+	if len(event.ParticipantRationale) != 1 || len(event.ParticipantRationale[0]) > 240 {
+		t.Fatalf("event rationale = %#v, want capped rationale", event.ParticipantRationale)
 	}
 }
 
@@ -275,6 +320,40 @@ func TestUpdateWorkflowCompletePhaseNormalizesNextAction(t *testing.T) {
 	}
 	if _, ok := status["nextVerification"]; ok {
 		t.Fatalf("status = %#v, want nextVerification cleared", status)
+	}
+}
+
+func TestUpdateWorkflowCompletePhaseDoesNotPromoteCommandEvidence(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
+  "id": "test-swarm",
+  "name": "Test Swarm",
+  "phases": [
+    {"id": "verify", "name": "Verify", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-test-quality-reviewer"], "prompt": "verify"}
+  ]
+}`)
+	if _, err := PlanWorkflow(root, ".runweaver/workflows/test-swarm.json", "check evidence"); err != nil {
+		t.Fatal(err)
+	}
+	status, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:        "latest",
+		Phase:         "verify",
+		Verification:  []string{"focused checks passed; static check passed"},
+		CompletePhase: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, _ := status["verificationResults"].([]any)
+	if len(results) != 0 {
+		t.Fatalf("status = %#v, want command evidence not promoted into structured verification results", status)
+	}
+	result, err := VerifyWorkflowRun(root, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Ready || result.Status != "warning" {
+		t.Fatalf("verification = %#v, want warning until verificationResults or phase evidence is recorded", result)
 	}
 }
 

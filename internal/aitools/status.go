@@ -29,6 +29,8 @@ type RunWeaverStatusResult struct {
 	TodoPath                       string               `json:"todoPath,omitempty"`
 	CurrentPath                    string               `json:"currentPath,omitempty"`
 	Participants                   []string             `json:"participants,omitempty"`
+	ParticipantRationale           []string             `json:"participantRationale,omitempty"`
+	AcceptanceCriteria             []string             `json:"acceptanceCriteria,omitempty"`
 	FilesChanged                   []string             `json:"filesChanged,omitempty"`
 	LastResult                     string               `json:"lastResult,omitempty"`
 	RejectedPaths                  []string             `json:"rejectedPaths,omitempty"`
@@ -95,6 +97,8 @@ func RunWeaverStatus(repoPath string) (RunWeaverStatusResult, error) {
 	result.TodoPath = rel(root, filepath.Join(runDir, "todo.md"))
 	result.CurrentPath = rel(root, statepath.TmpPath(root, workflowCurrentFile))
 	result.Participants = checkpoint.Participants
+	result.ParticipantRationale = checkpoint.ParticipantRationale
+	result.AcceptanceCriteria = checkpoint.AcceptanceCriteria
 	result.FilesChanged = checkpoint.FilesChanged
 	result.LastResult = checkpoint.LastResult
 	result.RejectedPaths = checkpoint.RejectedPaths

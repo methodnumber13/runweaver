@@ -49,7 +49,7 @@ func verifyParticipantBudget(workflow WorkflowSpec, checkpoint WorkflowCheckpoin
 	})
 }
 
-func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint, result *WorkflowVerificationResult) {
+func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint, phaseEvidence []string, result *WorkflowVerificationResult) {
 	if checkpoint.Status != "complete" {
 		addWorkflowVerificationCheck(result, WorkflowVerificationCheck{
 			Name:     "terminal-evidence",
@@ -59,6 +59,7 @@ func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint
 		})
 		return
 	}
+	normalizeWorkflowVerificationEvidence(&checkpoint, phaseEvidence...)
 	if len(checkpoint.Blockers) > 0 {
 		addWorkflowVerificationCheck(result, WorkflowVerificationCheck{
 			Name:     "terminal-evidence",

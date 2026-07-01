@@ -153,13 +153,14 @@ func VerifyWorkflowRun(repoPath, resume string) (WorkflowVerificationResult, err
 		verifyPhaseArtifacts(root, runDir, plan.Workflow, &result)
 	}
 	if planOK && checkpointOK {
+		phaseEvidence := workflowPhaseVerificationEvidence(runDir, plan.Workflow)
 		verifyPhaseState(plan.Workflow, checkpoint, &result)
 		verifyParticipantBudget(plan.Workflow, checkpoint, &result)
-		verifyTerminalEvidence(plan.Workflow, checkpoint, &result)
+		verifyTerminalEvidence(plan.Workflow, checkpoint, phaseEvidence, &result)
 	}
 	result = finalizeWorkflowVerification(result)
 	if planOK && checkpointOK {
-		if err := repairVerifiedWorkflowCompletion(root, runDir, checkpoint); err != nil {
+		if err := repairVerifiedWorkflowCompletion(root, runDir, plan.Workflow, checkpoint); err != nil {
 			addWorkflowVerificationCheck(&result, WorkflowVerificationCheck{
 				Name:     "completion-normalization",
 				Status:   "warning",
@@ -172,11 +173,13 @@ func VerifyWorkflowRun(repoPath, resume string) (WorkflowVerificationResult, err
 	return result, nil
 }
 
-func repairVerifiedWorkflowCompletion(root, runDir string, checkpoint WorkflowCheckpoint) error {
+func repairVerifiedWorkflowCompletion(root, runDir string, workflow WorkflowSpec, checkpoint WorkflowCheckpoint) error {
 	if checkpoint.Status != "complete" {
 		return nil
 	}
-	if !normalizeCompletedCheckpointState(&checkpoint) {
+	changed := normalizeCompletedCheckpointState(&checkpoint)
+	changed = normalizeWorkflowVerificationEvidence(&checkpoint, workflowPhaseVerificationEvidence(runDir, workflow)...) || changed
+	if !changed {
 		return nil
 	}
 	checkpoint.UpdatedAt = Now()

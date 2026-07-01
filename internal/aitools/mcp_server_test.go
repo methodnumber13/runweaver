@@ -134,7 +134,8 @@ func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
 		`{"jsonrpc":"2.0","id":"list","method":"tools/list"}`,
 		`{"jsonrpc":"2.0","id":"start","method":"tools/call","params":{"name":"runweaver_start_or_resume","arguments":{"repo":"` + root + `","workflow":".runweaver/workflows/test-swarm.json","task":"ship feature","skipIndex":true}}}`,
 		`{"jsonrpc":"2.0","id":"plan","method":"tools/call","params":{"name":"runweaver_plan_workflow","arguments":{"repo":"` + root + `","workflow":".runweaver/workflows/test-swarm.json","task":"ship feature"}}}`,
-		`{"jsonrpc":"2.0","id":"update","method":"tools/call","params":{"name":"runweaver_update_workflow","arguments":{"repo":"` + root + `","resume":"latest","phase":"plan","status":"in_progress","participants":["repo-surface-indexer"],"findings":["mapped repo"],"lastResult":"plan created and index is missing","rejectedPaths":["skip implementation until plan participants are recorded"],"nextAction":"verify","nextVerification":"go test ./...","verification":["go test ./..."]}}}`,
+		`{"jsonrpc":"2.0","id":"seed","method":"tools/call","params":{"name":"runweaver_update_workflow","arguments":{"repo":"` + root + `","resume":"latest","phase":"plan","status":"in_progress","participants":["stale-participant","repo-surface-indexer"]}}}`,
+		`{"jsonrpc":"2.0","id":"update","method":"tools/call","params":{"name":"runweaver_update_workflow","arguments":{"repo":"` + root + `","resume":"latest","phase":"plan","status":"in_progress","participants":["repo-surface-indexer"],"replaceParticipants":true,"acceptanceCriteria":["mapped repo must stay recorded"],"findings":["mapped repo"],"lastResult":"plan created and index is missing","rejectedPaths":["skip implementation until plan participants are recorded"],"nextAction":"verify","nextVerification":"go test ./...","verification":["go test ./..."]}}}`,
 	}, "\n") + "\n"
 	var out bytes.Buffer
 
@@ -154,6 +155,14 @@ func TestServeMCPStdioAllowsGatedWorkflowWrites(t *testing.T) {
 	}
 	if status["currentPhase"] != "plan" || status["nextAction"] != "verify" || status["lastResult"] != "plan created and index is missing" {
 		t.Fatalf("workflow status = %#v, want update persisted through MCP", status)
+	}
+	participants, _ := status["participants"].([]any)
+	if !sameAnyStrings(participants, []string{"repo-surface-indexer"}) {
+		t.Fatalf("workflow status = %#v, want replaceParticipants to remove stale participant", status)
+	}
+	criteria, _ := status["acceptanceCriteria"].([]any)
+	if !sameAnyStrings(criteria, []string{"mapped repo must stay recorded"}) {
+		t.Fatalf("workflow status = %#v, want acceptanceCriteria persisted through MCP", status)
 	}
 }
 

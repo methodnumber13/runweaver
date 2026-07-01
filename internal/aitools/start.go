@@ -65,6 +65,7 @@ func StartWorkflow(repoPath string, opts StartOptions) (StartResult, error) {
 	if err != nil {
 		return StartResult{}, err
 	}
+	participants = compactParticipantSelectionForStart(participants)
 	if _, err := persistStartSelection(root, workflow, participants, "created"); err != nil {
 		return StartResult{}, err
 	}
@@ -151,13 +152,14 @@ func tryResumeStart(root, task, runtimeID string, runtimeResolution RuntimeResol
 		Workflow:          workflow,
 		Participants:      participants,
 		ExecutionContract: startExecutionContract(map[string]any{
-			"runDir":           status.RunDir,
-			"checkpointPath":   status.CheckpointPath,
-			"todoPath":         status.TodoPath,
-			"currentPhase":     status.CurrentPhase,
-			"nextPhase":        status.NextPhase,
-			"nextAction":       status.NextAction,
-			"nextVerification": status.NextVerification,
+			"runDir":             status.RunDir,
+			"checkpointPath":     status.CheckpointPath,
+			"todoPath":           status.TodoPath,
+			"currentPhase":       status.CurrentPhase,
+			"nextPhase":          status.NextPhase,
+			"acceptanceCriteria": status.AcceptanceCriteria,
+			"nextAction":         status.NextAction,
+			"nextVerification":   status.NextVerification,
 		}, participants.Participants, participants.Assignments, taskTier, context),
 		Recommendations: []string{"resume automatically from checkpoint; do not ask the user to run resume manually"},
 	}, true, nil
@@ -180,6 +182,10 @@ func selectedWorkflowIDForTask(root, task, explicitWorkflow string) (string, err
 
 func resumeParticipantsFromCheckpoint(root, task, runtimeID, taskTier string, workflow WorkflowRunSummary, workflowPath string, status RunWeaverStatusResult) (ParticipantSelectResult, error) {
 	if len(status.Participants) > 0 {
+		rationale := normalizeCheckpointParticipantRationale(status.ParticipantRationale)
+		if len(rationale) == 0 {
+			rationale = []string{"preserved participants from active workflow checkpoint"}
+		}
 		return ParticipantSelectResult{
 			Status:       "success",
 			RepoRoot:     root,
@@ -189,8 +195,8 @@ func resumeParticipantsFromCheckpoint(root, task, runtimeID, taskTier string, wo
 			Workflow:     workflow.Workflow,
 			WorkflowPath: workflowPath,
 			Participants: status.Participants,
-			Assignments:  checkpointParticipantAssignments(status.Participants),
-			Rationale:    []string{"preserved participants from active workflow checkpoint"},
+			Assignments:  checkpointParticipantAssignments(status.Participants, rationale),
+			Rationale:    rationale,
 			Warnings:     []string{"participant selection was preserved from checkpoint during resume"},
 		}, nil
 	}
@@ -202,22 +208,53 @@ func resumeParticipantsFromCheckpoint(root, task, runtimeID, taskTier string, wo
 	})
 }
 
-func checkpointParticipantAssignments(participants []string) []ParticipantAssignment {
+func compactParticipantSelectionForStart(result ParticipantSelectResult) ParticipantSelectResult {
+	result.Candidates = nil
+	result.Rationale = Limit(compactStrings(result.Rationale), 4)
+	result.Warnings = Limit(compactStrings(result.Warnings), 4)
+	for index := range result.Assignments {
+		result.Assignments[index].Rationale = Limit(compactParticipantRationale(result.Assignments[index].Rationale), 3)
+	}
+	return result
+}
+
+func checkpointParticipantAssignments(participants []string, rationale []string) []ParticipantAssignment {
 	assignments := make([]ParticipantAssignment, 0, len(participants))
 	for index, name := range participants {
 		role := "reviewer"
 		if index == 0 {
 			role = "owner"
 		}
+		participantRationale := checkpointRationaleForParticipant(name, rationale)
+		if len(participantRationale) == 0 {
+			participantRationale = []string{"preserved from active workflow checkpoint"}
+		}
 		assignments = append(assignments, ParticipantAssignment{
 			Name:      name,
 			Kind:      "agent",
 			Role:      role,
 			Source:    "checkpoint",
-			Rationale: []string{"preserved from active workflow checkpoint"},
+			Rationale: participantRationale,
 		})
 	}
 	return assignments
+}
+
+func checkpointRationaleForParticipant(name string, rationale []string) []string {
+	lowerName := strings.ToLower(strings.TrimSpace(name))
+	if lowerName == "" {
+		return nil
+	}
+	var matched []string
+	for _, item := range rationale {
+		if strings.Contains(strings.ToLower(item), lowerName) {
+			matched = append(matched, item)
+		}
+	}
+	if len(matched) > 0 {
+		return Limit(compactParticipantRationale(matched), 3)
+	}
+	return nil
 }
 
 func persistStartSelection(root string, workflow WorkflowRunSummary, participants ParticipantSelectResult, action string) (map[string]any, error) {
@@ -233,6 +270,7 @@ func persistStartSelection(root string, workflow WorkflowRunSummary, participant
 		CompletePhase:        completePhase,
 		Participants:         participants.Participants,
 		ParticipantRationale: participants.Rationale,
+		AcceptanceCriteria:   acceptanceCriteriaFromTask(workflow.Task),
 		LastResult:           startSelectionLastResult(action, workflow.Workflow, phase, completePhase),
 		NextAction:           startSelectionNextAction(phase, completePhase, workflow.Phases),
 		NextVerification:     "run $RUNWEAVER_BIN workflow verify --repo . --resume latest before final response",
@@ -293,30 +331,74 @@ func contextForStart(root, task string) ContextQueryResult {
 }
 
 func startExecutionContract(status map[string]any, participants []string, assignments []ParticipantAssignment, taskTier TaskTierResult, context ContextQueryResult) StartExecutionContract {
+	acceptanceCriteria := stringSliceValue(status["acceptanceCriteria"])
+	if len(acceptanceCriteria) == 0 {
+		acceptanceCriteria = acceptanceCriteriaFromTask(context.Task)
+	}
 	return StartExecutionContract{
-		RunDir:           stringValue(status["runDir"]),
-		CheckpointPath:   stringValue(status["checkpointPath"]),
-		TodoPath:         stringValue(status["todoPath"]),
-		CurrentPhase:     stringValue(status["currentPhase"]),
-		NextPhase:        stringValue(status["nextPhase"]),
-		TaskTier:         taskTier,
-		Context:          context,
-		Participants:     participants,
-		Assignments:      assignments,
-		NextAction:       fallbackString(stringValue(status["nextAction"]), "execute the next workflow phase and update checkpoint.json"),
-		NextVerification: fallbackString(stringValue(status["nextVerification"]), "run $RUNWEAVER_BIN workflow verify --repo . --resume latest before final response"),
-		QualityGates:     qualityGatesForStart(context),
-		PostReview:       postImplementationReviewChecklist(context),
-		PhaseCompletion:  "after each finished phase run: $RUNWEAVER_BIN workflow update --repo . --resume latest --phase <phase> --complete-phase --verification \"<command/result>\"",
-		TerminalRule:     "do not send a final response while checkpoint status is in_progress after successful verification; complete all workflow phases with --complete-phase or record a blocker with --blocker and nextVerification",
-		ResumeStrategy:   "automatic via $RUNWEAVER_BIN start; use $RUNWEAVER_BIN workflow run --resume latest --status only as a diagnostic",
+		RunDir:             stringValue(status["runDir"]),
+		CheckpointPath:     stringValue(status["checkpointPath"]),
+		TodoPath:           stringValue(status["todoPath"]),
+		CurrentPhase:       stringValue(status["currentPhase"]),
+		NextPhase:          stringValue(status["nextPhase"]),
+		TaskTier:           taskTier,
+		Context:            context,
+		Participants:       participants,
+		Assignments:        assignments,
+		AcceptanceCriteria: acceptanceCriteria,
+		NextAction:         fallbackString(stringValue(status["nextAction"]), "execute the next workflow phase and update checkpoint.json"),
+		NextVerification:   fallbackString(stringValue(status["nextVerification"]), "run $RUNWEAVER_BIN workflow verify --repo . --resume latest before final response"),
+		QualityGates:       qualityGatesForStart(context, acceptanceCriteria),
+		PostReview:         postImplementationReviewChecklist(context, acceptanceCriteria),
+		PhaseCompletion:    "after each finished phase run: $RUNWEAVER_BIN workflow update --repo . --resume latest --phase <phase> --complete-phase --verification \"<command>\" --verification-result \"<result>\"",
+		TerminalRule:       "do not send a final response while checkpoint status is in_progress after successful verification; complete all workflow phases with --complete-phase or record a blocker with --blocker and nextVerification",
+		ResumeStrategy:     "automatic via $RUNWEAVER_BIN start; use $RUNWEAVER_BIN workflow run --resume latest --status only as a diagnostic",
 	}
 }
 
-func qualityGatesForStart(context ContextQueryResult) []string {
+func acceptanceCriteriaFromTask(task string) []string {
+	var criteria []string
+	for _, line := range strings.Split(task, "\n") {
+		item, ok := stripTaskListMarker(line)
+		if !ok {
+			continue
+		}
+		item = strings.TrimSpace(item)
+		if item == "" || strings.HasSuffix(strings.ToLower(item), "requirements:") {
+			continue
+		}
+		criteria = append(criteria, item)
+	}
+	return normalizeAcceptanceCriteria(criteria)
+}
+
+func stripTaskListMarker(line string) (string, bool) {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return "", false
+	}
+	for _, marker := range []string{"-", "*"} {
+		if strings.HasPrefix(line, marker+" ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, marker)), true
+		}
+	}
+	index := 0
+	for index < len(line) && line[index] >= '0' && line[index] <= '9' {
+		index++
+	}
+	if index > 0 && index+1 < len(line) && (line[index] == '.' || line[index] == ')') && line[index+1] == ' ' {
+		return strings.TrimSpace(line[index+1:]), true
+	}
+	return "", false
+}
+
+func qualityGatesForStart(context ContextQueryResult, acceptanceCriteria []string) []string {
 	gates := []string{
 		"write or update the narrowest focused test before production edits when the task changes behavior",
 		"record exact verification commands and results in the workflow checkpoint before final response",
+	}
+	if len(acceptanceCriteria) > 0 {
+		gates = append(gates, "compare every acceptance criterion against changed code, tests, and verification evidence before completing review")
 	}
 	if contextLooksFrontend(context) {
 		gates = append(gates,
@@ -334,11 +416,14 @@ func qualityGatesForStart(context ContextQueryResult) []string {
 	return gates
 }
 
-func postImplementationReviewChecklist(context ContextQueryResult) []string {
+func postImplementationReviewChecklist(context ContextQueryResult, acceptanceCriteria []string) []string {
 	checklist := []string{
 		"compare original task, selected workflow, selected participants, changed files, and checkpoint state before final response",
 		"review behavioral correctness plus rejected/paused paths; record findings with workflow update when relevant",
 		"prefer existing focused tests and verification commands; avoid broad new test scaffolding unless task evidence requires it",
+	}
+	if len(acceptanceCriteria) > 0 {
+		checklist = append(checklist, "mark each acceptance criterion satisfied by code/tests or record the unmet criterion as a blocker or residual risk")
 	}
 	if contextLooksFrontend(context) {
 		checklist = append(checklist,
@@ -424,6 +509,24 @@ func firstPhaseID(values []string) string {
 func stringValue(value any) string {
 	text, _ := value.(string)
 	return text
+}
+
+func stringSliceValue(value any) []string {
+	switch typed := value.(type) {
+	case []string:
+		return compactStrings(typed)
+	case []any:
+		out := make([]string, 0, len(typed))
+		for _, item := range typed {
+			text, ok := item.(string)
+			if ok {
+				out = append(out, text)
+			}
+		}
+		return compactStrings(out)
+	default:
+		return nil
+	}
 }
 
 func fallbackString(value, fallback string) string {

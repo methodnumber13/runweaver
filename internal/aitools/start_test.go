@@ -1,6 +1,7 @@
 package aitools
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -134,6 +135,13 @@ func TestStartWorkflowResumeKeepsParticipantContractConsistent(t *testing.T) {
 	if !sameStrings(second.Participants.Participants, second.ExecutionContract.Participants) {
 		t.Fatalf("top-level participants = %#v, want contract participants %#v", second.Participants.Participants, second.ExecutionContract.Participants)
 	}
+	if !stringsContain(second.Participants.Rationale, "auth-agent") {
+		t.Fatalf("resume rationale = %#v, want preserved checkpoint rationale", second.Participants.Rationale)
+	}
+	assignmentText := strings.Join(assignmentRationale(second.ExecutionContract.Assignments), "\n")
+	if !strings.Contains(assignmentText, "auth-agent") {
+		t.Fatalf("assignment rationale = %q, want participant-specific checkpoint rationale", assignmentText)
+	}
 }
 
 func TestStartWorkflowAutoRuntimeUsesAvailableProfile(t *testing.T) {
@@ -247,6 +255,30 @@ func TestStartWorkflowIncludesTaskScopedContext(t *testing.T) {
 	}
 }
 
+func TestStartWorkflowCompactsParticipantDiagnosticsForRuntimeContract(t *testing.T) {
+	root := t.TempDir()
+	writeWorkflowSelectionFixtures(t, root)
+	writeParticipantProfileForRuntime(t, root, RuntimeOpenCode)
+	writeFrontendWorkflowContextIndex(t, root)
+
+	result, err := StartWorkflow(root, StartOptions{
+		Task:      "Implement frontend FeatureLauncherCard launch readiness UI. Do not modify API/server/runtime worker files.",
+		Runtime:   RuntimeOpenCode,
+		SkipIndex: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Participants.Candidates) != 0 {
+		t.Fatalf("participants candidates = %#v, want start contract to omit diagnostic candidate dump", result.Participants.Candidates)
+	}
+	for _, rationale := range append(result.Participants.Rationale, assignmentRationale(result.Participants.Assignments)...) {
+		if len(rationale) > 240 {
+			t.Fatalf("rationale = %q (%d chars), want compact runtime rationale", rationale, len(rationale))
+		}
+	}
+}
+
 func TestStartWorkflowIncludesPostImplementationReviewContract(t *testing.T) {
 	root := t.TempDir()
 	writeWorkflowSelectionFixtures(t, root)
@@ -269,6 +301,101 @@ func TestStartWorkflowIncludesPostImplementationReviewContract(t *testing.T) {
 		if !stringsContain(result.ExecutionContract.PostReview, want) {
 			t.Fatalf("post review = %#v, want checklist item containing %q", result.ExecutionContract.PostReview, want)
 		}
+	}
+}
+
+func TestStartWorkflowPersistsAcceptanceCriteriaForReview(t *testing.T) {
+	root := t.TempDir()
+	writeWorkflowSelectionFixtures(t, root)
+	writeParticipantProfileForRuntime(t, root, RuntimeOpenCode)
+	writeFrontendWorkflowContextIndex(t, root)
+
+	task := `Implement a reusable launch readiness summary.
+
+Requirements:
+- Show selected count and delay ranges.
+- Existing validation errors must be blocking readiness items.
+- Do not modify server/runtime worker files.
+- Run focused checks for changed files.`
+
+	result, err := StartWorkflow(root, StartOptions{
+		Task:      task,
+		Runtime:   RuntimeOpenCode,
+		SkipIndex: true,
+		ForceNew:  true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.ExecutionContract.AcceptanceCriteria) != 4 {
+		t.Fatalf("acceptance criteria = %#v, want four parsed requirements", result.ExecutionContract.AcceptanceCriteria)
+	}
+	contractText := strings.Join(append(result.ExecutionContract.QualityGates, result.ExecutionContract.PostReview...), "\n")
+	for _, want := range []string{"every acceptance criterion", "unmet criterion"} {
+		if !strings.Contains(contractText, want) {
+			t.Fatalf("contract gates/postReview = %#v/%#v, want %q", result.ExecutionContract.QualityGates, result.ExecutionContract.PostReview, want)
+		}
+	}
+	status, err := WorkflowStatus(root, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	statusCriteria, _ := status["acceptanceCriteria"].([]any)
+	if len(statusCriteria) != 4 {
+		t.Fatalf("status = %#v, want persisted acceptance criteria", status)
+	}
+	current, err := os.ReadFile(filepath.Join(root, ".runweaver/tmp/current.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(current), "## Acceptance Criteria") || !strings.Contains(string(current), "validation errors") {
+		t.Fatalf("current.md = %s, want acceptance criteria mirror", string(current))
+	}
+}
+
+func TestStartWorkflowResumeUsesPersistedAcceptanceCriteria(t *testing.T) {
+	root := t.TempDir()
+	writeWorkflowSelectionFixtures(t, root)
+	writeParticipantProfileForRuntime(t, root, RuntimeCodex)
+	writeFrontendWorkflowContextIndex(t, root)
+
+	task := `Implement a launch readiness summary.
+
+Requirements:
+- Show pending work before launch.
+- Existing validation errors must block readiness.`
+
+	if _, err := StartWorkflow(root, StartOptions{
+		Task:      task,
+		Runtime:   RuntimeCodex,
+		SkipIndex: true,
+		ForceNew:  true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:             "latest",
+		AcceptanceCriteria: []string{"Manual checkpoint criterion must survive short resume prompts."},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	resumed, err := StartWorkflow(root, StartOptions{
+		Task:      "continue",
+		Runtime:   RuntimeCodex,
+		SkipIndex: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resumed.Action != "resumed" {
+		t.Fatalf("action = %q, want resumed", resumed.Action)
+	}
+	if !stringsContain(resumed.ExecutionContract.AcceptanceCriteria, "Manual checkpoint criterion") {
+		t.Fatalf("acceptance criteria = %#v, want persisted checkpoint criterion after resume", resumed.ExecutionContract.AcceptanceCriteria)
+	}
+	if len(resumed.ExecutionContract.AcceptanceCriteria) < 3 {
+		t.Fatalf("acceptance criteria = %#v, want original plus manual criteria", resumed.ExecutionContract.AcceptanceCriteria)
 	}
 }
 

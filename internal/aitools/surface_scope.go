@@ -145,7 +145,7 @@ func textLooksFrontendSurface(text string) bool {
 }
 
 func textLooksBackendSurface(text string) bool {
-	if strings.Contains(text, "api client") || strings.Contains(text, "frontend api") {
+	if textLooksClientBoundarySurface(text) {
 		return false
 	}
 	return strings.Contains(text, "backend") ||
@@ -158,9 +158,32 @@ func textLooksBackendSurface(text string) bool {
 		strings.Contains(text, "endpoint") ||
 		strings.Contains(text, "handler") ||
 		strings.Contains(text, "middleware") ||
+		strings.Contains(text, "runtime") ||
 		strings.Contains(text, "server") ||
 		strings.Contains(text, "database") ||
 		strings.Contains(text, "worker")
+}
+
+func textLooksClientBoundarySurface(text string) bool {
+	text = strings.ToLower(text)
+	for _, phrase := range []string{
+		"api-client",
+		"api client",
+		"frontend api client",
+		"client contract",
+		"request/response contract",
+		"request response contract",
+	} {
+		if strings.Contains(text, phrase) {
+			return true
+		}
+	}
+	return strings.Contains(text, "client") &&
+		(strings.Contains(text, "contract") ||
+			strings.Contains(text, "request") ||
+			strings.Contains(text, "response") ||
+			strings.Contains(text, "compatibility") ||
+			strings.Contains(text, "mapping"))
 }
 
 func textLooksTestSurface(text string) bool {

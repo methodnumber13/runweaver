@@ -31,7 +31,7 @@ Use the full raw user task exactly as received, including constraints, file/path
 
 Use the repo-local ` + "`RUNWEAVER_BIN`" + ` shim instead of a bare global ` + "`runweaver`" + `; the global binary can be stale and may not contain ` + "`runweaver start`" + `.
 
-Then follow the returned ` + "`executionContract`" + `, selected participants, task tier, task-scoped context, and next verification step. Keep ` + "`checkpoint.json`" + ` current with ` + "`$RUNWEAVER_BIN workflow update`" + ` after each phase using exact flags such as ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, and ` + "`--blocker`" + `.
+Then follow the returned ` + "`executionContract`" + `, especially acceptanceCriteria, selected participants, task tier, task-scoped context, and next verification step. Keep ` + "`checkpoint.json`" + ` current with ` + "`$RUNWEAVER_BIN workflow update`" + ` after each phase using exact flags such as ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, and ` + "`--blocker`" + `.
 `
 
 const claudeRunWeaverStartSkill = `---
@@ -52,5 +52,5 @@ Use the full raw user task exactly as received, including constraints, file/path
 
 Use the repo-local ` + "`RUNWEAVER_BIN`" + ` shim instead of a bare global ` + "`runweaver`" + `; the global binary can be stale and may not contain ` + "`runweaver start`" + `.
 
-Then follow the returned ` + "`executionContract`" + `, selected participants, task tier, task-scoped context, and next verification step. Keep ` + "`checkpoint.json`" + ` current with ` + "`$RUNWEAVER_BIN workflow update`" + ` after each phase using exact flags such as ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, and ` + "`--blocker`" + `.
+Then follow the returned ` + "`executionContract`" + `, especially acceptanceCriteria, selected participants, task tier, task-scoped context, and next verification step. Keep ` + "`checkpoint.json`" + ` current with ` + "`$RUNWEAVER_BIN workflow update`" + ` after each phase using exact flags such as ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, and ` + "`--blocker`" + `.
 `

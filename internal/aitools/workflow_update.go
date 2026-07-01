@@ -43,7 +43,10 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		}
 	}
 	if len(opts.ParticipantRationale) > 0 {
-		checkpoint.ParticipantRationale = Unique(append(checkpoint.ParticipantRationale, compactStrings(opts.ParticipantRationale)...))
+		checkpoint.ParticipantRationale = Unique(append(checkpoint.ParticipantRationale, normalizeCheckpointParticipantRationale(opts.ParticipantRationale)...))
+	}
+	if len(opts.AcceptanceCriteria) > 0 {
+		checkpoint.AcceptanceCriteria = Unique(append(checkpoint.AcceptanceCriteria, normalizeAcceptanceCriteria(opts.AcceptanceCriteria)...))
 	}
 	if len(opts.Findings) > 0 {
 		checkpoint.Findings = Unique(append(checkpoint.Findings, compactStrings(opts.Findings)...))
@@ -108,6 +111,7 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		}
 	}
 	normalizeCompletedCheckpointState(&checkpoint)
+	normalizeWorkflowVerificationEvidence(&checkpoint)
 	applyWorkflowIndexFreshness(root, &checkpoint)
 	checkpoint.UpdatedAt = Now()
 	if err := WriteJSON(checkpointPath, checkpoint); err != nil {
@@ -131,7 +135,8 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		Phase:                eventPhase,
 		Status:               checkpoint.Status,
 		Participants:         checkpoint.Participants,
-		ParticipantRationale: compactStrings(opts.ParticipantRationale),
+		ParticipantRationale: normalizeCheckpointParticipantRationale(opts.ParticipantRationale),
+		AcceptanceCriteria:   normalizeAcceptanceCriteria(opts.AcceptanceCriteria),
 		Findings:             compactStrings(opts.Findings),
 		Decisions:            compactStrings(opts.Decisions),
 		FilesRead:            compactStrings(opts.FilesRead),
@@ -158,6 +163,24 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		return nil, err
 	}
 	return checkpointStatusMap(checkpoint, rel(root, runDir))
+}
+
+func normalizeCheckpointParticipantRationale(values []string) []string {
+	values = compactStrings(values)
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, compactRationaleItem(value, 240))
+	}
+	return Unique(out)
+}
+
+func normalizeAcceptanceCriteria(values []string) []string {
+	values = compactStrings(values)
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, compactRationaleItem(value, 260))
+	}
+	return Limit(Unique(out), 20)
 }
 
 func completedWorkflowPhasesThrough(root, runDir, phase string, existing []string) ([]string, error) {

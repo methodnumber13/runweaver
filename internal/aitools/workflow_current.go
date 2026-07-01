@@ -43,6 +43,10 @@ func workflowCurrentMarkdown(checkpoint WorkflowCheckpoint, runDir string) strin
 		b.WriteString("\n## Participants\n\n")
 		writeMarkdownList(&b, checkpoint.Participants)
 	}
+	if len(checkpoint.AcceptanceCriteria) > 0 {
+		b.WriteString("\n## Acceptance Criteria\n\n")
+		writeMarkdownList(&b, checkpoint.AcceptanceCriteria)
+	}
 	if checkpoint.LastResult != "" {
 		b.WriteString("\n## Last Result\n\n")
 		b.WriteString(checkpoint.LastResult)

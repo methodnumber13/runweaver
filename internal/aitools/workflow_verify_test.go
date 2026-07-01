@@ -3,6 +3,7 @@ package aitools
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -106,6 +107,125 @@ func TestVerifyWorkflowRunNormalizesCompletedResumeHints(t *testing.T) {
 	}
 	if checkpoint.NextAction != completeWorkflowNextAction || checkpoint.NextVerification != "" {
 		t.Fatalf("checkpoint = %#v, want normalized terminal hints", checkpoint)
+	}
+}
+
+func TestVerifyWorkflowRunWarnsWhenCommandEvidenceLacksStructuredResults(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
+  "id": "test-swarm",
+  "name": "Test Swarm",
+  "maxParticipants": 3,
+  "phases": [
+    {"id": "verify", "name": "Verify", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-test-quality-reviewer"], "prompt": "verify"}
+  ]
+}`)
+	run, err := PlanWorkflow(root, ".runweaver/workflows/test-swarm.json", "check evidence")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:               "latest",
+		Phase:                "verify",
+		Participants:         []string{"repo-test-quality-reviewer"},
+		ParticipantRationale: []string{"verification owner"},
+		Verification:         []string{"focused checks passed; static check passed"},
+		VerificationResults:  []string{"temporary result"},
+		CompletePhase:        true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	checkpointPath := filepath.Join(root, run.CheckpointPath)
+	var checkpoint WorkflowCheckpoint
+	if err := ReadJSON(checkpointPath, &checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	checkpoint.VerificationResults = nil
+	if err := WriteJSON(checkpointPath, checkpoint); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyWorkflowRun(root, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Ready || result.Status != "warning" {
+		t.Fatalf("verification = %#v, want warning without structured verification results", result)
+	}
+	checkpoint = WorkflowCheckpoint{}
+	if err := ReadJSON(checkpointPath, &checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	if len(checkpoint.VerificationResults) != 0 {
+		t.Fatalf("checkpoint = %#v, want command evidence not promoted into verification results", checkpoint)
+	}
+}
+
+func TestVerifyWorkflowRunUsesPhaseVerificationLogEvidence(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
+  "id": "test-swarm",
+  "name": "Test Swarm",
+  "maxParticipants": 3,
+  "phases": [
+    {"id": "verify", "name": "Verify", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-test-quality-reviewer"], "prompt": "verify"}
+  ]
+}`)
+	run, err := PlanWorkflow(root, ".runweaver/workflows/test-swarm.json", "check phase evidence")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:               "latest",
+		Phase:                "verify",
+		Participants:         []string{"repo-test-quality-reviewer"},
+		ParticipantRationale: []string{"verification owner"},
+		Verification:         []string{"focused-check-command"},
+		VerificationResults:  []string{"temporary result"},
+		CompletePhase:        true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	checkpointPath := filepath.Join(root, run.CheckpointPath)
+	var checkpoint WorkflowCheckpoint
+	if err := ReadJSON(checkpointPath, &checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	checkpoint.VerificationResults = nil
+	if err := WriteJSON(checkpointPath, checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	verificationLog := filepath.Join(root, run.RunDir, "phases", "verify", "verification.jsonl")
+	if err := os.WriteFile(verificationLog, []byte(`{"command":"focused-check-command","result":"passed"}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyWorkflowRun(root, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Ready || result.Status != "ok" {
+		t.Fatalf("verification = %#v, want ready ok from phase verification log evidence", result)
+	}
+	checkpoint = WorkflowCheckpoint{}
+	if err := ReadJSON(checkpointPath, &checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	if len(checkpoint.VerificationResults) != 1 || !strings.Contains(checkpoint.VerificationResults[0], "phase verify verification") {
+		t.Fatalf("checkpoint = %#v, want persisted phase verification evidence", checkpoint)
+	}
+}
+
+func TestVerificationEntryLooksLikeResultAvoidsSubstringMatches(t *testing.T) {
+	for _, entry := range []string{"check auth bypass command", "validate password command"} {
+		if verificationEntryLooksLikeResult(entry) {
+			t.Fatalf("entry %q looked like a result, want command-only", entry)
+		}
+	}
+	for _, entry := range []string{"focused check passed", "command failed with exit code 1"} {
+		if !verificationEntryLooksLikeResult(entry) {
+			t.Fatalf("entry %q did not look like a result", entry)
+		}
 	}
 }
 

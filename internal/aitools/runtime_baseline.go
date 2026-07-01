@@ -193,9 +193,9 @@ compatibility: codex
 
 Use this skill for every non-trivial coding, bugfix, refactor, test, onboarding, or metadata workflow.
 
-Maintain .runweaver/tmp/swarm-runs/<run-id>/checkpoint.json, todo.md, events.ndjson, phase notes, and verification logs through ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow update`" + `. Use exact flags such as ` + "`--participants`" + `, ` + "`--participant-rationale`" + `, ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, ` + "`--residual-risk`" + `, ` + "`--blocker`" + `, ` + "`--next-action`" + `, and ` + "`--next-verification`" + ` whenever they explain the next move.
+Maintain .runweaver/tmp/swarm-runs/<run-id>/checkpoint.json, todo.md, events.ndjson, phase notes, and verification logs through ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow update`" + `. Use exact flags such as ` + "`--participants`" + `, ` + "`--participant-rationale`" + `, ` + "`--acceptance-criterion`" + `, ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, ` + "`--residual-risk`" + `, ` + "`--blocker`" + `, ` + "`--next-action`" + `, and ` + "`--next-verification`" + ` whenever they explain the next move.
 
-Before final response, run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow verify --repo . --resume latest`" + ` when feasible and record exact blockers plus the next verification step otherwise.
+Before final response, compare every acceptance criterion against code, tests, and verification evidence, then run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow verify --repo . --resume latest`" + ` when feasible and record exact blockers plus the next verification step otherwise.
 `
 
 const codexMetadataRefreshSkill = `---
@@ -254,9 +254,9 @@ compatibility: claude
 
 Use this skill for every non-trivial coding, bugfix, refactor, test, onboarding, or metadata workflow.
 
-Maintain .runweaver/tmp/swarm-runs/<run-id>/checkpoint.json, todo.md, events.ndjson, phase notes, and verification logs through ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow update`" + `. Use exact flags such as ` + "`--participants`" + `, ` + "`--participant-rationale`" + `, ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, ` + "`--residual-risk`" + `, ` + "`--blocker`" + `, ` + "`--next-action`" + `, and ` + "`--next-verification`" + ` whenever they explain the next move.
+Maintain .runweaver/tmp/swarm-runs/<run-id>/checkpoint.json, todo.md, events.ndjson, phase notes, and verification logs through ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow update`" + `. Use exact flags such as ` + "`--participants`" + `, ` + "`--participant-rationale`" + `, ` + "`--acceptance-criterion`" + `, ` + "`--file-read`" + `, ` + "`--file-changed`" + `, ` + "`--last-result`" + `, ` + "`--rejected-path`" + `, ` + "`--verification-result`" + `, ` + "`--residual-risk`" + `, ` + "`--blocker`" + `, ` + "`--next-action`" + `, and ` + "`--next-verification`" + ` whenever they explain the next move.
 
-Before final response, run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow verify --repo . --resume latest`" + ` when feasible and record exact blockers plus the next verification step otherwise.
+Before final response, compare every acceptance criterion against code, tests, and verification evidence, then run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow verify --repo . --resume latest`" + ` when feasible and record exact blockers plus the next verification step otherwise.
 `
 
 const claudeMetadataRefreshSkill = `---

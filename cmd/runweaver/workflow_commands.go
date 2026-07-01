@@ -180,6 +180,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	nextVerification := fs.String("next-verification", "", "next verification step that should be run before continuing or finishing")
 	completePhase := fs.Bool("complete-phase", false, "mark the current phase complete and advance nextPhase")
 	var participantRationale repeatedStringFlag
+	var acceptanceCriteria repeatedStringFlag
 	var findings repeatedStringFlag
 	var decisions repeatedStringFlag
 	var filesRead repeatedStringFlag
@@ -191,6 +192,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	var residualRisks repeatedStringFlag
 	var blockers repeatedStringFlag
 	fs.Var(&participantRationale, "participant-rationale", "participant selection rationale to append; may be repeated")
+	fs.Var(&acceptanceCriteria, "acceptance-criterion", "task acceptance criterion to append; may be repeated")
 	fs.Var(&findings, "finding", "finding to append; may be repeated")
 	fs.Var(&decisions, "decision", "decision to append; may be repeated")
 	fs.Var(&filesRead, "file-read", "file read during the phase; may be repeated")
@@ -214,6 +216,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 		Participants:         splitCSV(*participants),
 		ReplaceParticipants:  *replaceParticipants,
 		ParticipantRationale: participantRationale.Values(),
+		AcceptanceCriteria:   acceptanceCriteria.Values(),
 		Findings:             findings.Values(),
 		Decisions:            decisions.Values(),
 		FilesRead:            filesRead.Values(),

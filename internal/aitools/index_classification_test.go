@@ -46,13 +46,13 @@ func TestIndexClassifiesDecoratedAPISurfacesPrecisely(t *testing.T) {
 		"src/main.ts":                 "entrypoint",
 		"src/app.module.ts":           "module",
 		"src/auth/auth.controller.ts": "route",
-		"src/auth/dto/identity-introspect-response.dto.ts":    "contract",
-		"src/user/dto/user-routes-response.dto.ts":            "contract",
-		"src/cache/dto/cache-test-response.dto.ts":            "contract",
-		"src/analytics/analytics.repository.ts":               "persistence",
-		"src/app.controller.spec.ts":                          "test",
-		"test/e2e/auth-module.e2e-spec.ts":                    "test",
-		"db/migrations/20250101000000_init/migration.sql": "persistence",
+		"src/auth/dto/identity-introspect-response.dto.ts": "contract",
+		"src/user/dto/user-routes-response.dto.ts":         "contract",
+		"src/cache/dto/cache-test-response.dto.ts":         "contract",
+		"src/analytics/analytics.repository.ts":            "persistence",
+		"src/app.controller.spec.ts":                       "test",
+		"test/e2e/auth-module.e2e-spec.ts":                 "test",
+		"db/migrations/20250101000000_init/migration.sql":  "persistence",
 	}
 	for path, want := range wantCategories {
 		if got := categoryOf(index, path); got != want {

@@ -337,7 +337,9 @@ func verificationTargetsNonFrontendSurface(command string) bool {
 		"src/api/",
 		"backend",
 		"database",
+		"runtime",
 		"runtime worker",
+		"worker",
 	} {
 		if strings.Contains(lower, marker) {
 			return true
@@ -380,44 +382,46 @@ func compactParticipantRationale(rationale []string) []string {
 	for _, item := range rationale {
 		switch {
 		case strings.HasPrefix(item, "description: "):
-			descriptions = append(descriptions, compactRationaleItem(item, 160))
+			descriptions = append(descriptions, compactRationaleItem(item, 120))
 		case strings.HasPrefix(item, "verification: "):
-			verification = append(verification, compactRationaleItem(item, 180))
+			verification = append(verification, compactRationaleItem(item, 140))
 		case strings.HasPrefix(item, "focus file: "):
-			focus = append(focus, compactRationaleItem(item, 180))
+			focus = append(focus, compactRationaleItem(item, 120))
 		case strings.HasPrefix(item, "workflow: "):
-			workflow = append(workflow, compactRationaleItem(item, 180))
+			workflow = append(workflow, compactRationaleItem(item, 120))
 		case strings.Contains(item, "matched") ||
 			strings.Contains(item, "listed by workflow") ||
 			strings.Contains(item, "frontend task") ||
 			strings.Contains(item, "backend task") ||
 			strings.Contains(item, "post-implementation") ||
 			strings.Contains(item, "penalized"):
-			matches = append(matches, compactRationaleItem(item, 180))
+			matches = append(matches, compactRationaleItem(item, 120))
 		default:
-			other = append(other, compactRationaleItem(item, 180))
+			other = append(other, compactRationaleItem(item, 120))
 		}
 	}
 	var compact []string
 	compact = append(compact, Limit(descriptions, 1)...)
-	compact = append(compact, Limit(matches, 4)...)
-	compact = append(compact, Limit(verification, 2)...)
-	compact = append(compact, Limit(focus, 2)...)
-	if len(compact) < 4 {
+	compact = append(compact, Limit(verification, 1)...)
+	compact = append(compact, Limit(matches, 2)...)
+	if len(compact) < 3 {
+		compact = append(compact, Limit(focus, 1)...)
+	}
+	if len(compact) < 3 {
 		compact = append(compact, Limit(workflow, 1)...)
 	}
-	if len(compact) < 4 {
-		compact = append(compact, Limit(other, 2)...)
+	if len(compact) < 3 {
+		compact = append(compact, Limit(other, 1)...)
 	}
 	return Unique(compact)
 }
 
 func participantRationaleSummary(rationale []string) string {
 	joined := strings.Join(rationale, "; ")
-	if len(joined) <= 320 {
+	if len(joined) <= 220 {
 		return joined
 	}
-	return compactRationaleItem(joined, 320)
+	return compactRationaleItem(joined, 220)
 }
 
 func compactRationaleItem(value string, limit int) string {
@@ -529,14 +533,16 @@ func genericParticipantDomainToken(token string) bool {
 }
 
 type participantTaskScope struct {
-	FrontendOnly     bool
-	FrontendTask     bool
-	BackendTask      bool
-	BackendForbidden bool
-	FeatureWorkflow  bool
-	Implementation   bool
-	MetadataTask     bool
-	TestTask         bool
+	FrontendOnly            bool
+	FrontendTask            bool
+	BackendTask             bool
+	BackendForbidden        bool
+	ClientBoundaryTask      bool
+	ClientBoundaryForbidden bool
+	FeatureWorkflow         bool
+	Implementation          bool
+	MetadataTask            bool
+	TestTask                bool
 }
 
 func participantTaskScopeFromTask(task string, taskTokens map[string]bool, workflow WorkflowSpec) participantTaskScope {
@@ -547,6 +553,8 @@ func participantTaskScopeFromTask(task string, taskTokens map[string]bool, workf
 		"api", "backend", "controller", "database", "endpoint", "handler", "migration", "persistence", "repository", "route", "routes", "server", "storage",
 	})
 	backendForbidden := taskForbidsBackendChanges(task)
+	clientBoundaryTask := taskRequestsClientBoundaryWork(task, taskTokens)
+	clientBoundaryForbidden := taskForbidsClientBoundaryChanges(task)
 	testTask := hasAnySelectionToken(taskTokens, []string{
 		"coverage", "e2e", "fixture", "fixtures", "mock", "mocks", "spec", "test", "tests",
 	})
@@ -556,14 +564,16 @@ func participantTaskScopeFromTask(task string, taskTokens map[string]bool, workf
 	})
 	metadataTask := isMetadataRefreshTask(taskTokens)
 	return participantTaskScope{
-		FrontendOnly:     frontendTask && (backendForbidden || !backendTask),
-		FrontendTask:     frontendTask,
-		BackendTask:      backendTask,
-		BackendForbidden: backendForbidden,
-		FeatureWorkflow:  featureWorkflow,
-		Implementation:   implementation,
-		MetadataTask:     metadataTask,
-		TestTask:         testTask,
+		FrontendOnly:            frontendTask && (backendForbidden || !backendTask),
+		FrontendTask:            frontendTask,
+		BackendTask:             backendTask,
+		BackendForbidden:        backendForbidden,
+		ClientBoundaryTask:      clientBoundaryTask,
+		ClientBoundaryForbidden: clientBoundaryForbidden,
+		FeatureWorkflow:         featureWorkflow,
+		Implementation:          implementation,
+		MetadataTask:            metadataTask,
+		TestTask:                testTask,
 	}
 }
 
@@ -577,7 +587,15 @@ func scoreParticipantTaskScope(candidate *ParticipantSelectionCandidate, scope p
 		candidate.Score += 6
 		candidate.Rationale = append(candidate.Rationale, "backend task matched backend participant scope")
 	}
-	if scope.FrontendOnly && participantLooksBackend(text) {
+	if scope.ClientBoundaryTask && participantLooksClientBoundary(text) {
+		candidate.Score += 12
+		candidate.Rationale = append(candidate.Rationale, "client-boundary task matched client contract participant")
+	}
+	if scope.ClientBoundaryForbidden && participantLooksClientBoundary(text) {
+		candidate.Score -= 60
+		candidate.Rationale = append(candidate.Rationale, "penalized client contract participant for forbidden boundary task")
+	}
+	if scope.FrontendOnly && !participantLooksClientBoundary(text) && participantLooksBackend(text) {
 		penalty := 26
 		if scope.BackendForbidden {
 			penalty = 60
@@ -625,7 +643,7 @@ func participantLooksBackend(text string) bool {
 	if strings.Contains(text, "post-implementation-reviewer") {
 		return false
 	}
-	if strings.Contains(text, "api-client") || strings.Contains(text, "frontend api client") {
+	if participantLooksClientBoundary(text) {
 		return false
 	}
 	return strings.Contains(text, "api-route") ||
@@ -641,11 +659,17 @@ func participantLooksBackend(text string) bool {
 		strings.Contains(text, "migration") ||
 		strings.Contains(text, "persistence") ||
 		strings.Contains(text, "repository") ||
+		strings.Contains(text, "runtime") ||
 		strings.Contains(text, "server") ||
 		strings.Contains(text, "storage") ||
+		strings.Contains(text, "worker") ||
 		strings.Contains(text, "/api/") ||
 		strings.Contains(text, " route") ||
 		strings.Contains(text, " routes")
+}
+
+func participantLooksClientBoundary(text string) bool {
+	return textLooksClientBoundarySurface(text)
 }
 
 func participantLooksTestOnly(text string) bool {
@@ -668,7 +692,9 @@ func participantLooksBackendTestHarness(text string) bool {
 		strings.Contains(text, "route tests") ||
 		strings.Contains(text, "integration harness") ||
 		strings.Contains(text, "backend test") ||
-		strings.Contains(text, "api test")
+		strings.Contains(text, "api test") ||
+		strings.Contains(text, "runtime test") ||
+		strings.Contains(text, "worker test")
 }
 
 func participantLooksMetadataMaintenance(text string) bool {
@@ -874,6 +900,9 @@ func selectParticipantCandidates(candidates []ParticipantSelectionCandidate, cap
 
 func participantExcludedByTaskScope(candidate ParticipantSelectionCandidate, scope participantTaskScope) bool {
 	text := strings.ToLower(candidate.Name + " " + strings.Join(candidate.Rationale, " "))
+	if scope.FrontendOnly && scope.BackendForbidden && participantLooksClientBoundary(text) {
+		return scope.ClientBoundaryForbidden || !scope.ClientBoundaryTask
+	}
 	if scope.FrontendOnly && scope.BackendForbidden && participantLooksBackend(text) {
 		return true
 	}

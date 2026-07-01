@@ -140,6 +140,7 @@ type WorkflowCheckpoint struct {
 	NextPhase            string   `json:"nextPhase"`
 	Participants         []string `json:"participants,omitempty"`
 	ParticipantRationale []string `json:"participantRationale,omitempty"`
+	AcceptanceCriteria   []string `json:"acceptanceCriteria,omitempty"`
 	Findings             []string `json:"findings,omitempty"`
 	Decisions            []string `json:"decisions,omitempty"`
 	FilesRead            []string `json:"filesRead,omitempty"`
@@ -178,6 +179,7 @@ type WorkflowEvent struct {
 	Status               string   `json:"status,omitempty"`
 	Participants         []string `json:"participants,omitempty"`
 	ParticipantRationale []string `json:"participantRationale,omitempty"`
+	AcceptanceCriteria   []string `json:"acceptanceCriteria,omitempty"`
 	Findings             []string `json:"findings,omitempty"`
 	Decisions            []string `json:"decisions,omitempty"`
 	FilesRead            []string `json:"filesRead,omitempty"`
@@ -209,6 +211,7 @@ type WorkflowUpdateOptions struct {
 	Participants         []string
 	ReplaceParticipants  bool
 	ParticipantRationale []string
+	AcceptanceCriteria   []string
 	Findings             []string
 	Decisions            []string
 	FilesRead            []string
