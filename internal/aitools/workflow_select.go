@@ -172,8 +172,92 @@ func scoreWorkflowCandidate(candidate *WorkflowSelectionCandidate, taskTokens ma
 		score += 1
 		rationale = append(rationale, "default feature workflow fallback")
 	}
+	score, rationale = applyWorkflowTaskSignalScore(candidate.ID, taskTokens, score, rationale)
 	candidate.Score = score
 	candidate.Rationale = Unique(rationale)
+}
+
+func applyWorkflowTaskSignalScore(workflowID string, taskTokens map[string]bool, score int, rationale []string) (int, []string) {
+	featureTask := hasAnySelectionToken(taskTokens, []string{
+		"add", "build", "card", "component", "create", "deliver", "dialog", "feature", "frontend", "implement", "implementation", "implementations", "launch", "launcher", "modal", "new", "page", "screen", "ship", "support", "ui", "variant", "variants", "view",
+	})
+	productImplementationTask := hasAnySelectionToken(taskTokens, []string{
+		"card", "component", "dialog", "feature", "frontend", "implement", "implementation", "implementations", "launch", "launcher", "modal", "page", "screen", "ui", "ux", "view",
+	})
+	explicitRefactorTask := hasAnySelectionToken(taskTokens, []string{
+		"cleanup", "dry", "refactor", "rename", "restructure", "solid",
+	})
+	metadataRefreshTask := isMetadataRefreshTask(taskTokens)
+	testTask := hasAnySelectionToken(taskTokens, []string{
+		"coverage", "e2e", "flake", "flaky", "spec", "test", "tests",
+	})
+	refactorTask := hasAnySelectionToken(taskTokens, []string{
+		"cleanup", "dry", "extract", "refactor", "rename", "restructure", "solid", "split",
+	})
+
+	switch workflowID {
+	case "feature-delivery-swarm", "feature-swarm":
+		if featureTask {
+			score += 18
+			rationale = append(rationale, "feature implementation task signal")
+		}
+		if productImplementationTask && testTask {
+			score += 8
+			rationale = append(rationale, "feature owns requested tests as verification")
+		}
+	case "metadata-refresh-swarm":
+		if metadataRefreshTask {
+			score += 18
+			rationale = append(rationale, "explicit metadata refresh task signal")
+		} else if featureTask {
+			score -= 32
+			rationale = append(rationale, "penalized metadata refresh for product feature task")
+		} else {
+			score -= 8
+			rationale = append(rationale, "metadata refresh requires explicit metadata/index/agent target")
+		}
+	case "test-hardening-swarm":
+		if productImplementationTask {
+			score -= 36
+			rationale = append(rationale, "product implementation should own tests as verification")
+		} else if featureTask && !testTask {
+			score -= 4
+			rationale = append(rationale, "feature implementation does not primarily request test hardening")
+		}
+	case "refactor-swarm":
+		if featureTask && !explicitRefactorTask {
+			score -= 28
+			rationale = append(rationale, "feature implementation with structural constraints should not primarily route to refactor")
+		} else if featureTask && refactorTask {
+			score -= 6
+			rationale = append(rationale, "feature implementation remains primary despite refactor signal")
+		}
+	case "repo-onboarding-swarm":
+		if featureTask {
+			score -= 6
+			rationale = append(rationale, "feature implementation should not stop at onboarding")
+		}
+	}
+	return score, rationale
+}
+
+func isMetadataRefreshTask(tokens map[string]bool) bool {
+	target := hasAnySelectionToken(tokens, []string{
+		"agent", "agents", "anchor", "anchors", "index", "indexes", "metadata", "profile", "skill", "skills",
+	})
+	action := hasAnySelectionToken(tokens, []string{
+		"drift", "rebuild", "refresh", "regenerate", "reindex", "sync", "update",
+	})
+	return target && action
+}
+
+func hasAnySelectionToken(tokens map[string]bool, values []string) bool {
+	for _, value := range values {
+		if tokens[value] {
+			return true
+		}
+	}
+	return false
 }
 
 type workflowSelectionRule struct {
@@ -189,13 +273,13 @@ func workflowSelectionRules() []workflowSelectionRule {
 			"bug", "bugfix", "defect", "error", "failure", "failing", "fails", "fix", "hotfix", "regression", "reproduce", "crash", "broken",
 		}},
 		{WorkflowID: "test-hardening-swarm", Weight: 11, Reason: "test-hardening signal", Keywords: []string{
-			"test", "tests", "coverage", "flake", "flaky", "jest", "vitest", "playwright", "e2e", "spec", "regression-test",
+			"test", "tests", "coverage", "flake", "flaky", "e2e", "spec", "regression-test",
 		}},
 		{WorkflowID: "refactor-swarm", Weight: 11, Reason: "refactor signal", Keywords: []string{
 			"refactor", "cleanup", "clean", "split", "extract", "rename", "dry", "solid", "architecture", "restructure",
 		}},
 		{WorkflowID: "metadata-refresh-swarm", Weight: 11, Reason: "metadata refresh signal", Keywords: []string{
-			"metadata", "agent", "agents", "skill", "skills", "stale", "anchor", "anchors", "refresh", "index", "profile",
+			"metadata", "agent", "agents", "skill", "skills", "anchor", "anchors", "refresh", "index", "profile",
 		}},
 		{WorkflowID: "repo-onboarding-swarm", Weight: 10, Reason: "onboarding signal", Keywords: []string{
 			"onboard", "onboarding", "explore", "study", "analyze", "analyse", "map", "audit", "review", "understand", "overview",
@@ -215,9 +299,12 @@ func tokenizeSelectionText(value string) map[string]bool {
 		addSelectionToken(tokens, token)
 		for _, part := range strings.Split(token, "-") {
 			addSelectionToken(tokens, part)
+			for _, subtoken := range splitSelectionCamelToken(part) {
+				addSelectionToken(tokens, subtoken)
+			}
 		}
 	}
-	for _, r := range strings.ToLower(value) {
+	for _, r := range value {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' {
 			current.WriteRune(r)
 			continue
@@ -229,16 +316,71 @@ func tokenizeSelectionText(value string) map[string]bool {
 }
 
 func addSelectionToken(tokens map[string]bool, token string) {
-	token = strings.TrimSpace(token)
+	token = strings.ToLower(strings.TrimSpace(token))
+	addSelectionTokenValue(tokens, token)
+	for _, variant := range selectionTokenVariants(token) {
+		addSelectionTokenValue(tokens, variant)
+	}
+}
+
+func addSelectionTokenValue(tokens map[string]bool, token string) {
 	if len(token) < 2 || selectionStopword(token) {
 		return
 	}
 	tokens[token] = true
 }
 
+func selectionTokenVariants(token string) []string {
+	if len(token) < 4 || strings.Contains(token, "-") {
+		return nil
+	}
+	switch token {
+	case "spec", "specs", "test", "tests":
+		return nil
+	}
+	switch {
+	case strings.HasSuffix(token, "ies") && len(token) > 4:
+		return []string{strings.TrimSuffix(token, "ies") + "y"}
+	case strings.HasSuffix(token, "ches") || strings.HasSuffix(token, "shes") || strings.HasSuffix(token, "ses") || strings.HasSuffix(token, "xes") || strings.HasSuffix(token, "zes"):
+		return []string{strings.TrimSuffix(token, "es")}
+	case strings.HasSuffix(token, "s") && !strings.HasSuffix(token, "ss"):
+		return []string{strings.TrimSuffix(token, "s")}
+	default:
+		return nil
+	}
+}
+
+func splitSelectionCamelToken(token string) []string {
+	runes := []rune(strings.TrimSpace(token))
+	if len(runes) < 3 {
+		return nil
+	}
+	var parts []string
+	start := 0
+	for index := 1; index < len(runes); index++ {
+		prev := runes[index-1]
+		curr := runes[index]
+		var next rune
+		if index+1 < len(runes) {
+			next = runes[index+1]
+		}
+		if unicode.IsUpper(curr) && (unicode.IsLower(prev) || next != 0 && unicode.IsLower(next) && unicode.IsUpper(prev)) {
+			parts = append(parts, string(runes[start:index]))
+			start = index
+		}
+	}
+	if start == 0 {
+		return nil
+	}
+	parts = append(parts, string(runes[start:]))
+	return parts
+}
+
 func selectionStopword(token string) bool {
 	switch token {
 	case "a", "an", "and", "are", "as", "at", "be", "by", "did", "do", "does", "for", "from", "in", "into", "is", "it", "its", "not", "of", "on", "only", "or", "please", "that", "the", "then", "these", "this", "those", "to", "with", "you", "your":
+		return true
+	case "before", "current", "existing", "file", "files", "locally", "must", "need", "needed", "needs", "requirement", "requirements", "should":
 		return true
 	default:
 		return false

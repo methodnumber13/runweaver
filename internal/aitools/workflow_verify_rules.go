@@ -86,6 +86,17 @@ func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint
 		})
 		return
 	}
+	verificationWarnings := residualRisksFromVerificationResults(checkpoint.VerificationResults)
+	if len(verificationWarnings) > 0 && len(checkpoint.ResidualRisks) == 0 {
+		addWorkflowVerificationCheck(result, WorkflowVerificationCheck{
+			Name:        "verification-warnings",
+			Status:      "warning",
+			Summary:     "Verification output contains warning-like diagnostics without recorded residual risk",
+			Evidence:    verificationWarnings,
+			NextActions: []string{"Fix the warning diagnostics or record why they are acceptable with runweaver workflow update --residual-risk <reason>."},
+		})
+		return
+	}
 	addWorkflowVerificationCheck(result, WorkflowVerificationCheck{
 		Name:     "terminal-evidence",
 		Status:   "ok",

@@ -120,6 +120,9 @@ func shouldIgnoreAnchor(anchor string) bool {
 	if strings.Contains(anchor, "[") || strings.Contains(anchor, "]") {
 		return true
 	}
+	if strings.Contains(anchor, "=") || strings.Contains(anchor, "$") || strings.HasPrefix(anchor, "RUNWEAVER_BIN") {
+		return true
+	}
 	if strings.HasPrefix(anchor, "npm ") || strings.HasPrefix(anchor, "node ") || strings.HasPrefix(anchor, "go ") || strings.HasPrefix(anchor, "rg ") || strings.HasPrefix(anchor, "runweaver ") || strings.HasPrefix(anchor, "--") {
 		return true
 	}
@@ -147,7 +150,7 @@ func shouldIgnoreAnchor(anchor string) bool {
 
 func isLikelyFileAnchorExtension(ext string) bool {
 	switch strings.ToLower(ext) {
-	case ".cjs", ".css", ".env", ".go", ".html", ".java", ".js", ".json", ".jsonc", ".jsx", ".kt", ".md", ".mjs", ".prisma", ".py", ".rs", ".scss", ".sql", ".toml", ".ts", ".tsx", ".txt", ".yaml", ".yml":
+	case ".cjs", ".css", ".env", ".go", ".html", ".java", ".js", ".json", ".jsonc", ".jsx", ".kt", ".md", ".mjs", ".py", ".rs", ".scss", ".sql", ".toml", ".ts", ".tsx", ".txt", ".yaml", ".yml":
 		return true
 	default:
 		return false

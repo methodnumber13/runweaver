@@ -74,6 +74,10 @@ func workflowCurrentMarkdown(checkpoint WorkflowCheckpoint, runDir string) strin
 		b.WriteString("\n## Verification Results\n\n")
 		writeMarkdownList(&b, checkpoint.VerificationResults)
 	}
+	if len(checkpoint.ResidualRisks) > 0 {
+		b.WriteString("\n## Residual Risks\n\n")
+		writeMarkdownList(&b, checkpoint.ResidualRisks)
+	}
 	if checkpoint.IndexFreshnessStatus != "" {
 		b.WriteString("\n## Index Freshness At Last Update\n\n")
 		writeMarkdownField(&b, "Status", checkpoint.IndexFreshnessStatus)

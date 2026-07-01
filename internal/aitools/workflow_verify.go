@@ -157,5 +157,50 @@ func VerifyWorkflowRun(repoPath, resume string) (WorkflowVerificationResult, err
 		verifyParticipantBudget(plan.Workflow, checkpoint, &result)
 		verifyTerminalEvidence(plan.Workflow, checkpoint, &result)
 	}
-	return finalizeWorkflowVerification(result), nil
+	result = finalizeWorkflowVerification(result)
+	if planOK && checkpointOK {
+		if err := repairVerifiedWorkflowCompletion(root, runDir, checkpoint); err != nil {
+			addWorkflowVerificationCheck(&result, WorkflowVerificationCheck{
+				Name:     "completion-normalization",
+				Status:   "warning",
+				Summary:  "Workflow is valid but completed checkpoint metadata could not be normalized",
+				Evidence: []string{err.Error()},
+			})
+			return finalizeWorkflowVerification(result), nil
+		}
+	}
+	return result, nil
+}
+
+func repairVerifiedWorkflowCompletion(root, runDir string, checkpoint WorkflowCheckpoint) error {
+	if checkpoint.Status != "complete" {
+		return nil
+	}
+	if !normalizeCompletedCheckpointState(&checkpoint) {
+		return nil
+	}
+	checkpoint.UpdatedAt = Now()
+	checkpointPath := filepath.Join(runDir, "checkpoint.json")
+	if err := WriteJSON(checkpointPath, checkpoint); err != nil {
+		return fmt.Errorf("write normalized workflow checkpoint %s: %w", rel(root, checkpointPath), err)
+	}
+	if err := syncWorkflowTodo(root, runDir, checkpoint); err != nil {
+		return err
+	}
+	if err := writeWorkflowCurrent(root, runDir, checkpoint); err != nil {
+		return err
+	}
+	if err := appendWorkflowEvent(root, runDir, WorkflowEvent{
+		Type:             "completion-normalized",
+		RunID:            checkpoint.RunID,
+		Workflow:         checkpoint.Workflow,
+		Task:             checkpoint.Task,
+		Status:           checkpoint.Status,
+		NextAction:       checkpoint.NextAction,
+		NextVerification: checkpoint.NextVerification,
+		At:               Now(),
+	}); err != nil {
+		return err
+	}
+	return nil
 }

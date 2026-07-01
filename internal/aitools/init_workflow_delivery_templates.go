@@ -24,7 +24,7 @@ const featureDeliveryWorkflow = `{
       "writeMode": "write",
       "concurrency": 1,
       "agents": ["repo-surface-engineer"],
-      "prompt": "Implement through the selected domain participant from the durable plan. Keep edits scoped to that participant's focusFiles/domain. Record files read, files changed, decisions, artifacts, lastResult, rejectedPaths, next action, nextVerification, and blockers with runweaver workflow update. Use layer reviewers only for contracts, tests, persistence, config, or metadata checks."
+      "prompt": "Implement through the selected domain participant from the durable plan. Keep edits scoped to that participant's focusFiles/domain. For UI additions, prefer a cohesive small component/helper for a new summary, panel, card, dialog section, or repeated block instead of inlining more structure into an already large component. Record files read with --file-read, files changed with --file-changed, decisions with --decision, artifacts with --artifact, lastResult with --last-result, rejectedPaths with --rejected-path, next action with --next-action, nextVerification with --next-verification, and blockers with --blocker via $RUNWEAVER_BIN workflow update. Do not invent plural changed-file flags. Use layer reviewers only for contracts, tests, persistence, config, or metadata checks."
     },
     {
       "id": "review",
@@ -32,8 +32,8 @@ const featureDeliveryWorkflow = `{
       "scope": "repo",
       "mode": "parallel",
       "writeMode": "read",
-      "agents": ["repo-contract-reviewer", "repo-test-quality-reviewer", "agent-skill-drift-reviewer"],
-      "prompt": "Review with selected domain participants plus contract/test/metadata reviewers from runtime profile. Check behavioral risk, tests, verification output, and metadata drift. Persist lastResult, verification results, blockers, and nextVerification; then run runweaver workflow verify --repo . --resume latest before final response."
+      "agents": ["post-implementation-reviewer", "repo-contract-reviewer", "repo-test-quality-reviewer"],
+      "prompt": "Review with selected domain participants plus post-implementation, contract, and test reviewers from runtime profile. Check behavioral risk, stale async/race outcomes, allowed/forbidden state semantics, UI loading/disabled/error states, cohesive UI component/helper extraction for new summaries/panels/sections, unnecessary backend/API edits for frontend-only tasks, unnecessary broad test scaffolding, verification output, and metadata drift. For metadata drift during ordinary feature work, refresh only the deterministic index with $RUNWEAVER_BIN index --repo . --changed-only --prune; do not run $RUNWEAVER_BIN refresh unless the user explicitly requested metadata regeneration. Persist lastResult, verification results, rejectedPaths, blockers, and nextVerification. Mark review complete with --complete-phase after verification/build/static checks finish, then run $RUNWEAVER_BIN workflow verify --repo . --resume latest before final response."
     }
   ]
 }
@@ -63,7 +63,7 @@ const bugfixWorkflow = `{
       "writeMode": "write",
       "concurrency": 1,
       "agents": ["repo-surface-engineer"],
-      "prompt": "Apply the smallest fix through the selected domain participant and add or update focused tests. Use generic repo-surface-engineer only when no AI-classified domain owner matches. Persist changed files, files read, findings, decisions, artifacts, lastResult, rejectedPaths, blockers, next action, and nextVerification with runweaver workflow update --resume latest --phase fix --status in_progress. After the edit is complete, mark fix complete with --complete-phase and continue to verification."
+      "prompt": "Apply the smallest fix through the selected domain participant and add or update focused tests. Use generic repo-surface-engineer only when no AI-classified domain owner matches. Persist changed files with repeated --file-changed, files read with repeated --file-read, findings with --finding, decisions with --decision, artifacts with --artifact, lastResult with --last-result, rejectedPaths with --rejected-path, blockers with --blocker, next action with --next-action, and nextVerification with --next-verification via $RUNWEAVER_BIN workflow update --resume latest --phase fix --status in_progress. Do not invent plural changed-file flags. After the edit is complete, mark fix complete with --complete-phase and continue to verification."
     },
     {
       "id": "verify",
@@ -71,8 +71,8 @@ const bugfixWorkflow = `{
       "scope": "repo",
       "mode": "parallel",
       "writeMode": "read",
-      "agents": ["repo-test-quality-reviewer", "repo-contract-reviewer"],
-      "prompt": "Run focused regression checks chosen from the selected participant verification commands and summarize residual risk. Persist lastResult, verification commands, outcomes, blockers, and nextVerification with runweaver workflow update --resume latest --phase verify --status in_progress using --verification-result for exact outcomes. Mark verify complete with --complete-phase after checks finish so the workflow status becomes complete, then run runweaver workflow verify --repo . --resume latest and resolve warnings or record blockers."
+      "agents": ["post-implementation-reviewer", "repo-test-quality-reviewer", "repo-contract-reviewer"],
+      "prompt": "Run focused regression checks chosen from the selected participant verification commands and summarize residual risk. Include post-implementation review for behavioral regressions, stale async/race outcomes, allowed/forbidden state semantics, scope creep, and unnecessary test scaffolding. Persist lastResult, verification commands, outcomes, rejectedPaths, residual risks, blockers, and nextVerification with $RUNWEAVER_BIN workflow update --resume latest --phase verify --status in_progress using --verification-result for exact outcomes and --residual-risk for accepted warning diagnostics. Mark verify complete with --complete-phase after checks finish so the workflow status becomes complete, then run $RUNWEAVER_BIN workflow verify --repo . --resume latest and resolve warnings or record blockers/residual risks."
     }
   ]
 }
@@ -102,7 +102,7 @@ const refactorWorkflow = `{
       "writeMode": "write",
       "concurrency": 1,
       "agents": ["repo-surface-engineer"],
-      "prompt": "Move or reshape code without behavior changes through the selected domain participant. Keep imports and tests coherent. Persist filesChanged, lastResult, rejectedPaths, nextAction, and nextVerification."
+      "prompt": "Move or reshape code without behavior changes through the selected domain participant. Keep imports and tests coherent. Persist changed files with --file-changed, lastResult with --last-result, rejectedPaths with --rejected-path, nextAction with --next-action, and nextVerification with --next-verification."
     },
     {
       "id": "metadata-refresh",
@@ -112,7 +112,7 @@ const refactorWorkflow = `{
       "writeMode": "write",
       "concurrency": 1,
       "agents": ["agent-skill-drift-reviewer", "stale-anchor-fixer", "profile-regenerator"],
-      "prompt": "Run runweaver refresh --repo . and apply approved runtime metadata updates if anchors changed. Preserve the current classification source; do not replace AI-classified agents/skills with deterministic/package roles unless the user requested deterministic mode. Persist refresh result, stale-index signal, rejectedPaths, nextAction, and nextVerification."
+      "prompt": "Run $RUNWEAVER_BIN refresh --repo . and apply approved runtime metadata updates if anchors changed. Preserve the current classification source; do not replace AI-classified agents/skills with deterministic/package roles unless the user requested deterministic mode. Persist refresh result, stale-index signal, rejectedPaths, nextAction, and nextVerification."
     }
   ]
 }
@@ -142,7 +142,7 @@ const testHardeningWorkflow = `{
       "writeMode": "write",
       "concurrency": 1,
       "agents": ["repo-test-quality-reviewer"],
-      "prompt": "Add or update focused tests and fixtures through the selected repo-specific participant without broad unrelated rewrites. Persist filesChanged, rejectedPaths, lastResult, nextAction, and nextVerification."
+      "prompt": "Add or update focused tests and fixtures through the selected repo-specific participant without broad unrelated rewrites. Persist changed files with --file-changed, rejectedPaths with --rejected-path, lastResult with --last-result, nextAction with --next-action, and nextVerification with --next-verification."
     },
     {
       "id": "verify",

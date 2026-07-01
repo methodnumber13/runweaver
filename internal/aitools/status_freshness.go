@@ -98,9 +98,12 @@ func scanFilesNewerThan(root string, threshold time.Time) (checked int, newestFi
 		if info.Mode()&os.ModeType != 0 {
 			return nil
 		}
-		checked++
 		modTime := info.ModTime()
 		relPath := rel(root, path)
+		if shouldSkipFile(relPath) {
+			return nil
+		}
+		checked++
 		if modTime.After(newestMod) {
 			newestFile = relPath
 			newestMod = modTime

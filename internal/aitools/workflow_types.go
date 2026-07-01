@@ -151,6 +151,7 @@ type WorkflowCheckpoint struct {
 	NextVerification     string   `json:"nextVerification,omitempty"`
 	Verification         []string `json:"verification,omitempty"`
 	VerificationResults  []string `json:"verificationResults,omitempty"`
+	ResidualRisks        []string `json:"residualRisks,omitempty"`
 	Blockers             []string `json:"blockers,omitempty"`
 	IndexFreshnessStatus string   `json:"indexFreshnessStatus,omitempty"`
 	StaleIndex           bool     `json:"staleIndex,omitempty"`
@@ -188,6 +189,7 @@ type WorkflowEvent struct {
 	NextVerification     string   `json:"nextVerification,omitempty"`
 	Verification         []string `json:"verification,omitempty"`
 	VerificationResults  []string `json:"verificationResults,omitempty"`
+	ResidualRisks        []string `json:"residualRisks,omitempty"`
 	Blockers             []string `json:"blockers,omitempty"`
 	IndexFreshnessStatus string   `json:"indexFreshnessStatus,omitempty"`
 	StaleIndex           bool     `json:"staleIndex,omitempty"`
@@ -218,6 +220,7 @@ type WorkflowUpdateOptions struct {
 	NextVerification     string
 	Verification         []string
 	VerificationResults  []string
+	ResidualRisks        []string
 	Blockers             []string
 	CompletePhase        bool
 }

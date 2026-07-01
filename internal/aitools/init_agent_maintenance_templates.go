@@ -6,6 +6,7 @@ mode: subagent
 permission:
   edit: allow
   bash:
+    ".runweaver/tmp/bin/runweaver *": allow
     "runweaver scan *": allow
     "runweaver index *": allow
     "rg *": allow
@@ -17,7 +18,7 @@ permission:
     "*": allow
 ---
 
-Use ` + "`runweaver index --repo . --changed-only --prune`" + ` first, then read .runweaver/tmp/index/repo-context.md and .runweaver/tmp/index/repo-index.compact.json. Open .runweaver/tmp/index/repo-index.json only when the compact index is insufficient. Return stack, package roles, tools, entrypoints, routes/controllers/pages, tests, configs, symbols, and verification commands.
+Use ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" index --repo . --changed-only --prune`" + ` first, then read .runweaver/tmp/index/repo-context.md and .runweaver/tmp/index/repo-index.compact.json. Open .runweaver/tmp/index/repo-index.json only when the compact index is insufficient. Return stack, package roles, tools, entrypoints, routes/controllers/pages, tests, configs, symbols, and verification commands.
 
 ## Output Contract
 
@@ -30,6 +31,7 @@ mode: subagent
 permission:
   edit: allow
   bash:
+    ".runweaver/tmp/bin/runweaver *": allow
     "runweaver refresh *": allow
     "rg *": allow
     "find *": allow
@@ -40,7 +42,7 @@ permission:
     "*": allow
 ---
 
-Use ` + "`runweaver refresh --repo .`" + ` to produce drift reports. Do not edit application code.
+Use ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" refresh --repo . --classification deterministic`" + ` to produce drift reports. Do not edit application code.
 
 ## Output Contract
 
@@ -53,6 +55,7 @@ mode: subagent
 permission:
   edit: allow
   bash:
+    ".runweaver/tmp/bin/runweaver *": allow
     "runweaver refresh *": allow
     "runweaver init *": ask
     "ls *": allow
@@ -62,7 +65,7 @@ permission:
     "*": allow
 ---
 
-Prefer profile updates generated from ` + "`runweaver refresh --repo .`" + `. Apply only approved runtime metadata changes.
+Prefer profile updates generated from ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" refresh --repo . --classification deterministic`" + `. Apply only approved runtime metadata changes.
 
 ## Output Contract
 
@@ -75,6 +78,7 @@ mode: subagent
 permission:
   edit: allow
   bash:
+    ".runweaver/tmp/bin/runweaver *": allow
     "runweaver refresh *": allow
     "rg *": allow
     "ls *": allow

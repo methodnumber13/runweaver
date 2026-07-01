@@ -188,6 +188,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	var rejectedPaths repeatedStringFlag
 	var verification repeatedStringFlag
 	var verificationResults repeatedStringFlag
+	var residualRisks repeatedStringFlag
 	var blockers repeatedStringFlag
 	fs.Var(&participantRationale, "participant-rationale", "participant selection rationale to append; may be repeated")
 	fs.Var(&findings, "finding", "finding to append; may be repeated")
@@ -198,6 +199,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 	fs.Var(&rejectedPaths, "rejected-path", "path, command, or approach rejected/paused with reason; may be repeated")
 	fs.Var(&verification, "verification", "verification command to append; may be repeated")
 	fs.Var(&verificationResults, "verification-result", "verification result to append; may be repeated")
+	fs.Var(&residualRisks, "residual-risk", "verification warning or unresolved risk to append; may be repeated")
 	fs.Var(&blockers, "blocker", "blocker to append; may be repeated")
 	if err := fs.Parse(args); err != nil {
 		return usageError{command: "workflow update", err: err}
@@ -223,6 +225,7 @@ func (c cli) workflowUpdateCmd(args []string) error {
 		NextVerification:     *nextVerification,
 		Verification:         verification.Values(),
 		VerificationResults:  verificationResults.Values(),
+		ResidualRisks:        residualRisks.Values(),
 		Blockers:             blockers.Values(),
 		CompletePhase:        *completePhase,
 	})
