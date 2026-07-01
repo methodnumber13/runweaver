@@ -281,6 +281,138 @@ func TestVerifyWorkflowRunWarnsWhenVerificationWarningsLackResidualRisk(t *testi
 	}
 }
 
+func TestVerifyWorkflowRunAutoCompletesWhenVerificationEvidenceIsRecorded(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/feature-delivery-swarm.json", `{
+  "id": "feature-delivery-swarm",
+  "name": "Feature Delivery",
+  "maxParticipants": 4,
+  "phases": [
+    {"id": "plan", "name": "Plan", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-surface-indexer"], "prompt": "plan"},
+    {"id": "implement", "name": "Implement", "scope": "repo", "mode": "parallel", "writeMode": "write", "agents": ["repo-surface-engineer"], "prompt": "implement"},
+    {"id": "review", "name": "Review", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["post-implementation-reviewer"], "prompt": "review"}
+  ]
+}`)
+	run, err := PlanWorkflow(root, ".runweaver/workflows/feature-delivery-swarm.json", "implement launch readiness")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:               "latest",
+		Phase:                "plan",
+		Participants:         []string{"repo-surface-engineer", "post-implementation-reviewer"},
+		ParticipantRationale: []string{"repo-surface-engineer owns implementation", "post-implementation-reviewer checks acceptance"},
+		CompletePhase:        true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:              "latest",
+		Phase:               "implement",
+		FilesChanged:        []string{"src/launch_summary.go", "src/launch_summary_test.go"},
+		Verification:        []string{"focused static check for changed files", "focused tests"},
+		VerificationResults: []string{"focused static check for changed files passed", "focused tests passed; assertion quality reviewed against acceptance criteria"},
+		LastResult:          "implementation and verification finished",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyWorkflowRun(root, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Ready || result.Status != "ok" {
+		t.Fatalf("verification = %#v, want auto-completed ok run", result)
+	}
+	var checkpoint WorkflowCheckpoint
+	if err := ReadJSON(filepath.Join(root, run.CheckpointPath), &checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	if checkpoint.Status != "complete" || checkpoint.CurrentPhase != "" || checkpoint.NextPhase != "" {
+		t.Fatalf("checkpoint = %#v, want terminal complete state", checkpoint)
+	}
+	if !sameStrings(checkpoint.CompletedPhases, []string{"plan", "implement", "review"}) {
+		t.Fatalf("completedPhases = %#v, want all phases auto-completed", checkpoint.CompletedPhases)
+	}
+}
+
+func TestVerifyWorkflowRunRequiresFocusedStaticEvidenceForChangedFiles(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
+  "id": "test-swarm",
+  "name": "Test Swarm",
+  "maxParticipants": 3,
+  "phases": [
+    {"id": "implement", "name": "Implement", "scope": "repo", "mode": "parallel", "writeMode": "write", "agents": ["repo-surface-engineer"], "prompt": "implement"},
+    {"id": "verify", "name": "Verify", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-test-quality-reviewer"], "prompt": "verify"}
+  ]
+}`)
+	if _, err := PlanWorkflow(root, ".runweaver/workflows/test-swarm.json", "change source"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:               "latest",
+		Phase:                "verify",
+		Participants:         []string{"repo-surface-engineer", "repo-test-quality-reviewer"},
+		ParticipantRationale: []string{"implementation owner", "verification reviewer"},
+		FilesChanged:         []string{"src/feature/service.go"},
+		Verification:         []string{"focused tests"},
+		VerificationResults:  []string{"focused tests passed"},
+		CompletePhase:        true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyWorkflowRun(root, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Ready || result.Status != "warning" {
+		t.Fatalf("verification = %#v, want warning until focused static evidence is recorded", result)
+	}
+	if !workflowCheckSelected(result.Checks, "focused-static-verification") {
+		t.Fatalf("checks = %#v, want focused-static-verification warning", result.Checks)
+	}
+}
+
+func TestVerifyWorkflowRunRequiresAssertionQualityEvidenceForChangedTests(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{
+  "id": "test-swarm",
+  "name": "Test Swarm",
+  "maxParticipants": 3,
+  "phases": [
+    {"id": "verify", "name": "Verify", "scope": "repo", "mode": "parallel", "writeMode": "read", "agents": ["repo-test-quality-reviewer"], "prompt": "verify"}
+  ]
+}`)
+	if _, err := PlanWorkflow(root, ".runweaver/workflows/test-swarm.json", "update tests"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpdateWorkflow(root, WorkflowUpdateOptions{
+		Resume:               "latest",
+		Phase:                "verify",
+		Participants:         []string{"repo-test-quality-reviewer"},
+		ParticipantRationale: []string{"verification reviewer"},
+		FilesChanged:         []string{"src/feature/service_test.go"},
+		Verification:         []string{"focused static check for changed files", "focused tests"},
+		VerificationResults:  []string{"focused static check for changed files passed", "focused tests passed"},
+		CompletePhase:        true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyWorkflowRun(root, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Ready || result.Status != "warning" {
+		t.Fatalf("verification = %#v, want warning until assertion quality review is recorded", result)
+	}
+	if !workflowCheckSelected(result.Checks, "assertion-quality") {
+		t.Fatalf("checks = %#v, want assertion-quality warning", result.Checks)
+	}
+}
+
 func TestVerifyWorkflowRunNormalizesCompletedResumeHintsEvenWithWarnings(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, ".runweaver/workflows/test-swarm.json", `{

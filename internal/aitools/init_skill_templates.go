@@ -55,7 +55,9 @@ Before a final response for an execution workflow, run:
 
 ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow verify --repo . --resume latest`" + `
 
-Fix warnings when feasible. If a warning cannot be fixed safely, record a blocker or ` + "`--residual-risk`" + ` entry explaining why it remains acceptable.
+The verifier must return ` + "`status: ok`" + ` and ` + "`ready: true`" + ` before a final response. Treat ` + "`warning`" + `, ` + "`error`" + `, and ` + "`ready: false`" + ` as hard blockers: fix the cause, complete/update phases, or record ` + "`--blocker`" + ` plus ` + "`--next-verification`" + `. Do not claim verification passed when this command returns warning/error.
+
+For changed source, test, or config files, record a focused lint/static/type/build check separately from broad checks. For changed tests, record assertion-quality review evidence showing assertions prove required values/behavior and were not weakened to existence-only checks.
 
 ## Output Contract
 
@@ -107,7 +109,8 @@ Use this skill when a task touches RunWeaver workflows, workflow selection, part
 2. Start or resume with ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" start --repo . --task \"<full raw user task>\"`" + ` before lower-level workflow commands. Do not summarize or shorten the user task before this call.
 3. Use ` + "`$RUNWEAVER_BIN workflow update`" + ` to record participants, rationale, files read, files changed, findings, decisions, last result, rejected paths, blockers, next action, and next verification.
 4. Use ` + "`$RUNWEAVER_BIN workflow verify --repo . --resume latest`" + ` before final response when feasible.
-5. If a workflow, participant, or context selection looks wrong, record the rejected path and rerun the specific selector rather than guessing.
+5. Treat verifier ` + "`warning`" + `, ` + "`error`" + `, or ` + "`ready: false`" + ` as a hard blocker. Fix it, complete/update phases, or record ` + "`--blocker`" + ` and ` + "`--next-verification`" + ` before final response.
+6. If a workflow, participant, or context selection looks wrong, record the rejected path and rerun the specific selector rather than guessing.
 
 ## Output Contract
 
@@ -134,7 +137,9 @@ Use this skill after source changes and before final response for feature, bugfi
 6. For UI additions, prefer a cohesive small component/helper for a new summary, panel, card, dialog section, or repeated block instead of inlining more structure into an already large component.
 7. For tasks that exclude a surface, verify files from that excluded surface were not changed unless task evidence required it.
 8. Prefer existing focused tests. Flag broad scaffolding, unrelated fixtures, or new harnesses that are not needed for the task.
-9. Record unmet acceptance criteria as blockers or residual risks; record findings, rejected paths, verification results, blockers, and the next verification step in the RunWeaver checkpoint.
+9. If tests changed, review assertion quality against the task acceptance criteria. Flag tests that only prove existence or snapshot shape when the requirement needs values, state transitions, errors, or calls.
+10. Require a focused lint/static/type/build check for changed source, test, or config files. Broad lint failures can be residual risk only after a focused changed-file check is recorded.
+11. Record unmet acceptance criteria as blockers or residual risks; record findings, rejected paths, verification results, blockers, and the next verification step in the RunWeaver checkpoint.
 
 ## Output Contract
 

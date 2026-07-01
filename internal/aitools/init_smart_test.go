@@ -36,6 +36,7 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	}
 	for _, path := range []string{
 		".runweaver/workflows/repo-intelligence-swarm.json",
+		".gitignore",
 		".runweaver/tmp/bin/runweaver",
 		".runweaver/tmp/index/repo-index.json",
 		".opencode/swarm/profile.json",
@@ -107,6 +108,13 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	if !strings.Contains(string(data), "runweaver workflow run") || !strings.Contains(string(data), "repo-context.md") {
 		t.Fatalf("runweaver-swarm agent missing workflow/index guidance:\n%s", string(data))
 	}
+	gitignore, err := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(gitignore), ".omo/") {
+		t.Fatalf(".gitignore should ignore OpenCode plugin continuation artifacts:\n%s", string(gitignore))
+	}
 	opencodeData, err := os.ReadFile(filepath.Join(root, "opencode.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -156,6 +164,29 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 		if !strings.Contains(string(contextSkill), want) {
 			t.Fatalf("context-discipline skill missing %q:\n%s", want, string(contextSkill))
 		}
+	}
+}
+
+func TestInitSmartMergesOmoIgnoreWithoutReplacingGitignore(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "go.mod", "module example.com/app\n")
+	writeTestFile(t, root, ".gitignore", "build/\nlocal.env\n")
+
+	if _, err := InitSmart(root, true); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitignore := string(data)
+	for _, want := range []string{"build/", "local.env", ".omo/"} {
+		if !strings.Contains(gitignore, want) {
+			t.Fatalf(".gitignore = %q, want preserved/merged entry %q", gitignore, want)
+		}
+	}
+	if strings.Count(gitignore, ".omo/") != 1 {
+		t.Fatalf(".gitignore = %q, want exactly one .omo/ entry", gitignore)
 	}
 }
 

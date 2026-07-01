@@ -96,6 +96,25 @@ func VerifyWorkflowRun(repoPath, resume string) (WorkflowVerificationResult, err
 		})
 	}
 
+	if planOK && checkpointOK {
+		changed, err := autoCompleteWorkflowFromVerificationEvidence(root, runDir, plan.Workflow, &checkpoint)
+		if err != nil {
+			addWorkflowVerificationCheck(&result, WorkflowVerificationCheck{
+				Name:     "completion-auto-update",
+				Status:   "warning",
+				Summary:  "Workflow had completion evidence but checkpoint could not be auto-updated",
+				Evidence: []string{err.Error()},
+			})
+		} else if changed {
+			addWorkflowVerificationCheck(&result, WorkflowVerificationCheck{
+				Name:     "completion-auto-update",
+				Status:   "ok",
+				Summary:  "Workflow checkpoint was auto-completed from recorded verification evidence",
+				Evidence: []string{rel(root, checkpointPath)},
+			})
+		}
+	}
+
 	todoPath := filepath.Join(runDir, "todo.md")
 	if data, err := os.ReadFile(todoPath); err != nil {
 		addWorkflowVerificationCheck(&result, WorkflowVerificationCheck{

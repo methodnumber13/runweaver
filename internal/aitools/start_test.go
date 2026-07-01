@@ -38,6 +38,15 @@ func TestStartWorkflowCreatesWorkflowAndRecordsParticipants(t *testing.T) {
 	if status["lastResult"] == "" || status["nextAction"] == "" {
 		t.Fatalf("status = %#v, want lastResult and nextAction", status)
 	}
+	for _, want := range []string{
+		"workflow verify must return status ok and ready true",
+		"focused lint/static/type/build check",
+		"assertion quality",
+	} {
+		if !strings.Contains(strings.Join(result.ExecutionContract.QualityGates, "\n")+"\n"+result.ExecutionContract.TerminalRule, want) {
+			t.Fatalf("execution contract = %#v, want hard gate %q", result.ExecutionContract, want)
+		}
+	}
 }
 
 func TestStartWorkflowResumesMatchingActiveWorkflow(t *testing.T) {

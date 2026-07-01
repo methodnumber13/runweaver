@@ -26,7 +26,7 @@ func writeBaselineFile(root, name, content string, opts InitOptions) error {
 		return writeManagedMarkdownBlock(path, content)
 	case ".runweaver/START_HERE.md":
 		return writeGenerated(path, contentWithGeneratedMarker(path, content), opts.Force)
-	case ".runweaver/.gitignore", ".opencode/.gitignore":
+	case ".gitignore", ".runweaver/.gitignore", ".opencode/.gitignore":
 		return writeMergedLineFile(path, content)
 	}
 	if isGeneratedMetadataPath(name) {

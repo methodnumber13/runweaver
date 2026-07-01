@@ -351,7 +351,7 @@ func startExecutionContract(status map[string]any, participants []string, assign
 		QualityGates:       qualityGatesForStart(context, acceptanceCriteria),
 		PostReview:         postImplementationReviewChecklist(context, acceptanceCriteria),
 		PhaseCompletion:    "after each finished phase run: $RUNWEAVER_BIN workflow update --repo . --resume latest --phase <phase> --complete-phase --verification \"<command>\" --verification-result \"<result>\"",
-		TerminalRule:       "do not send a final response while checkpoint status is in_progress after successful verification; complete all workflow phases with --complete-phase or record a blocker with --blocker and nextVerification",
+		TerminalRule:       "do not send a final response while checkpoint status remains in_progress; complete all workflow phases, then require $RUNWEAVER_BIN workflow verify --repo . --resume latest to return status ok and ready true; warning/error/ready false is a blocker that must be fixed or recorded with --blocker and nextVerification/--next-verification",
 		ResumeStrategy:     "automatic via $RUNWEAVER_BIN start; use $RUNWEAVER_BIN workflow run --resume latest --status only as a diagnostic",
 	}
 }
@@ -396,6 +396,9 @@ func qualityGatesForStart(context ContextQueryResult, acceptanceCriteria []strin
 	gates := []string{
 		"write or update the narrowest focused test before production edits when the task changes behavior",
 		"record exact verification commands and results in the workflow checkpoint before final response",
+		"run a focused lint/static/type/build check for changed source, test, or config files; if broad checks have unrelated failures, record the focused changed-file check separately",
+		"if tests are added or changed, verify assertion quality against the acceptance criteria so tests prove required values/behavior and were not weakened to existence-only checks",
+		"workflow verify must return status ok and ready true before final response; warning, error, or ready false blocks completion",
 	}
 	if len(acceptanceCriteria) > 0 {
 		gates = append(gates, "compare every acceptance criterion against changed code, tests, and verification evidence before completing review")
@@ -403,7 +406,7 @@ func qualityGatesForStart(context ContextQueryResult, acceptanceCriteria []strin
 	if contextLooksFrontend(context) {
 		gates = append(gates,
 			"when extracting a UI component, pure helper, summary, panel, card, or dialog section, add a separate focused test for the extracted component/helper instead of relying only on parent-surface coverage",
-			"run a focused lint/static check for changed component/helper files when the repository has local lint or static-analysis tooling",
+			"run a focused lint/static check for changed component/helper files when the repository exposes a narrow local check",
 			"if shared frontend types, props, or page/container wiring are touched, run page-level verification for the affected pages/containers named by context query",
 			"for frontend-only tasks, review changed files and verify server/API/database/runtime worker files were not modified",
 		)
@@ -421,6 +424,7 @@ func postImplementationReviewChecklist(context ContextQueryResult, acceptanceCri
 		"compare original task, selected workflow, selected participants, changed files, and checkpoint state before final response",
 		"review behavioral correctness plus rejected/paused paths; record findings with workflow update when relevant",
 		"prefer existing focused tests and verification commands; avoid broad new test scaffolding unless task evidence requires it",
+		"review changed test assertions for strength: they must prove expected values, state transitions, errors, or calls rather than only checking that something exists",
 	}
 	if len(acceptanceCriteria) > 0 {
 		checklist = append(checklist, "mark each acceptance criterion satisfied by code/tests or record the unmet criterion as a blocker or residual risk")

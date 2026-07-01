@@ -87,6 +87,9 @@ func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint
 		})
 		return
 	}
+	if !addVerificationQualityChecks(workflow, checkpoint, result) {
+		return
+	}
 	verificationWarnings := residualRisksFromVerificationResults(checkpoint.VerificationResults)
 	if len(verificationWarnings) > 0 && len(checkpoint.ResidualRisks) == 0 {
 		addWorkflowVerificationCheck(result, WorkflowVerificationCheck{

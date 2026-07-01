@@ -117,7 +117,7 @@ func Rel(root, path string) string {
 // ShouldSkipDir reports whether RunWeaver should ignore a generated/vendor directory.
 func ShouldSkipDir(name string) bool {
 	switch name {
-	case ".git", ".opencode", ".codex", ".claude", ".agents", "node_modules", "build", "dist", "coverage", "reports", "target", ".gradle", ".idea", ".vscode", "vendor":
+	case ".git", ".opencode", ".codex", ".claude", ".agents", ".omo", "node_modules", "build", "dist", "coverage", "reports", "target", ".gradle", ".idea", ".vscode", "vendor":
 		return true
 	default:
 		return strings.HasPrefix(name, ".cache")

@@ -268,8 +268,8 @@ func TestUpdateWorkflowCompletePhaseBackfillsEarlierPlanPhases(t *testing.T) {
 		Resume:              "latest",
 		Phase:               "review",
 		CompletePhase:       true,
-		Verification:        []string{"focused tests passed"},
-		VerificationResults: []string{"focused tests passed"},
+		Verification:        []string{"focused static check for changed files", "focused tests passed"},
+		VerificationResults: []string{"focused static check for changed files passed", "focused tests passed"},
 	})
 	if err != nil {
 		t.Fatal(err)
