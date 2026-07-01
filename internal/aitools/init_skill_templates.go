@@ -15,7 +15,7 @@ Keep model context small while preserving enough filesystem-backed state for ano
 ## Locked, Editable, Append-Only, Human-Controlled Surfaces
 
 - Locked: ` + "`plan.json`" + `, workflow specs under ` + "`.runweaver/workflows`" + ` during a run, and the original user task. Do not rewrite these to make verification easier.
-- Editable through CLI only: ` + "`checkpoint.json`" + ` and ` + "`todo.md`" + `. Update them with ` + "`runweaver workflow update`" + ` so phase state and events stay consistent.
+- Editable through CLI only: ` + "`checkpoint.json`" + ` and ` + "`todo.md`" + `. Update them with ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow update`" + ` so phase state and events stay consistent.
 - Append-only: ` + "`events.ndjson`" + ` and phase ` + "`verification.jsonl`" + ` logs. Add new entries; do not erase history.
 - Human-controlled: source code intent, secrets, destructive commands, deploys, and broad metadata regeneration. Ask or record a blocker when authority is unclear.
 
@@ -34,18 +34,18 @@ Use files under ` + "`.runweaver/tmp/swarm-runs/<run-id>/`" + `:
 
 ## Checkpoint Fields To Maintain
 
-Record concise entries for:
+Record concise entries with ` + "`$RUNWEAVER_BIN workflow update`" + ` using the exact CLI flags shown here. Do not invent plural changed-file flags.
 
-- ` + "`participants`" + ` and ` + "`participantRationale`" + `
-- ` + "`findings`" + ` and ` + "`decisions`" + `
-- ` + "`filesRead`" + ` and ` + "`filesChanged`" + `
-- ` + "`artifacts`" + `
-- ` + "`lastResult`" + ` with the latest command, agent, or phase outcome
-- ` + "`rejectedPaths`" + ` for rejected or paused approaches, paths, or commands, including why
-- ` + "`verification`" + ` and ` + "`verificationResults`" + `
-- ` + "`nextVerification`" + ` with the next concrete verification step
-- ` + "`blockers`" + ` when work cannot safely continue
-- ` + "`nextAction`" + ` when the workflow is not complete
+- ` + "`--participants`" + ` and repeated ` + "`--participant-rationale`" + `
+- repeated ` + "`--finding`" + ` and ` + "`--decision`" + `
+- repeated ` + "`--file-read <path>`" + ` and ` + "`--file-changed <path>`" + `
+- repeated ` + "`--artifact <path>`" + `
+- ` + "`--last-result <text>`" + ` with the latest command, agent, or phase outcome
+- repeated ` + "`--rejected-path <reason>`" + ` for rejected or paused approaches, paths, or commands, including why
+- repeated ` + "`--verification <command>`" + `, ` + "`--verification-result <result>`" + `, and ` + "`--residual-risk <reason>`" + `
+- ` + "`--next-verification <step>`" + ` with the next concrete verification step
+- repeated ` + "`--blocker <text>`" + ` when work cannot safely continue
+- ` + "`--next-action <text>`" + ` when the workflow is not complete
 
 Prefer one domain owner plus up to two reviewers/skills. Do not exceed workflow ` + "`maxParticipants`" + ` unless the workflow explicitly requires it.
 
@@ -53,9 +53,9 @@ Prefer one domain owner plus up to two reviewers/skills. Do not exceed workflow 
 
 Before a final response for an execution workflow, run:
 
-` + "`runweaver workflow verify --repo . --resume latest`" + `
+` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow verify --repo . --resume latest`" + `
 
-Fix warnings when feasible. If a warning cannot be fixed safely, record a blocker and explain the residual risk.
+Fix warnings when feasible. If a warning cannot be fixed safely, record a blocker or ` + "`--residual-risk`" + ` entry explaining why it remains acceptable.
 
 ## Output Contract
 
@@ -68,9 +68,9 @@ description: "Refresh repository runtime metadata after code changes"
 compatibility: opencode
 ---
 
-1. Run ` + "`runweaver refresh --repo .`" + `.
+1. Use this skill only for explicit metadata regeneration tasks. Run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" refresh --repo . --classification deterministic`" + `.
 2. Inspect .runweaver/tmp/index/repo-context.md, .runweaver/tmp/index/repo-index.compact.json, .runweaver/tmp/index/manifest.json, .runweaver/tmp/surface-index.json, .runweaver/tmp/drift-report.json, and .runweaver/tmp/profile.generated.json.
-3. Apply profile/agent/skill changes only after review.
+3. Apply profile/agent/skill changes only after review. Do not run metadata refresh as a routine finalization step after ordinary code/test/build work.
 
 ## Output Contract
 
@@ -84,10 +84,60 @@ compatibility: opencode
 ---
 
 1. Read ` + "`AGENTS.md`" + `.
-2. Run ` + "`runweaver index --repo . --changed-only --prune`" + `.
+2. Run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" index --repo . --changed-only --prune`" + `.
 3. Inspect detected package roles, tools, entrypoints, configs, tests, routes/controllers/pages, symbols, and verification commands.
 
 ## Output Contract
 
 Return ` + "`task_map`, `important_files`, `risks`, `verification`, and `checkpoint_update`." + `
 `
+
+func workflowSystemMasterSkill(runtimeID string) string {
+	return `---
+name: workflow-system-master
+description: "Operate RunWeaver workflow state, checkpoints, participant routing, and resume discipline"
+compatibility: ` + runtimeID + `
+---
+
+Use this skill when a task touches RunWeaver workflows, workflow selection, participant selection, context retrieval, checkpoint state, or resume behavior.
+
+## Procedure
+
+1. Treat ` + "`.runweaver/workflows`" + ` as workflow templates and ` + "`.runweaver/tmp/swarm-runs`" + ` as mutable run state.
+2. Start or resume with ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" start --repo . --task \"<full raw user task>\"`" + ` before lower-level workflow commands. Do not summarize or shorten the user task before this call.
+3. Use ` + "`$RUNWEAVER_BIN workflow update`" + ` to record participants, rationale, files read, files changed, findings, decisions, last result, rejected paths, blockers, next action, and next verification.
+4. Use ` + "`$RUNWEAVER_BIN workflow verify --repo . --resume latest`" + ` before final response when feasible.
+5. If a workflow, participant, or context selection looks wrong, record the rejected path and rerun the specific selector rather than guessing.
+
+## Output Contract
+
+Return ` + "`workflow`, `participants`, `checkpoint_fields_updated`, `rejected_paths`, `verification_results`, and `next_verification`." + `
+`
+}
+
+func postImplementationReviewSkill(runtimeID string) string {
+	return `---
+name: post-implementation-review
+description: "Review completed implementation for behavioral correctness before final response"
+compatibility: ` + runtimeID + `
+---
+
+Use this skill after source changes and before final response for feature, bugfix, refactor, or test-hardening workflows.
+
+## Review Checklist
+
+1. If workflow state is missing, call ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" start --repo . --task \"<full raw user task>\"`" + ` before reviewing. Do not summarize or shorten the user task before this call.
+2. Compare the original task, selected workflow, selected participants, and changed files.
+3. Check for stale async/race outcomes and verify that late results cannot overwrite newer state.
+4. Check allowed/forbidden state semantics, especially when an API says an action is allowed but with warnings or constraints.
+5. Check loading, disabled, error, empty, and success states when UI behavior changed.
+6. For UI additions, prefer a cohesive small component/helper for a new summary, panel, card, dialog section, or repeated block instead of inlining more structure into an already large component.
+7. For frontend-only tasks, verify backend/API files were not changed unless the task evidence required it.
+8. Prefer existing focused tests. Flag broad scaffolding, unrelated fixtures, or new harnesses that are not needed for the task.
+9. Record findings, rejected paths, verification results, blockers, and the next verification step in the RunWeaver checkpoint.
+
+## Output Contract
+
+Return ` + "`changed_files_reviewed`, `findings`, `rejected_paths`, `verification_results`, `next_verification`, and `checkpoint_update`." + `
+`
+}
