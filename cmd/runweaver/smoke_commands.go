@@ -23,7 +23,8 @@ func (c cli) smokeCodexCmd(args []string) error {
 	fs := newFlagSet("smoke codex")
 	repo := fs.String("repo", "", "empty repository path to create/use; defaults to a temporary disposable repo")
 	force := fs.Bool("force", false, "allow an existing non-empty repo path and overwrite smoke fixture/RunWeaver metadata")
-	keep := fs.Bool("keep", false, "keep the generated temporary repo after the smoke run")
+	keep := fs.Bool("keep", false, "alias for --keep-temp")
+	keepTemp := fs.Bool("keep-temp", false, "keep the generated temporary repo after the smoke run")
 	live := fs.Bool("live", false, "launch Codex instead of preparing a dry-run execution command")
 	timeout := fs.Duration("timeout", 4*time.Minute, "live Codex execution timeout")
 	model := fs.String("model", "", "optional Codex model override")
@@ -37,7 +38,7 @@ func (c cli) smokeCodexCmd(args []string) error {
 	result, err := aitools.RunCodexSmoke(aitools.CodexSmokeOptions{
 		Repo:     *repo,
 		Force:    *force,
-		Keep:     *keep,
+		Keep:     *keep || *keepTemp,
 		Live:     *live,
 		Timeout:  time.Duration(*timeout),
 		Model:    *model,

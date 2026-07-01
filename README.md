@@ -61,8 +61,8 @@ runweaver version --json
 Quick disposable Codex smoke:
 
 ```sh
-runweaver smoke codex --keep
-runweaver smoke codex --live --timeout 4m --keep
+runweaver smoke codex --keep-temp
+runweaver smoke codex --live --timeout 4m --keep-temp
 ```
 
 The first command is a local dry-run that creates a tiny temporary Go repository, initializes Codex metadata, and prepares the Codex execution command without launching a model. The live form requires a working local Codex session and keeps the generated repo so you can inspect `.runweaver/tmp` afterward.
@@ -90,10 +90,12 @@ runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke t
 
 Then open the repository in the selected runtime and write the task to the generated entrypoint or shortcut. For OpenCode the generated primary agent is `runweaver-swarm`, not the generic `swarm` name, so global plugins that define `swarm` do not shadow RunWeaver. The generated instructions tell the runtime to call `runweaver start --repo . --runtime <current> --task "<user task>"`, which creates or resumes a workflow run under `.runweaver/tmp/swarm-runs`, selects repo-specific participants from the runtime profile, returns task tier and task-scoped context, updates `checkpoint.json`/`todo.md`, and returns the next execution contract.
 
+Task intake is deterministic before the runtime starts coding: feature/component implementation tasks are routed away from metadata-refresh workflows, named files/components are ranked above stale `docs/tasks` notes, frontend-only tasks penalize server/API participants, and the returned contract includes `qualityGates` plus a post-implementation review checklist for behavioral, async/race, allowed-state, scope-creep, and test-scaffolding risks. Generated skills are scope-aware, so frontend component skills get frontend verification commands instead of unrelated server/runtime command noise. These rules are shared by OpenCode, Codex, and Claude metadata.
+
 60-second local smoke after init:
 
 ```sh
-runweaver smoke codex --keep
+runweaver smoke codex --keep-temp
 runweaver start --repo . --runtime auto --task "fix auth guard public route test"
 runweaver participants select --repo . --runtime auto --task "fix auth guard public route test"
 runweaver context query --repo . --task "fix auth guard public route test"
@@ -146,12 +148,13 @@ runweaver doctor opencode --repo .
 runweaver doctor runtime --repo . --runtime all
 runweaver doctor adoption --repo . --runtime all
 runweaver doctor processes --summary
-runweaver smoke codex --keep
-runweaver smoke codex --live --timeout 4m --keep
+runweaver smoke codex --keep-temp
+runweaver smoke codex --live --timeout 4m --keep-temp
 runweaver eval adoption --repo . --runtime opencode --task "Run adoption smoke test"
 runweaver eval adoption --repo . --runtime codex --live --timeout 2m --task "Run live adoption smoke test"
 runweaver refresh --repo .
 runweaver refresh --repo . --apply
+runweaver refresh --repo . --apply --runtime all --classification ai
 runweaver doctor --repo .
 runweaver init --repo . --require-model
 runweaver status --repo .
@@ -223,6 +226,8 @@ Classifier runtime defaults to OpenCode for backward compatibility. Select anoth
 
 `--classification auto` attempts AI classification when possible and falls back to deterministic classification on model/preflight/output failure.
 
+`runweaver refresh` defaults to deterministic classification so runtime agents can refresh drift/index metadata without accidentally starting a model-backed classification pass. Pass `--classification ai` or `--classification auto` explicitly when you want AI-assisted metadata regeneration.
+
 Examples:
 
 ```sh
@@ -231,7 +236,7 @@ runweaver classify --repo . --classification ai --classifier-runtime codex --cla
 runweaver classify --repo . --classification ai --classifier-runtime claude --classifier-model sonnet
 runweaver classify --repo . --classification ai --apply --runtime all
 runweaver init --repo . --runtime codex --force --classification ai --classifier-timeout 180s
-runweaver refresh --repo . --apply --runtime all --classification auto
+runweaver refresh --repo . --apply --runtime all --classification ai
 ```
 
 ## OpenCode Desktop/CLI flow
@@ -440,6 +445,8 @@ Workflow resume state:
 - `nextAction`
 
 Generated workflows include `maxParticipants`. The RunWeaver coordinator prompt tells the agent to prefer one domain owner plus up to two reviewers/skills, and only exceed that when the workflow explicitly allows it.
+
+Implementation workflows include `post-implementation-reviewer` as a baseline reviewer. If a runtime cannot spawn that reviewer as a separate agent, the `executionContract.qualityGates` and `executionContract.postReview` checklists still tell the primary session what to verify before the final response, including separate tests for extracted helpers/components, focused lint/static checks for changed component/helper files, helper/component export separation when local lint rules require it, and page-level verification when shared frontend wiring changes.
 
 `workflow run --resume latest --status` is for inspection. `workflow update` is mostly for manual debugging and external automation; the generated RunWeaver coordinator should update checkpoints itself while executing phases. Resume paths are intentionally confined to `.runweaver/tmp/swarm-runs`.
 

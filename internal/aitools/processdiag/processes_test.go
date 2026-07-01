@@ -35,6 +35,25 @@ func TestDoctorProcessesFromPSOutputDetectsVSCodeAndDuplicateMCP(t *testing.T) {
 	}
 }
 
+func TestDoctorProcessesWarnsAboutLongRunningExecWithMCPChildren(t *testing.T) {
+	result := DoctorProcessesFromPSOutput(`
+23755 1 09:18 codex exec --json --ephemeral -C /tmp/runweaver
+24621 23755 09:16 npm exec @modelcontextprotocol/server-sequential-thinking
+24622 23755 09:16 npm exec @modelcontextprotocol/server-github
+24627 23755 09:16 npm exec @modelcontextprotocol/server-memory
+`)
+
+	if result.Status != "warning" {
+		t.Fatalf("status = %q, want warning", result.Status)
+	}
+	if !strings.Contains(result.Summary, "long-running unattended") {
+		t.Fatalf("summary = %q, want long-running unattended signal", result.Summary)
+	}
+	if !strings.Contains(strings.Join(result.Recommendations, "\n"), "MCP child processes") {
+		t.Fatalf("recommendations = %#v, want MCP child cleanup guidance", result.Recommendations)
+	}
+}
+
 func TestParseVSCodeDebugSettingsReadsJSONC(t *testing.T) {
 	settings, err := parseVSCodeDebugSettings([]byte(`{
   // VS Code accepts JSONC comments here.

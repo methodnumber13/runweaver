@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func parseProcessLines(value string) []ProcessInfo {
@@ -139,7 +140,86 @@ func normalizeRuntimeCommand(command string) string {
 	return command
 }
 
-func processSummary(supervisors []ProcessSupervisor, duplicates []ProcessDuplicateGroup, vscode VSCodeDiagnostics) string {
+func longRunningUnattendedSupervisors(supervisors []ProcessSupervisor) []ProcessSupervisor {
+	var out []ProcessSupervisor
+	for _, supervisor := range supervisors {
+		if !isUnattendedRuntimeCommand(supervisor.Command) {
+			continue
+		}
+		if elapsedDuration(supervisor.Elapsed) < 5*time.Minute {
+			continue
+		}
+		if !hasMCPChild(supervisor.Children) {
+			continue
+		}
+		out = append(out, supervisor)
+	}
+	return out
+}
+
+func isUnattendedRuntimeCommand(command string) bool {
+	lower := strings.ToLower(command)
+	return strings.Contains(lower, "codex exec") ||
+		strings.Contains(lower, "opencode run") ||
+		strings.Contains(lower, "claude --print")
+}
+
+func hasMCPChild(children []ProcessInfo) bool {
+	for _, child := range children {
+		if child.Kind == "mcp" {
+			return true
+		}
+	}
+	return false
+}
+
+func elapsedDuration(value string) time.Duration {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0
+	}
+	days := 0
+	if before, after, ok := strings.Cut(value, "-"); ok {
+		parsedDays, err := strconv.Atoi(before)
+		if err != nil {
+			return 0
+		}
+		days = parsedDays
+		value = after
+	}
+	parts := strings.Split(value, ":")
+	total := time.Duration(days) * 24 * time.Hour
+	switch len(parts) {
+	case 2:
+		minutes, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return 0
+		}
+		seconds, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return 0
+		}
+		return total + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second
+	case 3:
+		hours, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return 0
+		}
+		minutes, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return 0
+		}
+		seconds, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return 0
+		}
+		return total + time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second
+	default:
+		return 0
+	}
+}
+
+func processSummary(supervisors []ProcessSupervisor, duplicates []ProcessDuplicateGroup, longRunningUnattended []ProcessSupervisor, vscode VSCodeDiagnostics) string {
 	childCount := 0
 	for _, supervisor := range supervisors {
 		childCount += len(supervisor.Children)
@@ -148,10 +228,14 @@ func processSummary(supervisors []ProcessSupervisor, duplicates []ProcessDuplica
 	if vscode.Detected {
 		vscodeSuffix = ", VS Code JavaScript debugger/helper process(es) are present"
 	}
-	if len(duplicates) > 0 {
-		return "found " + strconv.Itoa(len(supervisors)) + " Codex/OpenCode supervisor process(es), " + strconv.Itoa(childCount) + " direct runtime child process(es), and duplicate MCP runtime groups" + vscodeSuffix
+	longRunningSuffix := ""
+	if len(longRunningUnattended) > 0 {
+		longRunningSuffix = ", and long-running unattended runtime process(es) with MCP children"
 	}
-	return "found " + strconv.Itoa(len(supervisors)) + " Codex/OpenCode supervisor process(es) and " + strconv.Itoa(childCount) + " direct runtime child process(es)" + vscodeSuffix
+	if len(duplicates) > 0 {
+		return "found " + strconv.Itoa(len(supervisors)) + " Codex/OpenCode supervisor process(es), " + strconv.Itoa(childCount) + " direct runtime child process(es), duplicate MCP runtime groups" + longRunningSuffix + vscodeSuffix
+	}
+	return "found " + strconv.Itoa(len(supervisors)) + " Codex/OpenCode supervisor process(es) and " + strconv.Itoa(childCount) + " direct runtime child process(es)" + longRunningSuffix + vscodeSuffix
 }
 
 func firstCommandToken(command string) string {
@@ -170,10 +254,13 @@ func filepathBase(path string) string {
 	return parts[len(parts)-1]
 }
 
-func processRecommendations(supervisors []ProcessSupervisor, duplicates []ProcessDuplicateGroup, vscode VSCodeDiagnostics) []string {
+func processRecommendations(supervisors []ProcessSupervisor, duplicates []ProcessDuplicateGroup, longRunningUnattended []ProcessSupervisor, vscode VSCodeDiagnostics) []string {
 	var out []string
 	if len(duplicates) > 0 {
 		out = append(out, "Close stale Codex/OpenCode sessions instead of terminating their child MCP Node.js processes one by one.")
+	}
+	if len(longRunningUnattended) > 0 {
+		out = append(out, "Interrupt or close the long-running unattended Codex/OpenCode supervisor process so it can terminate its MCP child processes; avoid killing MCP child processes one by one unless the supervisor is already gone.")
 	}
 	if len(supervisors) > 1 {
 		out = append(out, "Multiple Codex/OpenCode supervisor processes are active; close unused terminals or desktop sessions to release their MCP children.")

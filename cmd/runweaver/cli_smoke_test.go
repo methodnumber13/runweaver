@@ -16,7 +16,7 @@ func TestCLISmokeCodexDryRunCreatesDisposableRepo(t *testing.T) {
 	code := runCLI([]string{
 		"smoke", "codex",
 		"--repo", root,
-		"--keep",
+		"--keep-temp",
 		"--codex-bin", "codex-test",
 		"--timeout", "1s",
 	}, &stdout, &stderr, false)
@@ -122,7 +122,7 @@ printf '{"type":"message","message":"fake codex completed"}\n'
 		"smoke", "codex",
 		"--repo", root,
 		"--live",
-		"--keep",
+		"--keep-temp",
 		"--codex-bin", fakeCodex,
 		"--timeout", "5s",
 	}, &stdout, &stderr, false)

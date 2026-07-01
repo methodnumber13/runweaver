@@ -90,9 +90,11 @@ runweaver workflow run --repo . --runtime claude --execute
 
 Task intake defaults to `runtime auto`, which chooses a single runtime from repo-local generated metadata only when that runtime is actually available. A profile whose binary cannot be found is marked unavailable and should not steal routing from the current/default runtime. If no generated runtime is ready, RunWeaver falls back to OpenCode. Codex and Claude Code also support provider discovery, generated metadata, AI classification, and workflow execution.
 
-`runweaver start` is the portable task-intake boundary generated instructions point at. It refreshes stale local context when needed, creates or resumes the closest workflow, classifies the task tier, queries task-scoped files/symbols/routes/tests, selects participants from the runtime profile, persists checkpoint state, and returns an `executionContract` for the current LLM session. The contract includes participant assignments such as `owner`, `specialist`, `reviewer`, or `verifier`, plus task-scoped context explanations. Runtime-specific instructions should call `start` first and use lower-level `workflow run`, `workflow update`, and `workflow verify` commands only for fallback, diagnostics, or explicit automation.
+`runweaver start` is the portable task-intake boundary generated instructions point at. It refreshes stale local context when needed, creates or resumes the closest workflow, classifies the task tier, queries task-scoped files/symbols/routes/tests, selects participants from the runtime profile, persists checkpoint state, and returns an `executionContract` for the current LLM session. The contract includes participant assignments such as `owner`, `specialist`, `reviewer`, or `verifier`, task-scoped context explanations, and `qualityGates` for verification obligations that should be known before coding. Runtime-specific instructions should call `start` first and use lower-level `workflow run`, `workflow update`, and `workflow verify` commands only for fallback, diagnostics, or explicit automation.
 
 Participant selection is repo-scoped in multi-repo profiles: repo-specific agents and skills from sibling repositories are filtered out before scoring, while global agents and workflow fallback agents remain available. If task-scoped context cannot be loaded, the participant result returns a warning and continues with profile/workflow evidence rather than silently pretending graph evidence was used.
+
+Selection and context retrieval are runtime-neutral. Feature/component implementation tasks get a feature-delivery bias and metadata-refresh penalty; task-scoped context boosts exact basename/component matches and pushes stale `docs/tasks` notes below source targets; frontend-only tasks penalize server/API participants unless the task explicitly asks for those surfaces. Generated skills filter verification commands by surface, so frontend skills do not advertise unrelated server/runtime checks as primary commands. `executionContract.qualityGates`, `post-implementation-reviewer`, and `executionContract.postReview` are generated for all runtimes so OpenCode, Codex, and Claude share the same final review obligations even when delegation mechanics differ.
 
 Generated shortcuts reduce the chance that the model or user enters the wrong path:
 
@@ -193,9 +195,12 @@ Codex static provider metadata is implemented by `runtimecatalog/codex`. Codex g
 AGENTS.md
 .agents/skills/context-discipline/SKILL.md
 .agents/skills/metadata-refresh/SKILL.md
+.agents/skills/post-implementation-review/SKILL.md
 .agents/skills/repo-onboarding/SKILL.md
+.agents/skills/workflow-system-master/SKILL.md
 .agents/skills/<repo-specific-skill>/SKILL.md
 .codex/agents/runweaver-swarm.toml
+.codex/agents/post-implementation-reviewer.toml
 .codex/agents/<repo-specific-agent>.toml
 .codex/runweaver/profile.json
 ```
@@ -247,9 +252,12 @@ Claude Code static provider metadata is implemented by `runtimecatalog/claude`. 
 CLAUDE.md
 .claude/workflows/*.md
 .claude/agents/runweaver-swarm.md
+.claude/agents/post-implementation-reviewer.md
 .claude/agents/<repo-specific-agent>.md
 .claude/skills/context-discipline/SKILL.md
 .claude/skills/metadata-refresh/SKILL.md
+.claude/skills/post-implementation-review/SKILL.md
+.claude/skills/workflow-system-master/SKILL.md
 .claude/runweaver/profile.json
 ```
 
