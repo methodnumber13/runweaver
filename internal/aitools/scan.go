@@ -34,7 +34,11 @@ func Scan(repoPath string) (SurfaceIndex, error) {
 			}
 			return nil
 		}
-		files = append(files, rel(root, path))
+		relPath := rel(root, path)
+		if shouldSkipFile(relPath) {
+			return nil
+		}
+		files = append(files, relPath)
 		return nil
 	})
 	if err != nil {
@@ -55,7 +59,7 @@ func Scan(repoPath string) (SurfaceIndex, error) {
 		Routes:        routeFiles(files),
 		Pages:         pageFiles(files),
 	}
-	index.BuildCommands = buildCommands(root, index.Stack)
+	index.BuildCommands = buildCommands(root, files, index.Stack)
 	packages, packageWarnings := DetectPackagesWithWarnings(root, files)
 	index.Packages = packages
 	index.Tools = BuildToolchain(index.Stack, index.Packages, index.BuildCommands)

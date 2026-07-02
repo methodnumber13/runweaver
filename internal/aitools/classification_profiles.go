@@ -2,71 +2,81 @@ package aitools
 
 func classificationAgents(index RepoIndex, classification RepoClassification) []AgentProfile {
 	var agents []AgentProfile
-	if hasPackage(index, "@nestjs/core") {
+	if len(filesByCategory(index, "route")) > 0 || len(filesByCategory(index, "contract")) > 0 {
 		agents = append(agents,
 			AgentProfile{
-				Name:        "nestjs-route-contract-engineer",
-				Description: "Works on NestJS controllers, route decorators, DTO contracts, global prefix/versioning, and response shapes",
+				Name:        "api-route-contract-engineer",
+				Description: "Works on detected route handlers, request/response contracts, validation boundaries, and response shapes",
 				FocusFiles:  mergeFileLists(filesByCategory(index, "entrypoint"), filesByCategory(index, "module"), filesByCategory(index, "route"), filesByCategory(index, "contract")),
 				Workflow: []string{
-					"Start at src/main.ts and src/app.module.ts to confirm global prefix, versioning, pipes, guards, and module wiring.",
-					"Trace controller decorators and DTO validation before changing request or response contracts.",
-					"Update focused unit/e2e tests when route behavior changes.",
+					"Start from detected entrypoints/modules, then trace routes and contract files before changing request or response behavior.",
+					"Keep validation, response shape, status codes, and route tests aligned.",
+					"Update focused tests when route behavior changes.",
 				},
-				Verification: index.Tools.RecommendedCommands,
-			},
-			AgentProfile{
-				Name:        "nestjs-config-boundary-reviewer",
-				Description: "Reviews NestJS bootstrap, ConfigModule/Joi env schema, Swagger setup, middleware, and deployment config",
-				FocusFiles:  configBoundaryFiles(index),
-				Workflow: []string{
-					"Review runtime bootstrap, global middleware, validation pipe, Swagger, and env validation together.",
-					"Check that config changes are mirrored in .env.example, tests, Docker, Helm, and CI when relevant.",
-					"Do not expose secret values in generated metadata or logs.",
-				},
-				Verification: index.Tools.RecommendedCommands,
-			},
-			AgentProfile{
-				Name:        "nestjs-test-harness-reviewer",
-				Description: "Maintains NestJS Jest unit/e2e tests, mocks, fixtures, and reliable verification commands",
-				FocusFiles:  mergeFileLists(filesByCategory(index, "test"), filterFiles(index, "test/jest-")),
-				Workflow: []string{
-					"Pick the smallest related Jest target before broad test runs.",
-					"Keep mocks and e2e setup aligned with module wiring and external service contracts.",
-					"Record exact blockers when e2e tests need unavailable environment or services.",
-				},
-				Verification: index.Tools.RecommendedCommands,
+				Verification: taskScopedVerificationGuidance(),
 			},
 		)
 	}
-	if hasPackage(index, "prisma") || hasPackage(index, "@prisma/client") {
+	if len(configBoundaryFiles(index)) > 0 {
+		agents = append(agents,
+			AgentProfile{
+				Name:        "config-bootstrap-boundary-reviewer",
+				Description: "Reviews bootstrap, runtime configuration, middleware wiring, environment schema, and deployment config",
+				FocusFiles:  configBoundaryFiles(index),
+				Workflow: []string{
+					"Review runtime bootstrap, middleware, validation, API docs, and env validation together when present.",
+					"Check that config changes are mirrored in .env.example, tests, Docker, Helm, and CI when relevant.",
+					"Do not expose secret values in generated metadata or logs.",
+				},
+				Verification: taskScopedVerificationGuidance(),
+			},
+		)
+	}
+	if len(filesByCategory(index, "test")) > 0 {
+		agents = append(agents,
+			AgentProfile{
+				Name:        "repo-test-harness-reviewer",
+				Description: "Maintains repository tests, mocks, fixtures, and reliable verification commands",
+				FocusFiles:  filesByCategory(index, "test"),
+				Workflow: []string{
+					"Pick the smallest related test target before broad test runs.",
+					"Keep mocks and integration setup aligned with module wiring and external service contracts.",
+					"Record exact blockers when tests need unavailable environment or services.",
+				},
+				Verification: taskScopedVerificationGuidance(),
+			},
+		)
+	}
+	if len(filesByCategory(index, "persistence")) > 0 {
+		focusFiles := filesByCategory(index, "persistence")
 		agents = append(agents, AgentProfile{
-			Name:        "prisma-persistence-reviewer",
-			Description: "Reviews Prisma schema, migrations, PrismaService, repositories, and persistence-side contract risk",
-			FocusFiles:  filesByCategory(index, "persistence"),
+			Name:        "persistence-boundary-reviewer",
+			Description: "Reviews persistence schema, migrations, repository calls, and persistence-side contract risk",
+			FocusFiles:  focusFiles,
 			Workflow: []string{
-				"Start with prisma/schema.prisma, migrations, PrismaService, and repositories before touching persistence behavior.",
+				"Start with persistence schemas, migrations, repository calls, and storage adapters before touching persistence behavior.",
 				"Check data contract compatibility and migration side effects.",
 				"Avoid running destructive database operations without explicit user approval.",
 			},
-			Verification: index.Tools.RecommendedCommands,
+			Verification: taskScopedVerificationGuidance(),
 		})
 	}
 	if len(classification.ExternalSystems) > 0 {
+		focusFiles := externalSystemFiles(classification)
 		agents = append(agents, AgentProfile{
 			Name:        "external-integration-contract-reviewer",
-			Description: "Reviews API integrations with identity, source control, orchestration, catalog, deployment, messaging, observability, object storage, and platform services",
-			FocusFiles:  externalSystemFiles(classification),
+			Description: "Reviews external integration request construction, authentication, DTO mapping, error handling, and test mocks",
+			FocusFiles:  focusFiles,
 			Workflow: []string{
 				"Trace request URL construction, auth headers, DTO mapping, error handling, and test mocks for each external system.",
 				"Keep controller/service tests and e2e mocks aligned with external contract changes.",
 				"Never print tokens, API keys, private keys, or env secret values.",
 			},
-			Verification: index.Tools.RecommendedCommands,
+			Verification: taskScopedVerificationGuidance(),
 		})
 	}
 	for _, domain := range classification.Domains {
-		if !isBFFDomain(domain.Name) {
+		if len(domain.Files) == 0 {
 			continue
 		}
 		agents = append(agents, AgentProfile{
@@ -76,9 +86,9 @@ func classificationAgents(index RepoIndex, classification RepoClassification) []
 			Workflow: []string{
 				"Read all files in this domain before changing behavior.",
 				"Trace controller, service, DTO, module, mocks, and e2e coverage for the domain.",
-				"Escalate cross-domain contract changes to external-integration-contract-reviewer or nestjs-route-contract-engineer.",
+				"Escalate cross-domain contract changes to external-integration-contract-reviewer or api-route-contract-engineer.",
 			},
-			Verification: index.Tools.RecommendedCommands,
+			Verification: taskScopedVerificationGuidance(),
 		})
 	}
 	return dedupeAgents(agents)
@@ -86,70 +96,69 @@ func classificationAgents(index RepoIndex, classification RepoClassification) []
 
 func classificationSkills(index RepoIndex, classification RepoClassification) []SkillProfile {
 	var skills []SkillProfile
-	if hasPackage(index, "@nestjs/core") {
+	if len(configBoundaryFiles(index)) > 0 {
 		skills = append(skills,
 			SkillProfile{
-				Name:        "nestjs-bootstrap-config",
-				Description: "Work on NestJS bootstrap, app module wiring, global validation, Swagger, and runtime config",
+				Name:        "bootstrap-config-surface",
+				Description: "Work on bootstrap wiring, validation, API docs, middleware, and runtime config",
 				FocusFiles:  configBoundaryFiles(index),
 				Workflow: []string{
-					"Start with src/main.ts and src/app.module.ts.",
-					"Check ConfigModule/Joi schema, global prefix, versioning, ValidationPipe, Swagger, and middleware together.",
+					"Start with detected entrypoint, module, and configuration files.",
+					"Check env schema, routing prefix/versioning, validation, API docs, and middleware together when present.",
 					"Reflect config changes into tests and deployment files when they affect runtime.",
 				},
-				Verification: index.Tools.RecommendedCommands,
-			},
-			SkillProfile{
-				Name:        "nestjs-test-harness",
-				Description: "Select and maintain NestJS Jest unit/e2e tests, mocks, and setup files",
-				FocusFiles:  mergeFileLists(filesByCategory(index, "test"), filterFiles(index, "test/jest-")),
-				Workflow: []string{
-					"Prefer focused Jest targets when possible.",
-					"Use test/jest-unit.json for unit tests and test/jest-e2e.json for e2e tests.",
-					"Treat e2e environment blockers as explicit risks instead of silently skipping them.",
-				},
-				Verification: index.Tools.RecommendedCommands,
+				Verification: taskScopedVerificationGuidance(),
 			},
 		)
 	}
-	if hasPackage(index, "prisma") || hasPackage(index, "@prisma/client") {
+	if len(filesByCategory(index, "test")) > 0 {
+		skills = append(skills,
+			SkillProfile{
+				Name:        "repo-test-harness",
+				Description: "Select and maintain repository tests, mocks, and setup files",
+				FocusFiles:  filesByCategory(index, "test"),
+				Workflow: []string{
+					"Prefer focused repository-native test targets when possible.",
+					"Use detected test configuration and package scripts instead of hardcoded runner names.",
+					"Treat e2e environment blockers as explicit risks instead of silently skipping them.",
+				},
+				Verification: taskScopedVerificationGuidance(),
+			},
+		)
+	}
+	if len(filesByCategory(index, "persistence")) > 0 {
+		focusFiles := filesByCategory(index, "persistence")
 		skills = append(skills, SkillProfile{
-			Name:        "templates-prisma-surface",
-			Description: "Work on template orchestration and Prisma persistence surfaces",
-			FocusFiles:  mergeFileLists(domainFiles(classification, "templates"), filesByCategory(index, "persistence")),
+			Name:        "persistence-surface",
+			Description: "Work on persistence schema, repository, migration, and storage contract surfaces",
+			FocusFiles:  focusFiles,
 			Workflow: []string{
-				"Trace template service orchestration, repository calls, Prisma schema, and migrations together.",
+				"Trace repository calls, schema, migrations, and persistence contracts together.",
 				"Keep DTO validation, persistence writes, and tests aligned.",
 				"Do not run migrations against a real database without explicit approval.",
 			},
-			Verification: index.Tools.RecommendedCommands,
+			Verification: taskScopedVerificationGuidance(),
 		})
 	}
-	for _, spec := range []struct {
-		name        string
-		description string
-		domains     []string
-	}{
-		{"identity-auth-surface", "Work on auth guards, identity introspection/userinfo, x-api-key behavior, and auth tests", []string{"auth"}},
-		{"scm-integration-surface", "Work on source control adapter controllers, services, DTOs, and tests", []string{"scm"}},
-		{"kubernetes-integration-surface", "Work on Kubernetes cluster controllers, service contracts, DTOs, and tests", []string{"kubernetes"}},
-		{"object-storage-surface", "Work on object storage access flows, private-key handling, DTOs, and tests", []string{"object-storage"}},
-		{"platform-catalog-deployment-surface", "Work on platform, catalog, and deployment integration contracts and orchestration", []string{"devops", "catalog-service", "deployment-service"}},
-	} {
-		files := filesForDomains(classification, spec.domains...)
+	for _, domain := range classification.Domains {
+		files := filesForDomains(classification, domain.Name)
 		if len(files) == 0 {
 			continue
 		}
+		name := sanitizeID(domain.Name)
+		if name == "" {
+			continue
+		}
 		skills = append(skills, SkillProfile{
-			Name:        spec.name,
-			Description: spec.description,
+			Name:        name + "-domain-surface",
+			Description: "Work on the " + domain.Name + " domain surface, related contracts, and verification",
 			FocusFiles:  files,
 			Workflow: []string{
 				"Read the full domain surface before editing.",
 				"Trace controller, service, DTO, mocks, and e2e coverage.",
 				"Keep external request/response contracts and error handling consistent.",
 			},
-			Verification: index.Tools.RecommendedCommands,
+			Verification: taskScopedVerificationGuidance(),
 		})
 	}
 	return dedupeSkills(skills)

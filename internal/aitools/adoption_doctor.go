@@ -2,7 +2,6 @@ package aitools
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -90,7 +89,7 @@ func doctorRuntimeAdoption(root string, provider RuntimeProvider) RuntimeAdoptio
 			result.Recommendations = append(result.Recommendations, check.NextActions...)
 		}
 	}
-	add(adoptionRunWeaverPathCheck())
+	add(adoptionRunWeaverCommandCheck(root))
 	add(adoptionWorkflowCheck(root))
 	add(adoptionProfileCheck(root, provider.ID))
 	add(adoptionStartupContractCheck(root, provider.ID))
@@ -109,11 +108,11 @@ func adoptionCommandShortcutCheck(root, runtimeID string) AdoptionCheck {
 	for _, relPath := range paths {
 		path := filepath.Join(root, relPath)
 		data, err := os.ReadFile(path)
-		if err == nil && strings.Contains(string(data), "runweaver start") {
+		if err == nil && hasRunWeaverStartContract(string(data)) {
 			return AdoptionCheck{
 				Name:     "command-shortcut",
 				Status:   "ok",
-				Summary:  "Runtime shortcut points to runweaver start",
+				Summary:  "Runtime shortcut points to the repo-local RunWeaver start command",
 				Evidence: []string{relPath},
 			}
 		}
@@ -121,7 +120,7 @@ func adoptionCommandShortcutCheck(root, runtimeID string) AdoptionCheck {
 	return AdoptionCheck{
 		Name:     "command-shortcut",
 		Status:   "warning",
-		Summary:  "Runtime shortcut was not found or does not point to runweaver start",
+		Summary:  "Runtime shortcut was not found or does not point to the repo-local RunWeaver start command",
 		Evidence: paths,
 		NextActions: []string{
 			"Run runweaver init --repo . --runtime " + runtimeID + " --force to refresh generated shortcuts.",
@@ -183,23 +182,44 @@ func adoptionRuntimePermissionCheck(root, runtimeID string) AdoptionCheck {
 	}
 }
 
-func adoptionRunWeaverPathCheck() AdoptionCheck {
-	path, err := exec.LookPath("runweaver")
-	if err != nil {
+func adoptionRunWeaverCommandCheck(root string) AdoptionCheck {
+	candidates := runWeaverCommandCandidates(root)
+	if len(candidates) == 0 {
 		return AdoptionCheck{
-			Name:    "runweaver-path",
-			Status:  "warning",
-			Summary: "runweaver was not found on PATH for this shell",
+			Name:    "runweaver-command-surface",
+			Status:  "error",
+			Summary: "No RunWeaver command was found for this repository or shell",
 			NextActions: []string{
-				"Install runweaver on a PATH visible to the selected CLI/Desktop runtime.",
+				"Run runweaver init --repo . --force with the current binary or install RunWeaver on a PATH visible to the selected runtime.",
 			},
 		}
 	}
+	var evidence []string
+	for _, candidate := range candidates {
+		found, missing, err := runWeaverCommandSurfaceCheck(candidate)
+		if err == nil && len(missing) == 0 {
+			return AdoptionCheck{
+				Name:     "runweaver-command-surface",
+				Status:   "ok",
+				Summary:  "RunWeaver command exposes start, status, and context query to the runtime",
+				Evidence: []string{candidate, "found: " + strings.Join(found, ", ")},
+			}
+		}
+		if err != nil {
+			evidence = append(evidence, candidate+": "+err.Error())
+			continue
+		}
+		evidence = append(evidence, candidate+": missing "+strings.Join(missing, ", "))
+	}
 	return AdoptionCheck{
-		Name:     "runweaver-path",
-		Status:   "ok",
-		Summary:  "runweaver is available on PATH",
-		Evidence: []string{path},
+		Name:     "runweaver-command-surface",
+		Status:   "error",
+		Summary:  "RunWeaver command was found but does not expose required task intake commands",
+		Evidence: evidence,
+		NextActions: []string{
+			"Run runweaver init --repo . --force with the current binary so .runweaver/tmp/bin/runweaver points at a binary with start/status/context query.",
+			"If a runtime still resolves an old binary, set RUNWEAVER_BIN to .runweaver/tmp/bin/runweaver before launching it.",
+		},
 	}
 }
 
@@ -266,11 +286,11 @@ func adoptionStartupContractCheck(root, runtimeID string) AdoptionCheck {
 			continue
 		}
 		checked = append(checked, relPath)
-		if strings.Contains(string(data), "runweaver start") {
+		if hasRunWeaverStartContract(string(data)) {
 			return AdoptionCheck{
 				Name:     "startup-contract",
 				Status:   "ok",
-				Summary:  "Runtime instructions point agents to runweaver start",
+				Summary:  "Runtime instructions point agents to the repo-local RunWeaver start command",
 				Evidence: []string{relPath},
 			}
 		}
@@ -280,7 +300,7 @@ func adoptionStartupContractCheck(root, runtimeID string) AdoptionCheck {
 	return AdoptionCheck{
 		Name:     "startup-contract",
 		Status:   "error",
-		Summary:  "Runtime instructions do not contain the runweaver start contract",
+		Summary:  "Runtime instructions do not contain the repo-local RunWeaver start contract",
 		Evidence: evidence,
 		NextActions: []string{
 			"Run runweaver init --repo . --runtime " + runtimeID + " --force to refresh generated instructions.",
@@ -343,12 +363,28 @@ func permissionHintPaths(runtimeID string) []string {
 func runtimePermissionLooksWritable(runtimeID, text string) bool {
 	switch runtimeID {
 	case RuntimeOpenCode:
-		return strings.Contains(text, "runweaver start") && strings.Contains(text, "allow")
+		return (strings.Contains(text, "runweaver start") ||
+			strings.Contains(text, ".runweaver/tmp/bin/runweaver") ||
+			strings.Contains(text, "$runweaver_bin")) &&
+			strings.Contains(text, "allow")
 	case RuntimeCodex:
 		return strings.Contains(text, "workspace-write") || strings.Contains(text, "danger-full-access")
 	case RuntimeClaude:
-		return strings.Contains(text, "runweaver start") || strings.Contains(text, "bash(runweaver")
+		return strings.Contains(text, "runweaver start") ||
+			strings.Contains(text, ".runweaver/tmp/bin/runweaver") ||
+			strings.Contains(text, "$runweaver_bin") ||
+			strings.Contains(text, "bash(runweaver")
 	default:
 		return false
 	}
+}
+
+func hasRunWeaverStartContract(text string) bool {
+	lower := strings.ToLower(text)
+	if !strings.Contains(lower, "runweaver start") && !strings.Contains(lower, "runweaver\" start") && !strings.Contains(lower, "$runweaver_bin") {
+		return false
+	}
+	return strings.Contains(text, runWeaverProjectBinForDocs()) ||
+		strings.Contains(text, "RUNWEAVER_BIN") ||
+		strings.Contains(text, "$RUNWEAVER_BIN")
 }

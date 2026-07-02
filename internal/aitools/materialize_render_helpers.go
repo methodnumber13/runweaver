@@ -14,7 +14,11 @@ compatibility: ` + runtimeID + `
 
 ` + generatedMarker + `
 
-Use this skill for ` + repo.Kind + ` work in this repository.
+## RunWeaver Start Gate
+
+Before applying this skill to a non-trivial user task, ensure the current raw user task has already been passed to ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" start --repo . --task \"<full raw user task>\"`" + `. If the current session has not called ` + "`runweaver start`" + ` yet, run the generated ` + "`runweaver-start`" + ` entrypoint first, follow its ` + "`executionContract`" + `, and return to this skill only when it is selected by the workflow.
+
+Use this skill for ` + skillUsageLabel(skill, repo) + ` work in this repository.
 
 ## Focus Files
 
@@ -30,7 +34,7 @@ Use this skill for ` + repo.Kind + ` work in this repository.
 
 ## Verification
 
-` + markdownList(skill.Verification) + `
+` + markdownList(verificationForSkill(skill, repo)) + `
 
 ## Output Contract
 

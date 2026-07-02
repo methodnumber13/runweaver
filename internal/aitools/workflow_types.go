@@ -140,6 +140,7 @@ type WorkflowCheckpoint struct {
 	NextPhase            string   `json:"nextPhase"`
 	Participants         []string `json:"participants,omitempty"`
 	ParticipantRationale []string `json:"participantRationale,omitempty"`
+	AcceptanceCriteria   []string `json:"acceptanceCriteria,omitempty"`
 	Findings             []string `json:"findings,omitempty"`
 	Decisions            []string `json:"decisions,omitempty"`
 	FilesRead            []string `json:"filesRead,omitempty"`
@@ -151,6 +152,7 @@ type WorkflowCheckpoint struct {
 	NextVerification     string   `json:"nextVerification,omitempty"`
 	Verification         []string `json:"verification,omitempty"`
 	VerificationResults  []string `json:"verificationResults,omitempty"`
+	ResidualRisks        []string `json:"residualRisks,omitempty"`
 	Blockers             []string `json:"blockers,omitempty"`
 	IndexFreshnessStatus string   `json:"indexFreshnessStatus,omitempty"`
 	StaleIndex           bool     `json:"staleIndex,omitempty"`
@@ -177,6 +179,7 @@ type WorkflowEvent struct {
 	Status               string   `json:"status,omitempty"`
 	Participants         []string `json:"participants,omitempty"`
 	ParticipantRationale []string `json:"participantRationale,omitempty"`
+	AcceptanceCriteria   []string `json:"acceptanceCriteria,omitempty"`
 	Findings             []string `json:"findings,omitempty"`
 	Decisions            []string `json:"decisions,omitempty"`
 	FilesRead            []string `json:"filesRead,omitempty"`
@@ -188,6 +191,7 @@ type WorkflowEvent struct {
 	NextVerification     string   `json:"nextVerification,omitempty"`
 	Verification         []string `json:"verification,omitempty"`
 	VerificationResults  []string `json:"verificationResults,omitempty"`
+	ResidualRisks        []string `json:"residualRisks,omitempty"`
 	Blockers             []string `json:"blockers,omitempty"`
 	IndexFreshnessStatus string   `json:"indexFreshnessStatus,omitempty"`
 	StaleIndex           bool     `json:"staleIndex,omitempty"`
@@ -207,6 +211,7 @@ type WorkflowUpdateOptions struct {
 	Participants         []string
 	ReplaceParticipants  bool
 	ParticipantRationale []string
+	AcceptanceCriteria   []string
 	Findings             []string
 	Decisions            []string
 	FilesRead            []string
@@ -218,6 +223,7 @@ type WorkflowUpdateOptions struct {
 	NextVerification     string
 	Verification         []string
 	VerificationResults  []string
+	ResidualRisks        []string
 	Blockers             []string
 	CompletePhase        bool
 }

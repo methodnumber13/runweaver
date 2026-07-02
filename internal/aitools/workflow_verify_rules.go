@@ -49,7 +49,7 @@ func verifyParticipantBudget(workflow WorkflowSpec, checkpoint WorkflowCheckpoin
 	})
 }
 
-func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint, result *WorkflowVerificationResult) {
+func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint, phaseEvidence []string, result *WorkflowVerificationResult) {
 	if checkpoint.Status != "complete" {
 		addWorkflowVerificationCheck(result, WorkflowVerificationCheck{
 			Name:     "terminal-evidence",
@@ -59,6 +59,7 @@ func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint
 		})
 		return
 	}
+	normalizeWorkflowVerificationEvidence(&checkpoint, phaseEvidence...)
 	if len(checkpoint.Blockers) > 0 {
 		addWorkflowVerificationCheck(result, WorkflowVerificationCheck{
 			Name:     "terminal-evidence",
@@ -83,6 +84,20 @@ func verifyTerminalEvidence(workflow WorkflowSpec, checkpoint WorkflowCheckpoint
 			Status:   "warning",
 			Summary:  "Workflow is complete but verification commands or results are missing",
 			Evidence: []string{fmt.Sprintf("verification commands: %d", len(checkpoint.Verification)), fmt.Sprintf("verification results: %d", len(checkpoint.VerificationResults))},
+		})
+		return
+	}
+	if !addVerificationQualityChecks(workflow, checkpoint, result) {
+		return
+	}
+	verificationWarnings := residualRisksFromVerificationResults(checkpoint.VerificationResults)
+	if len(verificationWarnings) > 0 && len(checkpoint.ResidualRisks) == 0 {
+		addWorkflowVerificationCheck(result, WorkflowVerificationCheck{
+			Name:        "verification-warnings",
+			Status:      "warning",
+			Summary:     "Verification output contains warning-like diagnostics without recorded residual risk",
+			Evidence:    verificationWarnings,
+			NextActions: []string{"Fix the warning diagnostics or record why they are acceptable with runweaver workflow update --residual-risk <reason>."},
 		})
 		return
 	}

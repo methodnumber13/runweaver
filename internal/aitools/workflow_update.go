@@ -43,7 +43,10 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		}
 	}
 	if len(opts.ParticipantRationale) > 0 {
-		checkpoint.ParticipantRationale = Unique(append(checkpoint.ParticipantRationale, compactStrings(opts.ParticipantRationale)...))
+		checkpoint.ParticipantRationale = Unique(append(checkpoint.ParticipantRationale, normalizeCheckpointParticipantRationale(opts.ParticipantRationale)...))
+	}
+	if len(opts.AcceptanceCriteria) > 0 {
+		checkpoint.AcceptanceCriteria = Unique(append(checkpoint.AcceptanceCriteria, normalizeAcceptanceCriteria(opts.AcceptanceCriteria)...))
 	}
 	if len(opts.Findings) > 0 {
 		checkpoint.Findings = Unique(append(checkpoint.Findings, compactStrings(opts.Findings)...))
@@ -75,8 +78,14 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 	if len(opts.Verification) > 0 {
 		checkpoint.Verification = Unique(append(checkpoint.Verification, compactStrings(opts.Verification)...))
 	}
+	newResidualRisks := compactStrings(opts.ResidualRisks)
 	if len(opts.VerificationResults) > 0 {
-		checkpoint.VerificationResults = Unique(append(checkpoint.VerificationResults, compactStrings(opts.VerificationResults)...))
+		results := compactStrings(opts.VerificationResults)
+		checkpoint.VerificationResults = Unique(append(checkpoint.VerificationResults, results...))
+		newResidualRisks = Unique(append(newResidualRisks, residualRisksFromVerificationResults(results)...))
+	}
+	if len(newResidualRisks) > 0 {
+		checkpoint.ResidualRisks = Unique(append(checkpoint.ResidualRisks, newResidualRisks...))
 	}
 	if len(opts.Blockers) > 0 {
 		checkpoint.Blockers = Unique(append(checkpoint.Blockers, compactStrings(opts.Blockers)...))
@@ -88,7 +97,11 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		if err != nil {
 			return nil, err
 		}
-		checkpoint.CompletedPhases = Unique(append(checkpoint.CompletedPhases, phase))
+		completedPhases, err := completedWorkflowPhasesThrough(root, runDir, phase, checkpoint.CompletedPhases)
+		if err != nil {
+			return nil, err
+		}
+		checkpoint.CompletedPhases = completedPhases
 		checkpoint.NextPhase = nextPhase
 		if checkpoint.NextPhase == "" {
 			checkpoint.Status = "complete"
@@ -97,6 +110,8 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 			checkpoint.CurrentPhase = checkpoint.NextPhase
 		}
 	}
+	normalizeCompletedCheckpointState(&checkpoint)
+	normalizeWorkflowVerificationEvidence(&checkpoint)
 	applyWorkflowIndexFreshness(root, &checkpoint)
 	checkpoint.UpdatedAt = Now()
 	if err := WriteJSON(checkpointPath, checkpoint); err != nil {
@@ -120,7 +135,8 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		Phase:                eventPhase,
 		Status:               checkpoint.Status,
 		Participants:         checkpoint.Participants,
-		ParticipantRationale: compactStrings(opts.ParticipantRationale),
+		ParticipantRationale: normalizeCheckpointParticipantRationale(opts.ParticipantRationale),
+		AcceptanceCriteria:   normalizeAcceptanceCriteria(opts.AcceptanceCriteria),
 		Findings:             compactStrings(opts.Findings),
 		Decisions:            compactStrings(opts.Decisions),
 		FilesRead:            compactStrings(opts.FilesRead),
@@ -132,6 +148,7 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		NextVerification:     strings.TrimSpace(opts.NextVerification),
 		Verification:         compactStrings(opts.Verification),
 		VerificationResults:  compactStrings(opts.VerificationResults),
+		ResidualRisks:        newResidualRisks,
 		Blockers:             compactStrings(opts.Blockers),
 		IndexFreshnessStatus: checkpoint.IndexFreshnessStatus,
 		StaleIndex:           checkpoint.StaleIndex,
@@ -146,6 +163,57 @@ func UpdateWorkflow(repoPath string, opts WorkflowUpdateOptions) (map[string]any
 		return nil, err
 	}
 	return checkpointStatusMap(checkpoint, rel(root, runDir))
+}
+
+func normalizeCheckpointParticipantRationale(values []string) []string {
+	values = compactStrings(values)
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, compactRationaleItem(value, 240))
+	}
+	return Unique(out)
+}
+
+func normalizeAcceptanceCriteria(values []string) []string {
+	values = compactStrings(values)
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, compactRationaleItem(value, 260))
+	}
+	return Limit(Unique(out), 20)
+}
+
+func completedWorkflowPhasesThrough(root, runDir, phase string, existing []string) ([]string, error) {
+	var plan WorkflowPlanFile
+	planPath := filepath.Join(runDir, "plan.json")
+	if err := ReadJSON(planPath, &plan); err != nil {
+		return nil, fmt.Errorf("load workflow plan %s for completed phase state: %w", rel(root, planPath), err)
+	}
+	existingSet := map[string]bool{}
+	for _, value := range compactStrings(existing) {
+		existingSet[value] = true
+	}
+	var completed []string
+	found := false
+	for _, candidate := range plan.Workflow.Phases {
+		completed = append(completed, candidate.ID)
+		existingSet[candidate.ID] = true
+		if candidate.ID == phase {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("workflow phase %s was not found in plan %s", phase, rel(root, planPath))
+	}
+	for _, value := range compactStrings(existing) {
+		if existingSet[value] {
+			continue
+		}
+		completed = append(completed, value)
+		existingSet[value] = true
+	}
+	return completed, nil
 }
 
 func applyWorkflowIndexFreshness(root string, checkpoint *WorkflowCheckpoint) {

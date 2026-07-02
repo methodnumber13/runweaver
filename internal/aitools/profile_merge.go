@@ -38,11 +38,11 @@ func enrichAgentProfiles(index RepoIndex, agents []AgentProfile) []AgentProfile 
 		case "api-route-engineer":
 			agent.FocusFiles = mergeFileLists(filesByCategory(index, "entrypoint"), filesByCategory(index, "module"), filesByCategory(index, "route"), filesByCategory(index, "contract"))
 			agent.Workflow = []string{
-				"Start at NestJS bootstrap/module wiring, then trace controller decorators and DTO contracts.",
+				"Start at detected bootstrap/module wiring, then trace route handlers and request/response contracts.",
 				"Do not treat spec files as route sources; use tests only for verification or requested updates.",
 				"Keep request validation, response shape, status codes, and route tests aligned.",
 			}
-			agent.Verification = index.Tools.RecommendedCommands
+			agent.Verification = taskScopedVerificationGuidance()
 		case "api-security-boundary-reviewer":
 			agent.FocusFiles = mergeFileLists(domainFiles(index.Classification, "auth"), configBoundaryFiles(index), filesByCategory(index, "route"), filesByCategory(index, "contract"))
 			agent.Workflow = []string{
@@ -50,23 +50,23 @@ func enrichAgentProfiles(index RepoIndex, agents []AgentProfile) []AgentProfile 
 				"Check external auth/service calls for secret handling and error behavior.",
 				"Never print or persist secret values from env/config/auth files.",
 			}
-			agent.Verification = index.Tools.RecommendedCommands
+			agent.Verification = taskScopedVerificationGuidance()
 		case "api-test-harness-reviewer", "repo-test-quality-reviewer":
-			agent.FocusFiles = mergeFileLists(filesByCategory(index, "test"), filterFiles(index, "test/jest-"))
+			agent.FocusFiles = filesByCategory(index, "test")
 			agent.Workflow = []string{
-				"Select the smallest reliable Jest unit/e2e command for the changed surface.",
+				"Select the smallest reliable repository-native unit/e2e command for the changed surface.",
 				"Keep mocks, fixtures, and create-test-app helpers aligned with module wiring.",
 				"Record exact blockers for e2e tests that require unavailable env or services.",
 			}
-			agent.Verification = index.Tools.RecommendedCommands
+			agent.Verification = taskScopedVerificationGuidance()
 		case "persistence-boundary-reviewer":
 			agent.FocusFiles = filesByCategory(index, "persistence")
 			agent.Workflow = []string{
-				"Review Prisma schema, migrations, PrismaService, and repository calls together.",
+				"Review persistence schemas, migrations, repositories, and storage adapters together.",
 				"Check data contract and migration side effects before implementation.",
 				"Do not run destructive database commands without explicit approval.",
 			}
-			agent.Verification = index.Tools.RecommendedCommands
+			agent.Verification = taskScopedVerificationGuidance()
 		case "validation-contract-reviewer", "repo-contract-reviewer":
 			agent.FocusFiles = mergeFileLists(filesByCategory(index, "contract"), filesByCategory(index, "route"), filesByCategory(index, "module"))
 			agent.Workflow = []string{
@@ -74,15 +74,15 @@ func enrichAgentProfiles(index RepoIndex, agents []AgentProfile) []AgentProfile 
 				"Check compatibility of public request/response contracts.",
 				"Use tests and e2e cases as contract evidence, not as source surfaces.",
 			}
-			agent.Verification = index.Tools.RecommendedCommands
+			agent.Verification = taskScopedVerificationGuidance()
 		case "repo-surface-engineer":
 			agent.FocusFiles = mergeFileLists(filesByCategory(index, "entrypoint"), filesByCategory(index, "module"), filesByCategory(index, "route"), filesByCategory(index, "service"), filesByCategory(index, "contract"), filesByCategory(index, "persistence"))
 			agent.Workflow = []string{
-				"Use the generated domain agents when the task maps to a specific BFF domain.",
+				"Use the generated domain agents when the task maps to a specific repository domain.",
 				"Keep edits scoped to the current domain and its contracts.",
-				"Refresh metadata after moving routes, services, tests, configs, or schema files.",
+				"Refresh the deterministic index after moving routes, services, tests, configs, or schema files; run full metadata refresh only when explicitly requested.",
 			}
-			agent.Verification = index.Tools.RecommendedCommands
+			agent.Verification = taskScopedVerificationGuidance()
 		}
 		out = append(out, agent)
 	}

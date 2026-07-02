@@ -29,11 +29,14 @@ type RunWeaverStatusResult struct {
 	TodoPath                       string               `json:"todoPath,omitempty"`
 	CurrentPath                    string               `json:"currentPath,omitempty"`
 	Participants                   []string             `json:"participants,omitempty"`
+	ParticipantRationale           []string             `json:"participantRationale,omitempty"`
+	AcceptanceCriteria             []string             `json:"acceptanceCriteria,omitempty"`
 	FilesChanged                   []string             `json:"filesChanged,omitempty"`
 	LastResult                     string               `json:"lastResult,omitempty"`
 	RejectedPaths                  []string             `json:"rejectedPaths,omitempty"`
 	NextAction                     string               `json:"nextAction,omitempty"`
 	NextVerification               string               `json:"nextVerification,omitempty"`
+	ResidualRisks                  []string             `json:"residualRisks,omitempty"`
 	Blockers                       []string             `json:"blockers,omitempty"`
 	CheckpointIndexFreshnessStatus string               `json:"checkpointIndexFreshnessStatus,omitempty"`
 	CheckpointStaleIndex           bool                 `json:"checkpointStaleIndex,omitempty"`
@@ -94,17 +97,20 @@ func RunWeaverStatus(repoPath string) (RunWeaverStatusResult, error) {
 	result.TodoPath = rel(root, filepath.Join(runDir, "todo.md"))
 	result.CurrentPath = rel(root, statepath.TmpPath(root, workflowCurrentFile))
 	result.Participants = checkpoint.Participants
+	result.ParticipantRationale = checkpoint.ParticipantRationale
+	result.AcceptanceCriteria = checkpoint.AcceptanceCriteria
 	result.FilesChanged = checkpoint.FilesChanged
 	result.LastResult = checkpoint.LastResult
 	result.RejectedPaths = checkpoint.RejectedPaths
 	result.NextAction = checkpoint.NextAction
 	result.NextVerification = checkpoint.NextVerification
+	result.ResidualRisks = checkpoint.ResidualRisks
 	result.Blockers = checkpoint.Blockers
 	result.CheckpointIndexFreshnessStatus = checkpoint.IndexFreshnessStatus
 	result.CheckpointStaleIndex = checkpoint.StaleIndex
 	result.CheckpointStaleIndexFiles = checkpoint.StaleIndexFiles
-	result.Recommendations = appendIndexFreshnessRecommendations(statusRecommendations(checkpoint), result.IndexFreshness)
-	if !result.IndexFreshness.Fresh {
+	result.Recommendations = appendIndexFreshnessRecommendationsForCheckpoint(statusRecommendations(checkpoint), result.IndexFreshness, checkpoint)
+	if !result.IndexFreshness.Fresh && !completedWorkflowHasOnlyStaleIndex(checkpoint, result.IndexFreshness) {
 		result.Status = "warning"
 	}
 	return result, nil
@@ -131,12 +137,18 @@ func statusRecommendations(checkpoint WorkflowCheckpoint) []string {
 }
 
 func appendIndexFreshnessRecommendations(recommendations []string, freshness IndexFreshnessResult) []string {
+	return appendIndexFreshnessRecommendationsForCheckpoint(recommendations, freshness, WorkflowCheckpoint{})
+}
+
+func appendIndexFreshnessRecommendationsForCheckpoint(recommendations []string, freshness IndexFreshnessResult, checkpoint WorkflowCheckpoint) []string {
 	if freshness.Fresh {
 		return recommendations
 	}
 	text := "refresh stale repository context with runweaver index --repo . --changed-only --prune"
 	if freshness.Status == "missing" {
 		text = "build repository context with runweaver index --repo . --changed-only --prune"
+	} else if completedWorkflowHasOnlyStaleIndex(checkpoint, freshness) {
+		text = "index changed after a complete workflow; the next runweaver start will refresh context automatically"
 	}
 	for _, existing := range recommendations {
 		if existing == text {
@@ -144,4 +156,8 @@ func appendIndexFreshnessRecommendations(recommendations []string, freshness Ind
 		}
 	}
 	return append([]string{text}, recommendations...)
+}
+
+func completedWorkflowHasOnlyStaleIndex(checkpoint WorkflowCheckpoint, freshness IndexFreshnessResult) bool {
+	return checkpoint.Status == "complete" && freshness.Status == "stale"
 }

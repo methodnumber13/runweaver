@@ -7,12 +7,13 @@ import (
 
 // ProcessDoctorResult summarizes local AI runtime process diagnostics.
 type ProcessDoctorResult struct {
-	Status          string                  `json:"status"`
-	Summary         string                  `json:"summary"`
-	Supervisors     []ProcessSupervisor     `json:"supervisors"`
-	Duplicates      []ProcessDuplicateGroup `json:"duplicates,omitempty"`
-	VSCode          VSCodeDiagnostics       `json:"vscode"`
-	Recommendations []string                `json:"recommendations,omitempty"`
+	Status                    string                  `json:"status"`
+	Summary                   string                  `json:"summary"`
+	Supervisors               []ProcessSupervisor     `json:"supervisors"`
+	LongRunningUnattendedExec []ProcessSupervisor     `json:"longRunningUnattendedExec,omitempty"`
+	Duplicates                []ProcessDuplicateGroup `json:"duplicates,omitempty"`
+	VSCode                    VSCodeDiagnostics       `json:"vscode"`
+	Recommendations           []string                `json:"recommendations,omitempty"`
 }
 
 // ProcessSupervisor groups an AI runtime parent process with direct children.
@@ -96,18 +97,20 @@ func DoctorProcessesFromPSOutput(value string) ProcessDoctorResult {
 		return supervisors[i].Kind < supervisors[j].Kind
 	})
 	duplicates := duplicateRuntimeGroups(processes)
+	longRunningUnattended := longRunningUnattendedSupervisors(supervisors)
 	vscode := detectVSCodeDiagnostics(processes, readVSCodeDebugSettings())
-	recommendations := processRecommendations(supervisors, duplicates, vscode)
+	recommendations := processRecommendations(supervisors, duplicates, longRunningUnattended, vscode)
 	status := "ok"
-	if len(duplicates) > 0 || vscode.AutoAttachRecommendation != "" {
+	if len(duplicates) > 0 || len(longRunningUnattended) > 0 || vscode.AutoAttachRecommendation != "" {
 		status = "warning"
 	}
 	return ProcessDoctorResult{
-		Status:          status,
-		Summary:         processSummary(supervisors, duplicates, vscode),
-		Supervisors:     supervisors,
-		Duplicates:      duplicates,
-		VSCode:          vscode,
-		Recommendations: recommendations,
+		Status:                    status,
+		Summary:                   processSummary(supervisors, duplicates, longRunningUnattended, vscode),
+		Supervisors:               supervisors,
+		LongRunningUnattendedExec: longRunningUnattended,
+		Duplicates:                duplicates,
+		VSCode:                    vscode,
+		Recommendations:           recommendations,
 	}
 }

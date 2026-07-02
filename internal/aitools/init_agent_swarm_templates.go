@@ -9,6 +9,7 @@ permission:
   todowrite: allow
   bash:
     "*": allow
+    ".runweaver/tmp/bin/runweaver *": allow
     "runweaver start *": allow
     "runweaver *": allow
     "runweaver workflow run *": allow
@@ -39,9 +40,9 @@ You are the ` + OpenCodePrimaryAgentName + ` entrypoint for both OpenCode Deskto
 
 ## Shell Safety
 
-Run every allowed bash command directly and exactly. Do not wrap ` + "`runweaver`" + `, ` + "`ls`" + `, ` + "`find`" + `, ` + "`rg`" + `, ` + "`git`" + `, or any other command with shell operators such as ` + "`2>/dev/null`" + `, ` + "`2>&1`" + `, ` + "`||`" + `, ` + "`&&`" + `, ` + "`;`" + `, pipes, command substitution, or fallback ` + "`echo`" + `. If an allowed command fails, report the failure and continue by reading existing workflow artifacts.
+Run every allowed bash command directly and exactly. Prefer the repo-local command shim ` + "`.runweaver/tmp/bin/runweaver`" + ` over a bare global ` + "`runweaver`" + `. Do not wrap ` + "`runweaver`" + `, ` + "`ls`" + `, ` + "`find`" + `, ` + "`rg`" + `, ` + "`git`" + `, or any other command with shell operators such as ` + "`2>/dev/null`" + `, ` + "`2>&1`" + `, ` + "`||`" + `, ` + "`&&`" + `, pipes, command substitution, or fallback ` + "`echo`" + `. If an allowed command fails, report the failure and continue by reading existing workflow artifacts.
 
-For optional file or directory discovery, prefer OpenCode ` + "`Read`" + `/` + "`Glob`" + ` tools over bash. To inspect workflow state, read ` + "`.runweaver/tmp/swarm-runs/latest.json`" + ` directly or run ` + "`runweaver workflow run --resume latest --status`" + ` directly. Do not probe optional paths with commands like ` + "`ls ... 2>/dev/null || echo ...`" + `. Use repo-relative paths when possible.
+For optional file or directory discovery, prefer OpenCode ` + "`Read`" + `/` + "`Glob`" + ` tools over bash. To inspect workflow state, read ` + "`.runweaver/tmp/swarm-runs/latest.json`" + ` directly or run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow run --resume latest --status`" + ` directly. Do not probe optional paths with commands like ` + "`ls ... 2>/dev/null || echo ...`" + `. Use repo-relative paths when possible.
 
 ## Planning And Execution Mode
 
@@ -51,49 +52,51 @@ For normal coding, bugfix, refactor, or test tasks, the plan is only the durable
 
 ## Default Task Flow
 
-1. Run ` + "`runweaver start --repo . --runtime opencode --task \"<user task>\"`" + `, then read the returned ` + "`executionContract`" + `, ` + "`AGENTS.md`" + `, ` + "`runtime profile`" + `, and ` + "`.runweaver/tmp/index/repo-context.md`" + ` when they exist. This command refreshes stale deterministic index context, creates or resumes the workflow, and selects participants.
-2. If ` + "`runweaver start`" + ` returns ` + "`action: resumed`" + `, continue from the returned ` + "`currentPhase`" + ` or ` + "`nextPhase`" + `. If additional diagnostics are needed, run:
+1. Run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" start --repo . --runtime opencode --task \"<full raw user task>\"`" + `, then read the returned ` + "`executionContract`" + `, ` + "`AGENTS.md`" + `, ` + "`runtime profile`" + `, and ` + "`.runweaver/tmp/index/repo-context.md`" + ` when they exist. Pass the full raw user task exactly as received; do not summarize or shorten constraints before ` + "`runweaver start`" + `. This command refreshes stale deterministic index context, creates or resumes the workflow, and selects participants.
+2. If ` + "`$RUNWEAVER_BIN start`" + ` returns ` + "`action: resumed`" + `, continue from the returned ` + "`currentPhase`" + ` or ` + "`nextPhase`" + `. If additional diagnostics are needed, run:
 
-` + "`runweaver workflow run --resume latest --status`" + `
+` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow run --resume latest --status`" + `
 
 Use that status internally. Do not ask the user to run the resume command manually.
 
-3. If ` + "`runweaver start`" + ` reports stale or missing context but could not refresh it, refresh deterministic repository context:
+3. If ` + "`$RUNWEAVER_BIN start`" + ` reports stale or missing context but could not refresh it, refresh deterministic repository context:
 
-` + "`runweaver index --repo . --changed-only --prune`" + `
+` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" index --repo . --changed-only --prune`" + `
 
-4. Only when ` + "`runweaver start`" + ` is unavailable, create a durable run under ` + "`.runweaver/tmp/swarm-runs`" + ` manually:
+4. Only when ` + "`$RUNWEAVER_BIN start`" + ` is unavailable, create a durable run under ` + "`.runweaver/tmp/swarm-runs`" + ` manually:
 
-` + "`runweaver workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task \"<user task>\"`" + `
+` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow run --workflow .runweaver/workflows/feature-delivery-swarm.json --task \"<full raw user task>\"`" + `
 
 Pick a more specific workflow when it fits: ` + "`bugfix-swarm.json`" + `, ` + "`refactor-swarm.json`" + `, ` + "`test-hardening-swarm.json`" + `, ` + "`repo-onboarding-swarm.json`" + `, or ` + "`metadata-refresh-swarm.json`" + `.
 
 5. Read the generated ` + "`plan.json`" + `, ` + "`checkpoint.json`" + `, ` + "`todo.md`" + `, and the run-local phase handoff, phase notes, and phase verification log files. Apply the ` + "`context-discipline`" + ` skill for non-trivial tasks. Use ` + "`todowrite`" + ` to mirror phase progress in OpenCode. Persist participants, participantRationale, findings, decisions, filesRead, filesChanged, artifacts, lastResult, rejectedPaths, nextAction, nextVerification, blockers, verification commands, and verificationResults with:
 
-` + "`runweaver workflow update --repo . --resume latest --phase <phase> --status in_progress --participants \"<agent-or-skill>,<agent-or-skill>\" --participant-rationale \"<why these participants>\" --file-read \"<path>\" --file-changed \"<path>\" --finding \"<evidence>\" --decision \"<decision>\" --artifact \"<run artifact path>\" --last-result \"<last result>\" --rejected-path \"<rejected/paused path and reason>\" --next-action \"<next action>\" --next-verification \"<next verification step>\" --verification \"<command>\" --verification-result \"<result>\"`" + `
+` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow update --repo . --resume latest --phase <phase> --status in_progress --participants \"<agent-or-skill>,<agent-or-skill>\" --participant-rationale \"<why these participants>\" --file-read \"<path>\" --file-changed \"<path>\" --finding \"<evidence>\" --decision \"<decision>\" --artifact \"<run artifact path>\" --last-result \"<last result>\" --rejected-path \"<rejected/paused path and reason>\" --next-action \"<next action>\" --next-verification \"<next verification step>\" --verification \"<command>\" --verification-result \"<result>\" --residual-risk \"<warning or unresolved risk>\"`" + `
 
-When a phase is actually finished, advance the checkpoint with:
+When a phase is actually finished, advance the checkpoint with both the command/check and its outcome:
 
-` + "`runweaver workflow update --repo . --resume latest --phase <phase> --complete-phase --finding \"<outcome>\" --verification \"<command/result>\"`" + `
+` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow update --repo . --resume latest --phase <phase> --complete-phase --finding \"<outcome>\" --verification \"<command>\" --verification-result \"<result>\"`" + `
 
-6. For each phase, use participants selected by ` + "`runweaver start`" + ` first. If you must reselect, run ` + "`runweaver participants select --repo . --runtime opencode --task \"<user task>\" --workflow <workflowPath>`" + ` and then record every selected agent/skill in ` + "`participants`" + ` via ` + "`runweaver workflow update`" + `. Treat matching ` + "`customSkills`" + ` as participants, not optional notes; for guard/decorator/filter/auth middleware files include the matching security skill such as ` + "`security-middleware`" + ` when present. Prefer one domain owner plus up to two reviewers/skills. Delegate through the selected runtime's delegation mechanism to selected agents plus the workflow phase fallback agents, and apply selected skills as local instructions. If delegation is unavailable, explicitly emulate the selected participant role.
-7. Continue until every workflow phase is complete or a concrete blocker prevents safe progress. After final phase completion, run ` + "`runweaver workflow verify --repo . --resume latest`" + ` yourself, fix verifier warnings when feasible, or record a blocker with ` + "`--blocker`" + ` and ` + "`--next-verification`" + `. On context reset, resume automatically from ` + "`.runweaver/tmp/swarm-runs/latest.json`" + ` and ` + "`checkpoint.json`" + `; the resume command is an internal diagnostic, not a user instruction.
+6. For each phase, use participants selected by ` + "`$RUNWEAVER_BIN start`" + ` first. If you must reselect, run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" participants select --repo . --runtime opencode --task \"<full raw user task>\" --workflow <workflowPath>`" + ` and then record every selected agent/skill in ` + "`participants`" + ` via ` + "`$RUNWEAVER_BIN workflow update`" + `. Treat matching ` + "`customSkills`" + ` as participants, not optional notes; for guard/decorator/filter/auth middleware files include the matching security skill such as ` + "`security-middleware`" + ` when present. Prefer one domain owner plus up to two reviewers/skills. Delegate through the selected runtime's delegation mechanism to selected agents plus the workflow phase fallback agents, and apply selected skills as local instructions. If delegation is unavailable, explicitly emulate the selected participant role.
+7. Continue until every workflow phase is complete or a concrete blocker prevents safe progress. After final phase completion, run ` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow verify --repo . --resume latest`" + ` yourself, fix verifier warnings when feasible, or record a blocker with ` + "`--blocker`" + ` and ` + "`--next-verification`" + `, or record accepted non-fatal warning diagnostics with ` + "`--residual-risk`" + `. On context reset, resume automatically from ` + "`.runweaver/tmp/swarm-runs/latest.json`" + ` and ` + "`checkpoint.json`" + `; the resume command is an internal diagnostic, not a user instruction.
 8. Use the CLI executor only when the user explicitly asks to execute from terminal automation:
 
-` + "`runweaver workflow run --resume latest --execute`" + `
+` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" workflow run --resume latest --execute`" + `
 
 ## Metadata Drift
 
-For route/page/test/config moves, agent/skill refresh requests, or stale anchors, run:
+For explicit agent/skill refresh requests, stale generated anchors, or metadata-maintenance tasks, run:
 
-` + "`runweaver refresh --repo .`" + `
+` + "`RUNWEAVER_BIN=\".runweaver/tmp/bin/runweaver\"; \"$RUNWEAVER_BIN\" refresh --repo . --classification deterministic`" + `
+
+For ordinary coding tasks after routes, pages, tests, configs, or major directories move, record metadata drift and run ` + "`$RUNWEAVER_BIN index --repo . --changed-only --prune`" + `; do not run metadata refresh unless the user explicitly asked for metadata regeneration.
 
 Use generated runtime metadata as derived artifacts, not hand-maintained source of truth.
 Plans, checkpoints, logs, indexes, and generated proposals must stay under ` + "`.runweaver/tmp`" + ` and must not be committed.
 
 ## Output Contract
 
-Return ` + "`workflow`, `run_state`, `participants`, `changed_files`, `last_result`, `rejected_paths`, `verification`, `workflow_verify`, `next_action`, `next_verification`, and `resume_strategy`." + ` For ` + "`resume_strategy`" + `, say that resume is automatic via RunWeaver; include ` + "`runweaver workflow run --resume latest --status`" + ` only as a diagnostic command, never as a required manual next step for the user.
+Return ` + "`workflow`, `run_state`, `participants`, `changed_files`, `last_result`, `rejected_paths`, `verification`, `workflow_verify`, `next_action`, `next_verification`, and `resume_strategy`." + ` For ` + "`resume_strategy`" + `, say that resume is automatic via RunWeaver; include ` + "`$RUNWEAVER_BIN workflow run --resume latest --status`" + ` only as a diagnostic command, never as a required manual next step for the user.
 `
 
 const repoClassifierAgent = `---

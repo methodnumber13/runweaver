@@ -5,22 +5,23 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
-func TestScanDetectsReactRoutesPagesAndPackageManager(t *testing.T) {
+func TestScanDetectsMixedRoutesPagesAndPackageManager(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "lint": "eslint .",
-    "test": "vitest run",
-    "build": "vite build"
+    "lint": "repo-lint .",
+    "test": "repo-test",
+    "build": "repo-build"
   },
   "dependencies": {
-    "express": "latest",
-    "react": "latest"
+    "route-server-lib": "latest",
+    "page-renderer-lib": "latest"
   },
   "devDependencies": {
-    "@reduxjs/toolkit": "latest"
+    "state-store-lib": "latest"
   }
 }`)
 	writeTestFile(t, root, "pnpm-lock.yaml", "lockfileVersion: 9\n")
@@ -35,13 +36,13 @@ func TestScanDetectsReactRoutesPagesAndPackageManager(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if index.Stack.Kind != "frontend-react" {
-		t.Fatalf("kind = %q, want frontend-react", index.Stack.Kind)
+	if index.Stack.Kind != "multi-surface" {
+		t.Fatalf("kind = %q, want multi-surface", index.Stack.Kind)
 	}
 	if index.Stack.PackageManager != "pnpm" {
 		t.Fatalf("package manager = %q, want pnpm", index.Stack.PackageManager)
 	}
-	for _, framework := range []string{"react", "node-api", "redux"} {
+	for _, framework := range []string{"frontend-app", "node-api"} {
 		if !containsString(index.Stack.Frameworks, framework) {
 			t.Fatalf("frameworks = %#v, want %q", index.Stack.Frameworks, framework)
 		}
@@ -61,7 +62,7 @@ func TestScanDetectsReactRoutesPagesAndPackageManager(t *testing.T) {
 
 func TestScanSkipsGeneratedRuntimeMetadataDirectories(t *testing.T) {
 	root := t.TempDir()
-	writeTestFile(t, root, "package.json", `{"scripts":{"test":"vitest run"},"dependencies":{"express":"latest"}}`)
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"repo-test"},"dependencies":{"route-server-lib":"latest"}}`)
 	writeTestFile(t, root, "src/routes/orders.ts", "export {}\n")
 	writeTestFile(t, root, ".codex/agents/generated.toml", "name = \"generated\"\n")
 	writeTestFile(t, root, ".claude/agents/generated.md", "`src/generated-claude.ts`\n")
@@ -87,6 +88,94 @@ func TestScanSkipsGeneratedRuntimeMetadataDirectories(t *testing.T) {
 	}
 	if !indexFileExists(index.Files, ".runweaver/workflows/bugfix-swarm.json") {
 		t.Fatalf("workflow metadata was skipped; indexed files = %#v", index.Files)
+	}
+}
+
+func TestScanDetectsNestedPackageToolingAndCommands(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "package.json", `{
+  "scripts": {
+    "test": "repo-test --serial"
+  },
+  "dependencies": {
+    "route-server-lib": "latest"
+  },
+  "devDependencies": {
+    "test-runner-lib": "latest"
+  }
+}`)
+	writeTestFile(t, root, "yarn.lock", "# yarn lock\n")
+	writeTestFile(t, root, "src/server.ts", "export {}\n")
+	writeTestFile(t, root, "frontend/package.json", `{
+  "scripts": {
+    "test": "repo-test",
+    "build": "repo-build"
+  },
+  "dependencies": {
+    "page-renderer-lib": "latest"
+  },
+  "devDependencies": {
+    "test-runner-lib": "latest",
+    "build-compiler-lib": "latest"
+  }
+}`)
+	writeTestFile(t, root, "frontend/src/pages/TaskLaunchesPage.tsx", "export function TaskLaunchesPage() { return null }\n")
+	writeTestFile(t, root, "frontend/src/pages/TaskLaunchesPage.test.tsx", "import './TaskLaunchesPage'\n")
+
+	index, err := Index(root, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, want := range []string{"repository test command", "package-level test dependency"} {
+		if !containsString(index.Tools.TestTools, want) {
+			t.Fatalf("test tools = %#v, want nested/root tool %q", index.Tools.TestTools, want)
+		}
+	}
+	for _, want := range []string{"yarn run test", "cd frontend && yarn run test", "cd frontend && yarn run build"} {
+		if !containsString(index.Tools.RecommendedCommands, want) {
+			t.Fatalf("recommended commands = %#v, want %q", index.Tools.RecommendedCommands, want)
+		}
+	}
+	for _, want := range []string{"cd frontend && yarn run test", "cd frontend && yarn run build"} {
+		if !containsString(index.Tools.RecommendedCommandsBySurface["frontend"], want) {
+			t.Fatalf("frontend surface commands = %#v, want %q", index.Tools.RecommendedCommandsBySurface, want)
+		}
+	}
+	if !containsString(index.Tools.RecommendedCommandsBySurface["root"], "yarn run test") {
+		t.Fatalf("root surface commands = %#v, want root yarn test", index.Tools.RecommendedCommandsBySurface)
+	}
+	if !containsString(index.Tools.Frameworks, "frontend-app") {
+		t.Fatalf("frameworks = %#v, want nested frontend surface", index.Tools.Frameworks)
+	}
+}
+
+func TestIndexAndFreshnessIgnoreRuntimeLogArtifacts(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "package.json", `{"scripts":{"test":"repo-test"},"devDependencies":{"test-runner-lib":"latest"}}`)
+	writeTestFile(t, root, "src/app.ts", "export const app = true\n")
+	writeTestFile(t, root, "codex-events.jsonl", "{}\n")
+	writeTestFile(t, root, "codex-stderr.log", "stderr\n")
+	writeTestFile(t, root, "opencode-events.jsonl", "{}\n")
+
+	index, err := Index(root, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, unexpected := range []string{"codex-events.jsonl", "codex-stderr.log", "opencode-events.jsonl"} {
+		if indexFileExists(index.Files, unexpected) {
+			t.Fatalf("runtime log artifact %q should not be indexed: %#v", unexpected, index.Files)
+		}
+	}
+
+	logPath := filepath.Join(root, "codex-events.jsonl")
+	future := time.Now().Add(3 * time.Second)
+	if err := os.Chtimes(logPath, future, future); err != nil {
+		t.Fatal(err)
+	}
+	freshness := CheckIndexFreshness(root)
+	if freshness.Status == "stale" {
+		t.Fatalf("freshness = %#v, runtime log artifact should not mark index stale", freshness)
 	}
 }
 
@@ -121,35 +210,32 @@ func TestScanDetectsJvmGradleService(t *testing.T) {
 	}
 }
 
-func TestScanDetectsNestJSBFFEntrypointsAndAvoidsDTOFalsePositives(t *testing.T) {
+func TestScanDetectsDecoratedAPIEntrypointsAndAvoidsDTOFalsePositives(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "build": "nest build",
-    "lint": "eslint \"{src,test}/**/*.ts\"",
-    "test": "jest --config ./test/jest-unit.json --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
+    "build": "repo-build",
+    "lint": "repo-lint \"{src,test}/**/*.ts\"",
+    "test": "repo-test --unit-config ./test/unit.json",
+    "test:e2e": "repo-test --e2e-config ./test/e2e.json"
   },
   "dependencies": {
-    "@nestjs/common": "^10.0.0",
-    "@nestjs/core": "^10.0.0",
-    "@prisma/client": "6.0.0",
-    "class-validator": "0.14.0"
+    "route-decorator-lib": "^1.0.0",
+    "schema-validator-lib": "1.0.0"
   },
   "devDependencies": {
-    "eslint": "^8.0.0",
-    "jest": "29.0.0",
-    "prettier": "^3.0.0",
-    "typescript": "^5.0.0"
+    "lint-helper": "^1.0.0",
+    "test-runner-lib": "1.0.0",
+    "format-helper": "^1.0.0",
+    "build-compiler-lib": "^1.0.0"
   }
 }`)
-	writeTestFile(t, root, "nest-cli.json", "{}\n")
 	writeTestFile(t, root, "tsconfig.build.json", "{}\n")
-	writeTestFile(t, root, "test/jest-unit.json", "{}\n")
-	writeTestFile(t, root, "test/jest-e2e.json", "{}\n")
+	writeTestFile(t, root, "test/unit.json", "{}\n")
+	writeTestFile(t, root, "test/e2e.json", "{}\n")
 	writeTestFile(t, root, "helm/values.yaml", "{}\n")
 	writeTestFile(t, root, "docker-compose.yml", "services: {}\n")
-	writeTestFile(t, root, "prisma/schema.prisma", "model TemplateTrigger { id Int @id }\n")
+	writeTestFile(t, root, "db/migrations/20250101000000_init/migration.sql", "select 1;\n")
 	writeTestFile(t, root, "src/main.ts", "async function bootstrap() {}\n")
 	writeTestFile(t, root, "src/app.module.ts", "@Module({})\nexport class AppModule {}\n")
 	writeTestFile(t, root, "src/auth/auth.controller.ts", "@Controller('auth')\nexport class AuthController {}\n")
@@ -174,7 +260,7 @@ func TestScanDetectsNestJSBFFEntrypointsAndAvoidsDTOFalsePositives(t *testing.T)
 	if !containsString(index.Routes, "src/auth/auth.controller.ts") {
 		t.Fatalf("routes = %#v, want auth controller", index.Routes)
 	}
-	for _, config := range []string{"nest-cli.json", "tsconfig.build.json", "test/jest-unit.json", "test/jest-e2e.json", "helm/values.yaml", "docker-compose.yml", "prisma/schema.prisma"} {
+	for _, config := range []string{"tsconfig.build.json", "helm/values.yaml", "docker-compose.yml"} {
 		if !containsString(index.ConfigFiles, config) {
 			t.Fatalf("configFiles = %#v, want %s", index.ConfigFiles, config)
 		}

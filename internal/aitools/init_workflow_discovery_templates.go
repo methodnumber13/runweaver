@@ -14,7 +14,7 @@ const repoIntelligenceWorkflow = `{
       "mode": "parallel",
       "writeMode": "read",
       "agents": ["repo-surface-indexer"],
-      "prompt": "Run runweaver index --repo . --changed-only --prune. Read .runweaver/tmp/index/repo-context.md and repo-index.compact.json; open repo-index.json only if compact context is insufficient. Summarize languages, package managers, frameworks, test tools, linters, formatters, source categories, and ignored/generated surfaces."
+      "prompt": "Run $RUNWEAVER_BIN index --repo . --changed-only --prune. Read .runweaver/tmp/index/repo-context.md and repo-index.compact.json; open repo-index.json only if compact context is insufficient. Summarize languages, package managers, frameworks, test tools, linters, formatters, source categories, and ignored/generated surfaces."
     },
     {
       "id": "technology-review",
@@ -62,7 +62,7 @@ const metadataRefreshWorkflow = `{
       "mode": "parallel",
       "writeMode": "read",
       "agents": ["repo-surface-indexer"],
-      "prompt": "Scan repository source, configs, routes, tests, packages, symbols, and generated surfaces. Prefer runweaver index --repo . --changed-only --prune and read .runweaver/tmp/index/repo-context.md plus repo-index.compact.json. Do not edit business code."
+      "prompt": "Scan repository source, configs, routes, tests, packages, symbols, and generated surfaces. Prefer $RUNWEAVER_BIN index --repo . --changed-only --prune and read .runweaver/tmp/index/repo-context.md plus repo-index.compact.json. Do not edit business code."
     },
     {
       "id": "drift-review",
@@ -71,7 +71,7 @@ const metadataRefreshWorkflow = `{
       "mode": "parallel",
       "writeMode": "read",
       "agents": ["agent-skill-drift-reviewer", "stale-anchor-fixer"],
-      "prompt": "Check runtime agents and skills for stale anchors and missing surfaces. Prefer runweaver refresh --repo . Do not edit business code."
+      "prompt": "Check runtime agents and skills for stale anchors and missing surfaces. Prefer $RUNWEAVER_BIN refresh --repo . Do not edit business code."
     },
     {
       "id": "profile-update",
@@ -110,7 +110,7 @@ const repoOnboardingWorkflow = `{
       "mode": "parallel",
       "writeMode": "read",
       "agents": ["repo-surface-indexer"],
-      "prompt": "Run runweaver index --repo . --changed-only --prune and summarize important packages, tools, source surfaces, tests, symbols, and verification commands from repo-context.md and repo-index.compact.json."
+      "prompt": "Run $RUNWEAVER_BIN index --repo . --changed-only --prune and summarize important packages, tools, source surfaces, tests, symbols, and verification commands from repo-context.md and repo-index.compact.json."
     }
   ]
 }

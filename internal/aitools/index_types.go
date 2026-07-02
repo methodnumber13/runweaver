@@ -28,14 +28,15 @@ type StackInfo struct {
 
 // ToolchainInfo captures detected build, lint, format, and test tooling.
 type ToolchainInfo struct {
-	Languages           []string `json:"languages"`
-	PackageManagers     []string `json:"packageManagers,omitempty"`
-	Frameworks          []string `json:"frameworks,omitempty"`
-	TestTools           []string `json:"testTools,omitempty"`
-	Linters             []string `json:"linters,omitempty"`
-	Formatters          []string `json:"formatters,omitempty"`
-	BuildTools          []string `json:"buildTools,omitempty"`
-	RecommendedCommands []string `json:"recommendedCommands,omitempty"`
+	Languages                    []string            `json:"languages"`
+	PackageManagers              []string            `json:"packageManagers,omitempty"`
+	Frameworks                   []string            `json:"frameworks,omitempty"`
+	TestTools                    []string            `json:"testTools,omitempty"`
+	Linters                      []string            `json:"linters,omitempty"`
+	Formatters                   []string            `json:"formatters,omitempty"`
+	BuildTools                   []string            `json:"buildTools,omitempty"`
+	RecommendedCommands          []string            `json:"recommendedCommands,omitempty"`
+	RecommendedCommandsBySurface map[string][]string `json:"recommendedCommandsBySurface,omitempty"`
 }
 
 // PackageInsight records a dependency and the role RunWeaver inferred for it.

@@ -1,7 +1,9 @@
 package aitools
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 )
 
 func verifyPhaseArtifacts(root, runDir string, workflow WorkflowSpec, result *WorkflowVerificationResult) {
@@ -94,4 +96,23 @@ func verifyPhaseState(workflow WorkflowSpec, checkpoint WorkflowCheckpoint, resu
 		Summary:  "Checkpoint phase state is consistent with plan.json",
 		Evidence: checkpoint.CompletedPhases,
 	})
+}
+
+func workflowPhaseVerificationEvidence(runDir string, workflow WorkflowSpec) []string {
+	var evidence []string
+	for _, phase := range workflow.Phases {
+		path := filepath.Join(runDir, "phases", sanitizeRunID(phase.ID), "verification.jsonl")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(string(data), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			evidence = append(evidence, "phase "+phase.ID+" verification: "+line)
+		}
+	}
+	return compactStrings(evidence)
 }

@@ -98,6 +98,10 @@ func shouldSkipDir(name string) bool {
 	return foundation.ShouldSkipDir(name)
 }
 
+func shouldSkipFile(path string) bool {
+	return foundation.ShouldSkipFile(path)
+}
+
 func shouldSkipWalkDir(root, path string, name string) bool {
 	return foundation.ShouldSkipWalkDir(root, path, name)
 }

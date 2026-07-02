@@ -6,6 +6,7 @@ mode: subagent
 permission:
   edit: allow
   bash:
+    ".runweaver/tmp/bin/runweaver *": allow
     "runweaver scan *": allow
     "runweaver index *": allow
     "runweaver refresh *": allow
@@ -32,6 +33,7 @@ mode: subagent
 permission:
   edit: allow
   bash:
+    ".runweaver/tmp/bin/runweaver *": allow
     "runweaver scan *": allow
     "runweaver index *": allow
     "runweaver refresh *": allow
@@ -58,6 +60,7 @@ mode: subagent
 permission:
   edit: allow
   bash:
+    ".runweaver/tmp/bin/runweaver *": allow
     "runweaver scan *": allow
     "runweaver index *": allow
     "rg *": allow

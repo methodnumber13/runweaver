@@ -117,10 +117,24 @@ func Rel(root, path string) string {
 // ShouldSkipDir reports whether RunWeaver should ignore a generated/vendor directory.
 func ShouldSkipDir(name string) bool {
 	switch name {
-	case ".git", ".opencode", ".codex", ".claude", ".agents", "node_modules", "build", "dist", "coverage", "reports", "target", ".gradle", ".idea", ".vscode", "vendor":
+	case ".git", ".opencode", ".codex", ".claude", ".agents", ".omo", "node_modules", "build", "dist", "coverage", "reports", "target", ".gradle", ".idea", ".vscode", "vendor":
 		return true
 	default:
 		return strings.HasPrefix(name, ".cache")
+	}
+}
+
+// ShouldSkipFile reports whether a generated runtime/eval artifact should be ignored.
+func ShouldSkipFile(path string) bool {
+	lower := strings.ToLower(filepath.ToSlash(path))
+	base := filepath.Base(lower)
+	switch base {
+	case "codex-events.jsonl", "codex-stderr.log", "codex-final.md",
+		"opencode-events.jsonl", "opencode-stderr.log", "opencode-final.md",
+		"claude-events.jsonl", "claude-stderr.log", "claude-final.md":
+		return true
+	default:
+		return strings.HasPrefix(base, "runweaver-eval-") && (strings.HasSuffix(base, ".jsonl") || strings.HasSuffix(base, ".log"))
 	}
 }
 

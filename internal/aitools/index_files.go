@@ -26,7 +26,11 @@ func repoFiles(root string) ([]string, []string, error) {
 			}
 			return nil
 		}
-		files = append(files, rel(root, path))
+		relPath := rel(root, path)
+		if shouldSkipFile(relPath) {
+			return nil
+		}
+		files = append(files, relPath)
 		return nil
 	})
 	sort.Strings(files)
@@ -86,7 +90,7 @@ func analyzeFile(absPath, relPath, hash, language, category string) FileAnalysis
 			continue
 		}
 		if language == "typescript" || language == "javascript" {
-			if found, ok := nestControllerPathFromLine(line); ok {
+			if found, ok := decoratorControllerPathFromLine(line); ok {
 				controllerPath = found
 			}
 		}
@@ -94,7 +98,7 @@ func analyzeFile(absPath, relPath, hash, language, category string) FileAnalysis
 		analysis.Exports = append(analysis.Exports, exportsFromLine(line, language)...)
 		analysis.Symbols = append(analysis.Symbols, symbolsFromLine(line, language, relPath, lineNo)...)
 		analysis.Routes = append(analysis.Routes, routesFromLine(line, language, relPath, lineNo)...)
-		analysis.Routes = append(analysis.Routes, nestRoutesFromLine(line, controllerPath, language, relPath, lineNo)...)
+		analysis.Routes = append(analysis.Routes, decoratorRoutesFromLine(line, controllerPath, language, relPath, lineNo)...)
 		if lineNo > 2000 {
 			analysis.Signals = append(analysis.Signals, "analysis-truncated-after-2000-lines")
 			break

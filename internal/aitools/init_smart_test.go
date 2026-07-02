@@ -11,15 +11,15 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	root := t.TempDir()
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "test": "vitest run"
+    "test": "repo-test"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "latest",
-    "axios": "latest",
-    "react": "latest"
+    "state-store-lib": "latest",
+    "http-client-lib": "latest",
+    "page-renderer-lib": "latest"
   },
   "devDependencies": {
-    "vitest": "latest"
+    "test-runner-lib": "latest"
   }
 }`)
 	writeTestFile(t, root, "src/components/App.tsx", "export function App() { return null }\n")
@@ -36,10 +36,15 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	}
 	for _, path := range []string{
 		".runweaver/workflows/repo-intelligence-swarm.json",
+		".gitignore",
+		".runweaver/tmp/bin/runweaver",
 		".runweaver/tmp/index/repo-index.json",
 		".opencode/swarm/profile.json",
 		".opencode/agents/runweaver-swarm.md",
 		".opencode/skills/context-discipline/SKILL.md",
+		".opencode/skills/workflow-system-master/SKILL.md",
+		".opencode/skills/post-implementation-review/SKILL.md",
+		".opencode/agents/post-implementation-reviewer.md",
 		".opencode/agents/state-flow-reviewer.md",
 		".opencode/agents/api-client-contract-reviewer.md",
 		".opencode/skills/repo-test-tooling/SKILL.md",
@@ -58,6 +63,7 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	}
 	for _, want := range []string{
 		`"runweaver workflow run *": allow`,
+		`".runweaver/tmp/bin/runweaver *": allow`,
 		`"runweaver workflow update *": allow`,
 		`"runweaver workflow verify *": allow`,
 		`"*": allow`,
@@ -84,8 +90,10 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 		"Do not ask the user to run the resume command manually",
 		"Treat matching `customSkills` as participants",
 		"context-discipline",
-		"participantRationale",
-		"filesChanged",
+		"--participant-rationale",
+		"--file-changed",
+		"--last-result",
+		"--verification-result",
 		"workflow verify",
 		"--complete-phase",
 		"resume is automatic via RunWeaver",
@@ -94,8 +102,18 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 			t.Fatalf("runweaver-swarm agent missing shell safety guidance %q:\n%s", want, string(data))
 		}
 	}
+	if strings.Contains(string(data), "--files-changed") {
+		t.Fatalf("runweaver-swarm agent contains unsupported plural changed-files flag:\n%s", string(data))
+	}
 	if !strings.Contains(string(data), "runweaver workflow run") || !strings.Contains(string(data), "repo-context.md") {
 		t.Fatalf("runweaver-swarm agent missing workflow/index guidance:\n%s", string(data))
+	}
+	gitignore, err := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(gitignore), ".omo/") {
+		t.Fatalf(".gitignore should ignore OpenCode plugin continuation artifacts:\n%s", string(gitignore))
 	}
 	opencodeData, err := os.ReadFile(filepath.Join(root, "opencode.json"))
 	if err != nil {
@@ -103,6 +121,7 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	}
 	for _, want := range []string{
 		`"*": "allow"`,
+		`".runweaver/tmp/bin/runweaver *": "allow"`,
 	} {
 		if !strings.Contains(string(opencodeData), want) {
 			t.Fatalf("opencode.json missing bash permission %q:\n%s", want, string(opencodeData))
@@ -120,10 +139,13 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"runtime profile", "repo-specific participants", "Use portable agents only when no specific owner matches", `"maxParticipants": 4`, "participant rationale"} {
+	for _, want := range []string{"runtime profile", "repo-specific participants", "Use portable agents only when no specific owner matches", `"maxParticipants": 4`, "participant rationale", "--complete-phase"} {
 		if !strings.Contains(string(workflow), want) {
 			t.Fatalf("feature workflow missing %q:\n%s", want, string(workflow))
 		}
+	}
+	if strings.Contains(string(workflow), "Run $RUNWEAVER_BIN refresh --repo .") {
+		t.Fatalf("feature workflow should not run metadata refresh during normal delivery:\n%s", string(workflow))
 	}
 	bugfixWorkflow, err := os.ReadFile(filepath.Join(root, ".runweaver/workflows/bugfix-swarm.json"))
 	if err != nil {
@@ -138,10 +160,33 @@ func TestInitSmartIndexesPlansIntelligenceWorkflowAndMaterializesByPackages(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"filesystem-backed state", "Locked", "Editable through CLI only", "Append-only", "runweaver workflow verify", "participantRationale"} {
+	for _, want := range []string{"filesystem-backed state", "Locked", "Editable through CLI only", "Append-only", "$RUNWEAVER_BIN\" workflow verify", "--participant-rationale", "--file-changed", "--verification-result"} {
 		if !strings.Contains(string(contextSkill), want) {
 			t.Fatalf("context-discipline skill missing %q:\n%s", want, string(contextSkill))
 		}
+	}
+}
+
+func TestInitSmartMergesOmoIgnoreWithoutReplacingGitignore(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, root, "go.mod", "module example.com/app\n")
+	writeTestFile(t, root, ".gitignore", "build/\nlocal.env\n")
+
+	if _, err := InitSmart(root, true); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitignore := string(data)
+	for _, want := range []string{"build/", "local.env", ".omo/"} {
+		if !strings.Contains(gitignore, want) {
+			t.Fatalf(".gitignore = %q, want preserved/merged entry %q", gitignore, want)
+		}
+	}
+	if strings.Count(gitignore, ".omo/") != 1 {
+		t.Fatalf(".gitignore = %q, want exactly one .omo/ entry", gitignore)
 	}
 }
 
@@ -160,7 +205,15 @@ func TestInitSmartGeneratesRuntimeShortcutsAndClaudeWorkflows(t *testing.T) {
 	for _, path := range []string{
 		".opencode/commands/runweaver-start.md",
 		".agents/skills/runweaver-start/SKILL.md",
+		".agents/skills/context-discipline/SKILL.md",
+		".agents/skills/workflow-system-master/SKILL.md",
+		".agents/skills/post-implementation-review/SKILL.md",
+		".codex/agents/post-implementation-reviewer.toml",
 		".claude/skills/runweaver-start/SKILL.md",
+		".claude/skills/context-discipline/SKILL.md",
+		".claude/skills/workflow-system-master/SKILL.md",
+		".claude/skills/post-implementation-review/SKILL.md",
+		".claude/agents/post-implementation-reviewer.md",
 		".claude/workflows/feature-delivery-swarm.md",
 	} {
 		if !Exists(filepath.Join(root, path)) {
@@ -170,8 +223,51 @@ func TestInitSmartGeneratesRuntimeShortcutsAndClaudeWorkflows(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(string(data), "runweaver start") {
-			t.Fatalf("%s does not point to runweaver start:\n%s", path, string(data))
+		if !strings.Contains(string(data), "RUNWEAVER_BIN") || !strings.Contains(string(data), "start --repo") {
+			if !strings.Contains(path, "context-discipline") {
+				t.Fatalf("%s does not point to the repo-local RunWeaver start command:\n%s", path, string(data))
+			}
+		}
+	}
+	for _, path := range []string{
+		".agents/skills/context-discipline/SKILL.md",
+		".agents/skills/runweaver-start/SKILL.md",
+		".claude/skills/context-discipline/SKILL.md",
+		".claude/skills/runweaver-start/SKILL.md",
+		".codex/agents/runweaver-swarm.toml",
+		".claude/agents/runweaver-swarm.md",
+	} {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{"--file-read", "--file-changed", "--verification-result", "--blocker"} {
+			if !strings.Contains(string(data), want) {
+				t.Fatalf("%s missing exact workflow update flag %q:\n%s", path, want, string(data))
+			}
+		}
+		if strings.Contains(string(data), "--files-changed") {
+			t.Fatalf("%s contains unsupported plural changed-files flag:\n%s", path, string(data))
+		}
+		if strings.Contains(path, "runweaver-start") {
+			for _, want := range []string{"full raw user task", "Do not summarize or shorten"} {
+				if !strings.Contains(string(data), want) {
+					t.Fatalf("%s missing raw task preservation guidance %q:\n%s", path, want, string(data))
+				}
+			}
+		}
+	}
+	for _, path := range []string{
+		".opencode/skills/metadata-refresh/SKILL.md",
+		".agents/skills/metadata-refresh/SKILL.md",
+		".claude/skills/metadata-refresh/SKILL.md",
+	} {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(data), "explicit metadata") || !strings.Contains(string(data), "--classification deterministic") {
+			t.Fatalf("%s should say metadata refresh is explicit-only and deterministic:\n%s", path, string(data))
 		}
 	}
 }
@@ -362,11 +458,12 @@ func TestInitSmartWritesRunWeaverStartupProtocolForAllRuntimes(t *testing.T) {
 		text := string(data)
 		for _, want := range []string{
 			"RunWeaver Startup Protocol",
-			"runweaver start --repo .",
+			`RUNWEAVER_BIN=".runweaver/tmp/bin/runweaver"`,
+			`"$RUNWEAVER_BIN" start --repo .`,
 			"executionContract",
 			"resume automatically",
 			"Do not ask the user to run start, resume",
-			"runweaver workflow verify --repo . --resume latest",
+			"$RUNWEAVER_BIN workflow verify --repo . --resume latest",
 		} {
 			if !strings.Contains(text, want) {
 				t.Fatalf("%s missing startup protocol fragment %q:\n%s", path, want, text)
@@ -394,8 +491,9 @@ func TestInitSmartWritesStartHereAndPreservesManualStartHere(t *testing.T) {
 	}
 	for _, want := range []string{
 		"# RunWeaver Start Here",
-		"runweaver start --repo .",
-		"runweaver status --repo .",
+		`RUNWEAVER_BIN=".runweaver/tmp/bin/runweaver"`,
+		`"$RUNWEAVER_BIN" start --repo .`,
+		`"$RUNWEAVER_BIN" status --repo .`,
 		".runweaver/tmp/current.md",
 		".runweaver/workflows",
 		"AGENTS.md",

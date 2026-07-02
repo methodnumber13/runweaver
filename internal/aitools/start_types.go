@@ -32,20 +32,23 @@ type StartResult struct {
 
 // StartExecutionContract is the short instruction block an LLM should follow next.
 type StartExecutionContract struct {
-	RunDir           string                  `json:"runDir"`
-	CheckpointPath   string                  `json:"checkpointPath"`
-	TodoPath         string                  `json:"todoPath"`
-	CurrentPhase     string                  `json:"currentPhase,omitempty"`
-	NextPhase        string                  `json:"nextPhase,omitempty"`
-	TaskTier         TaskTierResult          `json:"taskTier"`
-	Context          ContextQueryResult      `json:"context,omitempty"`
-	Participants     []string                `json:"participants"`
-	Assignments      []ParticipantAssignment `json:"assignments,omitempty"`
-	NextAction       string                  `json:"nextAction"`
-	NextVerification string                  `json:"nextVerification"`
-	PhaseCompletion  string                  `json:"phaseCompletion"`
-	TerminalRule     string                  `json:"terminalRule"`
-	ResumeStrategy   string                  `json:"resumeStrategy"`
+	RunDir             string                  `json:"runDir"`
+	CheckpointPath     string                  `json:"checkpointPath"`
+	TodoPath           string                  `json:"todoPath"`
+	CurrentPhase       string                  `json:"currentPhase,omitempty"`
+	NextPhase          string                  `json:"nextPhase,omitempty"`
+	TaskTier           TaskTierResult          `json:"taskTier"`
+	Context            ContextQueryResult      `json:"context,omitempty"`
+	Participants       []string                `json:"participants"`
+	Assignments        []ParticipantAssignment `json:"assignments,omitempty"`
+	AcceptanceCriteria []string                `json:"acceptanceCriteria,omitempty"`
+	NextAction         string                  `json:"nextAction"`
+	NextVerification   string                  `json:"nextVerification"`
+	QualityGates       []string                `json:"qualityGates,omitempty"`
+	PostReview         []string                `json:"postReview,omitempty"`
+	PhaseCompletion    string                  `json:"phaseCompletion"`
+	TerminalRule       string                  `json:"terminalRule"`
+	ResumeStrategy     string                  `json:"resumeStrategy"`
 }
 
 // RuntimeResolutionResult explains how a single runtime was selected.

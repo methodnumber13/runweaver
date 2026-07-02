@@ -129,8 +129,8 @@ func TestCLIScanAndWorkflowCommands(t *testing.T) {
 		"--resume", "latest",
 		"--phase", "scan",
 		"--status", "in_progress",
-		"--participants", "repo-surface-indexer,identity-access-agent",
-		"--participant-rationale", "identity-access-agent owns auth files",
+		"--participants", "repo-surface-indexer,auth-domain-agent",
+		"--participant-rationale", "auth-domain-agent owns auth files",
 		"--finding", "selected auth domain",
 		"--decision", "inspect auth guard first",
 		"--file-read", "src/auth/auth.guard.ts",
@@ -148,7 +148,7 @@ func TestCLIScanAndWorkflowCommands(t *testing.T) {
 		t.Fatalf("workflow update exit code = %d stderr=%q stdout=%q", code, stderr.String(), stdout.String())
 	}
 	if !strings.Contains(stdout.String(), `"currentPhase": "scan"`) ||
-		!strings.Contains(stdout.String(), `"identity-access-agent"`) ||
+		!strings.Contains(stdout.String(), `"auth-domain-agent"`) ||
 		!strings.Contains(stdout.String(), `"participantRationale"`) ||
 		!strings.Contains(stdout.String(), `"filesRead"`) ||
 		!strings.Contains(stdout.String(), `"lastResult": "scan found auth guard gap"`) ||

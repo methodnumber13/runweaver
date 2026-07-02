@@ -43,6 +43,10 @@ func workflowCurrentMarkdown(checkpoint WorkflowCheckpoint, runDir string) strin
 		b.WriteString("\n## Participants\n\n")
 		writeMarkdownList(&b, checkpoint.Participants)
 	}
+	if len(checkpoint.AcceptanceCriteria) > 0 {
+		b.WriteString("\n## Acceptance Criteria\n\n")
+		writeMarkdownList(&b, checkpoint.AcceptanceCriteria)
+	}
 	if checkpoint.LastResult != "" {
 		b.WriteString("\n## Last Result\n\n")
 		b.WriteString(checkpoint.LastResult)
@@ -73,6 +77,10 @@ func workflowCurrentMarkdown(checkpoint WorkflowCheckpoint, runDir string) strin
 	if len(checkpoint.VerificationResults) > 0 {
 		b.WriteString("\n## Verification Results\n\n")
 		writeMarkdownList(&b, checkpoint.VerificationResults)
+	}
+	if len(checkpoint.ResidualRisks) > 0 {
+		b.WriteString("\n## Residual Risks\n\n")
+		writeMarkdownList(&b, checkpoint.ResidualRisks)
 	}
 	if checkpoint.IndexFreshnessStatus != "" {
 		b.WriteString("\n## Index Freshness At Last Update\n\n")

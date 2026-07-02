@@ -80,9 +80,9 @@ func packageSkills(index RepoIndex) []SkillProfile {
 			Workflow: []string{
 				"Read .runweaver/tmp/index/repo-context.md and repo-index.compact.json before selecting tests.",
 				"Use detected test tools: " + joinHuman(index.Tools.TestTools) + ".",
-				"Run the smallest relevant command from recommended verification before broad checks.",
+				"Use runweaver start/context query to select the smallest task-scoped verification command before broad checks.",
 			},
-			Verification: index.Tools.RecommendedCommands,
+			Verification: taskScopedVerificationGuidance(),
 		})
 	}
 	if len(index.Tools.Linters) > 0 || len(index.Tools.Formatters) > 0 {
@@ -95,20 +95,21 @@ func packageSkills(index RepoIndex) []SkillProfile {
 				"Treat detected formatters as repository rules: " + joinHuman(index.Tools.Formatters) + ".",
 				"Do not introduce code style that conflicts with local config files.",
 			},
-			Verification: index.Tools.RecommendedCommands,
+			Verification: taskScopedVerificationGuidance(),
 		})
 	}
 	if hasPackageRole(index, "state-management") {
+		focusFiles := focusByCategory(index, "ui")
 		skills = append(skills, SkillProfile{
 			Name:        "state-management-surface",
 			Description: "Work on detected state management surfaces",
-			FocusFiles:  focusByCategory(index, "ui"),
+			FocusFiles:  focusFiles,
 			Workflow: []string{
 				"Trace store/actions/selectors/hooks before editing UI behavior.",
 				"Check loading, error, empty, optimistic, and cache invalidation states.",
 				"Update tests around state transitions when behavior changes.",
 			},
-			Verification: index.Tools.RecommendedCommands,
+			Verification: verificationForFocusFiles(index.Tools.RecommendedCommands, "state-management-surface", "detected state management surfaces", focusFiles, index.Surface.Stack.Kind),
 		})
 	}
 	return skills

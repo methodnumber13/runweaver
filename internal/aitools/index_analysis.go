@@ -50,7 +50,7 @@ func categoryFor(path string) string {
 		return "ui"
 	case strings.HasSuffix(lower, ".service.ts") || strings.HasSuffix(lower, ".service.js") || strings.Contains(lower, "/services/"):
 		return "service"
-	case lower == "prisma/schema.prisma" || strings.HasPrefix(lower, "prisma/migrations/") || strings.HasSuffix(lower, ".repository.ts") || strings.Contains(lower, "/repository") || strings.Contains(lower, "repository"):
+	case strings.Contains(lower, "/migrations/") || strings.HasSuffix(lower, ".repository.ts") || strings.Contains(lower, "/repository") || strings.Contains(lower, "repository"):
 		return "persistence"
 	case isConfigPath(lower):
 		return "config"
@@ -70,11 +70,8 @@ func isConfigPath(path string) bool {
 		base == "dockerfile" ||
 		base == "jenkinsfile" ||
 		base == "makefile" ||
-		base == "nest-cli.json" ||
 		strings.HasPrefix(lower, "helm/") ||
-		strings.HasPrefix(lower, "test/jest-") ||
 		strings.HasPrefix(base, "tsconfig") ||
-		strings.HasPrefix(base, "jest.config") ||
 		strings.HasPrefix(base, "docker-compose") ||
 		base == "sonar-project.properties" ||
 		base == "readme.md"
@@ -92,11 +89,11 @@ var (
 	classPattern               = regexp.MustCompile(`(?:export\s+)?(?:class|interface|type)\s+([A-Za-z0-9_]+)`)
 	goFuncPattern              = regexp.MustCompile(`func\s+(?:\([^)]+\)\s*)?([A-Za-z0-9_]+)\s*\(`)
 	javaKotlinPattern          = regexp.MustCompile(`(?:class|interface|object|fun)\s+([A-Za-z0-9_]+)`)
-	expressRoutePattern        = regexp.MustCompile(`(?:router|app)\.(get|post|put|patch|delete|options|head|all)\s*\(\s*['"]([^'"]*)['"]`)
+	jsRouteCallPattern         = regexp.MustCompile(`(?:router|app)\.(get|post|put|patch|delete|options|head|all)\s*\(\s*['"]([^'"]*)['"]`)
 	mappingPattern             = regexp.MustCompile(`@(Get|Post|Put|Patch|Delete|Request)Mapping(?:\s*\(\s*['"]([^'"]*)['"])?`)
-	nestControllerPattern      = regexp.MustCompile(`@Controller\s*\(\s*(?:\{\s*path\s*:\s*)?['"]([^'"]*)['"]`)
-	nestControllerEmptyPattern = regexp.MustCompile(`@Controller\s*\(\s*\)`)
-	nestMethodPattern          = regexp.MustCompile(`@(Get|Post|Put|Patch|Delete|Options|Head|All)\s*\(\s*(?:['"]([^'"]*)['"])?`)
+	decoratorControllerPattern = regexp.MustCompile(`@Controller\s*\(\s*(?:\{\s*path\s*:\s*)?['"]([^'"]*)['"]`)
+	emptyControllerPattern     = regexp.MustCompile(`@Controller\s*\(\s*\)`)
+	decoratorMethodPattern     = regexp.MustCompile(`@(Get|Post|Put|Patch|Delete|Options|Head|All)\s*\(\s*(?:['"]([^'"]*)['"])?`)
 )
 
 func importsFromLine(line, language string) []string {
@@ -157,7 +154,7 @@ func symbolsFromLine(line, language, path string, lineNo int) []SymbolInfo {
 func routesFromLine(line, language, path string, lineNo int) []RouteInfo {
 	var out []RouteInfo
 	if language == "typescript" || language == "javascript" {
-		for _, match := range expressRoutePattern.FindAllStringSubmatch(line, -1) {
+		for _, match := range jsRouteCallPattern.FindAllStringSubmatch(line, -1) {
 			out = append(out, RouteInfo{Method: strings.ToUpper(match[1]), Path: match[2], File: path, Line: lineNo})
 		}
 	}
@@ -173,21 +170,21 @@ func routesFromLine(line, language, path string, lineNo int) []RouteInfo {
 	return out
 }
 
-func nestControllerPathFromLine(line string) (string, bool) {
-	if nestControllerEmptyPattern.MatchString(line) {
+func decoratorControllerPathFromLine(line string) (string, bool) {
+	if emptyControllerPattern.MatchString(line) {
 		return "", true
 	}
-	if match := nestControllerPattern.FindStringSubmatch(line); len(match) > 1 {
+	if match := decoratorControllerPattern.FindStringSubmatch(line); len(match) > 1 {
 		return strings.Trim(match[1], "/"), true
 	}
 	return "", false
 }
 
-func nestRoutesFromLine(line, controllerPath, language, path string, lineNo int) []RouteInfo {
+func decoratorRoutesFromLine(line, controllerPath, language, path string, lineNo int) []RouteInfo {
 	if language != "typescript" && language != "javascript" {
 		return nil
 	}
-	match := nestMethodPattern.FindStringSubmatch(line)
+	match := decoratorMethodPattern.FindStringSubmatch(line)
 	if len(match) == 0 {
 		return nil
 	}

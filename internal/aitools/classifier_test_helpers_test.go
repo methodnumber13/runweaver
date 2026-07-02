@@ -46,23 +46,22 @@ func writeClassifierFixture(t *testing.T, root string) {
 }`)
 	writeTestFile(t, root, "package.json", `{
   "scripts": {
-    "test": "jest --config ./test/jest-unit.json --runInBand"
+    "test": "repo-test --config ./test/unit.json --serial"
   },
   "dependencies": {
-    "@nestjs/common": "^10.0.0",
-    "@nestjs/core": "^10.0.0",
-    "class-validator": "0.14.0"
+    "route-decorator-lib": "^1.0.0",
+    "schema-validator-lib": "1.0.0"
   },
   "devDependencies": {
-    "jest": "29.0.0",
-    "typescript": "^5.0.0"
+    "test-runner-lib": "1.0.0",
+    "build-compiler-lib": "^1.0.0"
   }
 }`)
 	writeTestFile(t, root, "src/main.ts", "NestFactory.create(AppModule)\n")
 	writeTestFile(t, root, "src/app.module.ts", "@Module({ imports: [] })\nexport class AppModule {}\n")
 	writeTestFile(t, root, "src/checkout/checkout.controller.ts", "@Controller('checkout')\nexport class CheckoutController {}\n")
 	writeTestFile(t, root, "src/checkout/checkout.service.ts", "export class CheckoutService {}\n")
-	writeTestFile(t, root, "test/jest-unit.json", "{}\n")
+	writeTestFile(t, root, "test/unit.json", "{}\n")
 }
 
 func profileHasAgent(repo RepoProfile, name string) bool {
